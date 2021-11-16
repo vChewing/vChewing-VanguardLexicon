@@ -1,0 +1,306 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 53;
+	objects = {
+
+/* Begin PBXFileReference section */
+		5B33B7C72760E7D500E72899 /* BPMFPunctuations.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = BPMFPunctuations.txt; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7C82760E7D500E72899 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; lineEnding = 0; path = Makefile; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7C92760E7D500E72899 /* components */ = {isa = PBXFileReference; lastKnownFileType = folder; path = components; sourceTree = "<group>"; };
+		5B33B7CA2760E7D500E72899 /* heterophony3.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = heterophony3.list; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7CB2760E7D500E72899 /* Makefile-CHS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = "Makefile-CHS"; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7CC2760E7D500E72899 /* heterophony1.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = heterophony1.list; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7CD2760E7D500E72899 /* bin */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bin; sourceTree = "<group>"; };
+		5B33B7CE2760E7D500E72899 /* heterophony4.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = heterophony4.list; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7CF2760E7D500E72899 /* Symbols.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = Symbols.txt; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7D02760E7D500E72899 /* heterophony2.list */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = heterophony2.list; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7D12760E7D500E72899 /* exclusion.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = exclusion.txt; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7D22760E7D500E72899 /* Makefile-CHT */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = "Makefile-CHT"; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7D32760E7D500E72899 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = README; sourceTree = "<group>"; usesTabs = 1; };
+		5B33B7D42760E80600E72899 /* rime-headers */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "rime-headers"; sourceTree = "<group>"; };
+		5B33B7D52760E80600E72899 /* Makefile-Rime */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; path = "Makefile-Rime"; sourceTree = "<group>"; usesTabs = 1; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		5B6FC7732760E0820060D9E0 = {
+			isa = PBXGroup;
+			children = (
+				5B33B7CD2760E7D500E72899 /* bin */,
+				5B33B7C72760E7D500E72899 /* BPMFPunctuations.txt */,
+				5B33B7C92760E7D500E72899 /* components */,
+				5B33B7D12760E7D500E72899 /* exclusion.txt */,
+				5B33B7CC2760E7D500E72899 /* heterophony1.list */,
+				5B33B7D02760E7D500E72899 /* heterophony2.list */,
+				5B33B7CA2760E7D500E72899 /* heterophony3.list */,
+				5B33B7CE2760E7D500E72899 /* heterophony4.list */,
+				5B33B7C82760E7D500E72899 /* Makefile */,
+				5B33B7CB2760E7D500E72899 /* Makefile-CHS */,
+				5B33B7D22760E7D500E72899 /* Makefile-CHT */,
+				5B33B7D32760E7D500E72899 /* README */,
+				5B33B7CF2760E7D500E72899 /* Symbols.txt */,
+				5B33B7D52760E80600E72899 /* Makefile-Rime */,
+				5B33B7D42760E80600E72899 /* rime-headers */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		5B6FC7782760E0820060D9E0 /* Data4vChewing */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = deploy;
+			buildConfigurationList = 5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "Data4vChewing" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = ./;
+			dependencies = (
+			);
+			name = Data4vChewing;
+			passBuildSettingsInEnvironment = 1;
+			productName = "vChewing-Dictionary-Data";
+		};
+		5B6FC77E2760E6F20060D9E0 /* Scheme4Rime */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "install-rime";
+			buildConfigurationList = 5B6FC77F2760E6F20060D9E0 /* Build configuration list for PBXLegacyTarget "Scheme4Rime" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = ./;
+			dependencies = (
+			);
+			name = Scheme4Rime;
+			passBuildSettingsInEnvironment = 1;
+			productName = Scheme4Rime;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		5B6FC7742760E0820060D9E0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1310;
+				TargetAttributes = {
+					5B6FC7782760E0820060D9E0 = {
+						CreatedOnToolsVersion = 13.1;
+					};
+					5B6FC77E2760E6F20060D9E0 = {
+						CreatedOnToolsVersion = 13.1;
+					};
+				};
+			};
+			buildConfigurationList = 5B6FC7772760E0820060D9E0 /* Build configuration list for PBXProject "vChewing-Dictionary-Data" */;
+			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5B6FC7732760E0820060D9E0;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5B6FC7782760E0820060D9E0 /* Data4vChewing */,
+				5B6FC77E2760E6F20060D9E0 /* Scheme4Rime */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		5B6FC7792760E0820060D9E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		5B6FC77A2760E0820060D9E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+			};
+			name = Release;
+		};
+		5B6FC77C2760E0820060D9E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5B6FC77D2760E0820060D9E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		5B6FC7802760E6F20060D9E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5B6FC7812760E6F20060D9E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5B6FC7772760E0820060D9E0 /* Build configuration list for PBXProject "vChewing-Dictionary-Data" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B6FC7792760E0820060D9E0 /* Debug */,
+				5B6FC77A2760E0820060D9E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "Data4vChewing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B6FC77C2760E0820060D9E0 /* Debug */,
+				5B6FC77D2760E0820060D9E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B6FC77F2760E6F20060D9E0 /* Build configuration list for PBXLegacyTarget "Scheme4Rime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B6FC7802760E6F20060D9E0 /* Debug */,
+				5B6FC7812760E6F20060D9E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5B6FC7742760E0820060D9E0 /* Project object */;
+}

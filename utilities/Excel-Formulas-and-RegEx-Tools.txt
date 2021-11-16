@@ -1,0 +1,19 @@
+總排序位計算公式：
+=1/((1/M8)/MAX(M:M)*(MAX(M:M)+MAX(Q:Q)+MAX(U:U)+MAX(Y:Y)+MAX(AC:AC)+MAX(AG:AG)))
+這還不是排序位。計算出來序列之後排大小列出一二三四五類推順序號就好。
+
+隨時可以用到的公式：
+=B2/SUM(B:B)*11451419
+=IF(OR(AND(C2=C3, F2<>F3),AND(C2=C1, F2<>F1)), "破義", "")
+=IF(OR(AND(RC[-2]=R[1]C[-2], RC[1]<>R[1]C[1]),AND(RC[-2]=R[-1]C[-2], RC[1]<>R[-1]C[1])), "破義", "")
+=IF(OR(AND(RC[-2]=R[1]C[-2], RC[1]=R[1]C[1]),AND(RC[-2]=R[-1]C[-2], RC[1]=R[-1]C[1])), "破音", "")
+
+=IF(AND(C2=C1, G2<>C2), "破字", "")
+
+一些與萬國碼有關的計算公式：
+=UNICHAR(HEX2DEC(A1))
+=DEC2HEX(UNICODE(B1)) ​​​​
+="["&UNICHAR(HEX2DEC(A1))&"]"
+="["&DEC2HEX(UNICODE(E7))&"]"
+
+^(?=.*?亞)(?=.*?\bㄧㄚˋ\b).*$

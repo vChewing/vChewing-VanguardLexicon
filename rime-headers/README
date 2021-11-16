@@ -1,0 +1,15 @@
+該資料夾用以配合生成 RIME 輸入法可以使用的威注音字辭庫，
+方便任何不習慣大千聲韻並擊、卻習慣於搜狗型簡拼的使用者。
+=================================================================================
+├── vchewing-tc.schema.yaml	繁體中文 RIME 威注音的輸入方案檔案
+├── vchewing-sc.schema.yaml	簡體中文 RIME 威注音的子輸入方案
+├── header-vchewing.extended.dict.yaml	威注音 RIME 擴展辭典檔案頭（可以放入全字庫音韻數據）
+├── header-vchewing.dict.yaml	威注音 RIME 字音表檔案頭
+└── header-vchewing.phrases.dict.yaml	威注音 RIME 詞音表檔案頭
+
+----- 編者按 -----
+威注音的 RIME 詞音表目前尚未完成將 heterophony 清單換算成單字按韻分頻的方法。
+不嫌機車的話，可以這樣利用威注音在編譯時生成的 data.txt：
+取 data.txt 當中的所有的單字字頻數據（分音韻），
+然後將其字頻數據在加上1之後乘以一百再加上西文半形百分號。
+總之不要出現超過 100%、也不要出現複數就好。

@@ -1,0 +1,9 @@
+# 繁體中文詞庫。
+---
+name: vchewing.phrases
+version: "DATE2REPLACE"
+sort: by_weight
+use_preset_vocabulary: true
+max_phrase_length: 7
+min_phrase_weight: 100
+...

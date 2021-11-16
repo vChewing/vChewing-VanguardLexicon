@@ -1,0 +1,71 @@
+.PHONY: all
+
+all: rime-concat rime-tidy rime-sort rime-convert rime-assembly
+
+rime-concat:
+	@echo "\033[0;32m//$$(tput bold) 正在統合八股文……$$(tput sgr0)\033[0m"
+	@> ./rime-headers/essay.txt && awk 'NR>1 && FNR==1{print ""};1' ./components/cht/freq*.txt > ./rime-headers/essay.txt
+
+	@echo "\033[0;32m//$$(tput bold) 正在統合基礎字音表……$$(tput sgr0)\033[0m"
+	@> ./rime-headers/body-vchewing.dict.yaml && awk 'NR>1 && FNR==1{print ""};1' ./components/cht/BPMFBase*.txt > ./rime-headers/body-vchewing.dict.yaml
+
+	@echo "\033[0;32m//$$(tput bold) 正在統合詞音表……$$(tput sgr0)\033[0m"
+	@> ./rime-headers/body-vchewing.phrases.dict.yaml && awk 'NR>1 && FNR==1{print ""};1' ./components/cht/BPMFMappings*.txt > ./rime-headers/body-vchewing.phrases.dict.yaml
+
+rime-tidy:
+	@echo "\033[0;32m//$$(tput bold) 正在整理八股文……$$(tput sgr0)\033[0m"
+	@sed -i '' -e "s/ /\t/g;s/\x{3000}/\t/g;s/\t+/\t/g;s/\t\n/\n/g;/^#/d" ./rime-headers/essay.txt
+	
+	@echo "\033[0;32m//$$(tput bold) 正在整理基礎字音表……$$(tput sgr0)\033[0m"
+	@sed -i '' -e "s/\t/ /g;s/  / /g;s/ \n/\n/g;s/\n\n/\n/g;/^#/d" ./rime-headers/body-vchewing.dict.yaml
+	
+	@echo "\033[0;32m//$$(tput bold) 正在整理詞音表……$$(tput sgr0)\033[0m"
+	@sed -i '' -e "s/\t/ /g;s/\x{3000}/ /g;s/ +/ /g;s/ \n/\n/g;s/ $$//g;/^#/d" ./rime-headers/body-vchewing.phrases.dict.yaml
+	@sed -i '' -e "s/｜/ㄧ/g;s/\t/ /g" ./rime-headers/body-vchewing.phrases.dict.yaml
+	@sed -i '' -e "s/ [:0-9:]*$$//g" ./rime-headers/body-vchewing.phrases.dict.yaml
+	@sed -i '' -e "s/1/˙/g;s/2/ˊ/g;s/3/ˇ/g;s/4/ˋ/g" ./rime-headers/body-vchewing.phrases.dict.yaml
+
+rime-sort:
+	@echo "\033[0;32m//$$(tput bold) 正在對八股文的重複項目進行詞頻累加……$$(tput sgr0)\033[0m"
+	@env LC_All=zh_TW.UTF8 uniq ./rime-headers/essay.txt | awk 'BEGIN{FS=OFS="\t"}{a[$$1]+=$$2}END{for(i in a){print i,a[i]}}' | sort -k1,1 | grep -v '^$$' | sed -e "/^\t/d" > tmp && mv tmp ./rime-headers/essay.txt
+	@env LC_All=zh_TW.UTF8 sort -u -k1 ./rime-headers/body-vchewing.dict.yaml | awk -F "\"* \"*" '{print $$1"\t"$$2}' | grep -v '^$$' | sed -e "/^\t/d" > tmp && mv tmp ./rime-headers/body-vchewing.dict.yaml
+	@env LC_All=zh_TW.UTF8 sort -u -k1 ./rime-headers/body-vchewing.phrases.dict.yaml | grep -v '^$$' > tmp && mv tmp ./rime-headers/body-vchewing.phrases.dict.yaml
+	@perl -pe 's/ /\t/' ./rime-headers/body-vchewing.phrases.dict.yaml > tmp && mv tmp ./rime-headers/body-vchewing.phrases.dict.yaml
+
+rime-check:
+	@echo "\033[0;32m//$$(tput bold) 檢查是否有詞條尚未在八股文與詞庫間同步……$$(tput sgr0)\033[0m"
+	@awk 'length($$1)/3!=NF-1' ./rime-headers/body-vchewing.phrases.dict.yaml
+	@awk '{print $$2,$$3,$$4,$$5,$$6,$$7}' ./rime-headers/body-vchewing.phrases.dict.yaml | awk '/一/'
+	@echo "vchewing.phrases.dict.yaml 總行數:"
+	@awk '{print $$1}' ./rime-headers/body-vchewing.phrases.dict.yaml | uniq | wc -l
+	@echo "八股文總行數:"
+	@awk 'length($$1)>3{print $$1}' ./rime-headers/essay.txt | uniq |wc -l
+
+rime-convert:
+	@echo "\033[0;32m//$$(tput bold) 將字音表內的注音轉換成 RIME 所需的拼音二式，非常久，靠北 SED……$$(tput sgr0)\033[0m"
+	@sed -i '' -f ./utilities/CONV-BPMF2HYPY.SED ./rime-headers/body-vchewing.dict.yaml
+	@echo "\033[0;32m//$$(tput bold) 將詞音表內的注音轉換成 RIME 所需的拼音二式，非常久，靠北 SED……$$(tput sgr0)\033[0m"
+	@sed -i '' -f ./utilities/CONV-BPMF2HYPY.SED ./rime-headers/body-vchewing.phrases.dict.yaml
+
+rime-assembly:
+	@echo "\033[0;32m//$$(tput bold) 正在組裝基礎字音表……$$(tput sgr0)\033[0m"
+	@> ./rime-headers/vchewing.dict.yaml && cat ./rime-headers/header-vchewing.dict.yaml ./rime-headers/body-vchewing.dict.yaml | sed "s/DATE2REPLACE/$$(date '+%Y.%m.%d')/" > ./rime-headers/vchewing.dict.yaml
+	
+	@echo "\033[0;32m//$$(tput bold) 正在組裝詞音表……$$(tput sgr0)\033[0m"
+	@> ./rime-headers/vchewing.phrases.dict.yaml && cat ./rime-headers/header-vchewing.phrases.dict.yaml ./rime-headers/body-vchewing.phrases.dict.yaml | sed "s/DATE2REPLACE/$$(date '+%Y.%m.%d')/" > ./rime-headers/vchewing.phrases.dict.yaml
+
+	@echo "\033[0;32m//$$(tput bold) 正在將生成的威注音方案統整至本倉庫內的發行資料夾下……$$(tput sgr0)\033[0m"
+	@mkdir -p ./Build/Products/Rime/
+	@mv -f ./rime-headers/vchewing.dict.yaml ./Build/Products/Rime/
+	@mv -f ./rime-headers/vchewing.phrases.dict.yaml ./Build/Products/Rime/
+	@mv -f ./rime-headers/essay.txt ./Build/Products/Rime/
+	@cp -f ./rime-headers/*.schema.yaml ./Build/Products/Rime/
+	
+rime-clean:
+	@echo "\033[0;32m//$$(tput bold) 清理編譯時的中繼檔案……$$(tput sgr0)\033[0m"
+	@rm ./rime-headers/body*.yaml || true
+
+rime-deploy: all rime-clean
+	@echo "\033[0;32m//$$(tput bold) 正在將生成的威注音方案布署至您的 RIME 個人資料夾……$$(tput sgr0)\033[0m"
+	@cp -f ./Build/Products/Rime/vchewing*.yaml ~/Library/Rime/
+	@cp -f ./Build/Products/Rime/essay.txt ~/Library/Rime/

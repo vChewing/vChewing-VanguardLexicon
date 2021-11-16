@@ -1,0 +1,35 @@
+├── BPMFBase.txt		Bopomofo Table for chars
+├── BPMFMappings.txt		Bopomofo Table for 2-char words to 6-char words
+|                                  Originally simplified from tsi.src of libtabe
+|                                  (BSD Licensed) with my own and zonble's
+|                                  modification.
+├── BPMFPunctuations.txt	Punctuation table
+├── heterophony1.list		table for char heterophony, first order
+├── heterophony2.list		table for char heterophony, second order
+├── heterophony3.list		table for char heterophony, third order
+├── phrase.occ			table for appearance of a word in a text pool
+├── Makefile			for conveniences for developers
+└── bin
+    ├── cook.py			The tool to build the data.txt for McBopomofo
+    ├── buildFreq.bash		The awk script for counting occurance
+    ├── bpmfmap.py		mapping bpmf automatically and primitively
+    ├── cook-plain-bpmf.py	build data file for tranditional bpmf ime
+    ├── count.bash		a wrapper for a C-based counting facility
+    ├── count.occurrence.c	a C-based counting facility for command line
+    └── count.occurrence.py	a python-based counter for the whole list
+
+----- Editorial Rule -----
+* when in doubt, use google/yahoo search to confirm the rarity of the phrases
+  for example search: "一瞻丰采" site:.tw
+  - if the amount of the results is under 1000, it's likely okay to remove this
+    phrase
+  - if tsi.src variants showed up in the first page of the results, you should
+    remove this phrase. Tsi.src variants include SEO sites, this phenomenom is
+    quite amazing itself.
+  - for idioms, it's possible the first hit is the idiom database, it's up to 
+    the editor to decide.
+  - if this candidate is apparent part of a long phrase and the segmentation is
+    apparently incorrect, find a way to remove the phrase candidate and replace
+    it with the complete one, but forget about it if the length is longer than
+    6.
+* We need to constantly remind ourself, IME is not an idiom database.

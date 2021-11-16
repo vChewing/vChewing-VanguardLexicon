@@ -1,0 +1,39 @@
+# Rime schema
+# encoding: utf-8
+
+__include: vchewing-tc.schema:/
+
+
+schema:
+  schema_id: vchewing-sc
+  name: 威注音-简体中文
+  version: '2.4'
+  author:
+    - 佛振 Lotem <chen.sst@gmail.com>
+    - 孙志贵 Shiki Suen <shikisuen@pm.me>
+  description: |
+    注音符号输入，采用「大千式」键盘排列。
+
+    本方案采用「无模式」设计，以大写字母键或上下方向键、回车键选词；
+    空格键输入第一声，标记为「ˉ」。
+
+    请配合 librime>=1.3 使用。
+    
+    「威注音」是为了让已经熟悉新酷音与奇摩注音的音韵方案的人群更方便使用 Rime 而生的。
+    因简繁体模式的辞库各自独立（以彻底规避 OpenCC 可能的不足或过度操作），故移除简繁转换功能。
+
+speller:
+  algebra:
+    __patch:
+      - zhuyin:/pinyin_to_zhuyin
+      - zhuyin:/abbreviation
+      - zhuyin:/keymap_bopomofo
+
+translator:
+  prism: vchewing-tc
+
+# 預設啟用轉簡體中文模式
+__patch:
+  - switches/@2/reset: 1
+  - grammar:/hant?
+  - vchewing-sc.custom:/patch?

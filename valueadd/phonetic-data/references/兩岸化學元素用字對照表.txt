@@ -1,0 +1,119 @@
+元素位置	符號	繁規	港繁	大陸	台简	拉拼	陆台一致	有港	简台一致
+1	H	氫		氢		hydrogen	否		
+2	He	氦		氦		helium			
+3	Li	鋰		锂		lithium	否		
+4	Be	鈹		铍		beryllium	否		
+5	B	硼		硼		boron			
+6	C	碳		碳		carbon			
+7	N	氮		氮		nitrogen			
+8	O	氧		氧		oxygen			
+9	F	氟		氟		fluorine			
+10	Ne	氖		氖		neon			
+11	Na	鈉		钠		sodium （符號來自拉丁語natrium）	否		
+12	Mg	鎂		镁		magnesium	否		
+13	Al	鋁		铝		aluminium	否		
+14	Si	矽		硅		silicon	否		
+15	P	磷		磷		phosphorus			
+16	S	硫		硫		sulfur/sulphur			
+17	Cl	氯		氯		chlorine			
+18	Ar	氬		氩		argon	否		
+19	K	鉀		钾		potassium （符號來自德語kalium）	否		
+20	Ca	鈣		钙		calcium	否		
+21	Sc	鈧		钪		scandium	否		
+22	Ti	鈦		钛		titanium	否		
+23	V	釩		钒		vanadium	否		
+24	Cr	鉻		铬		chromium	否		
+25	Mn	錳		锰		manganese	否		
+26	Fe	鐵		铁		iron （符號來自拉丁語ferrum）	否		
+27	Co	鈷		钴		cobalt	否		
+28	Ni	鎳		镍		nickel	否		
+29	Cu	銅		铜		copper （符號來自拉丁語cuprum）	否		
+30	Zn	鋅		锌		zinc	否		
+31	Ga	鎵		镓		gallium	否		
+32	Ge	鍺		锗		germanium	否		
+33	As	砷		砷		arsenic			
+34	Se	硒		硒		selenium			
+35	Br	溴		溴		bromine			
+36	Kr	氪		氪		krypton			
+37	Rb	銣		铷		rubidium	否		
+38	Sr	鍶		锶		strontium	否		
+39	Y	釔		钇		yttrium	否		
+40	Zr	鋯		锆		zirconium	否		
+41	Nb	鈮		铌		niobium	否		
+42	Mo	鉬		钼		molybdenum	否		
+43	Tc	鎝	鍀	锝	𨱏	technetium	否	有	
+44	Ru	釕		钌		ruthenium	否		
+45	Rh	銠		铑		rhodium	否		
+46	Pd	鈀		钯		palladium	否		
+47	Ag	銀		银		silver （符號來自拉丁語argentum）	否		
+48	Cd	鎘		镉		cadmium	否		
+49	In	銦		铟		indium	否		
+50	Sn	錫		锡		tin （符號來自拉丁語stannum）	否		
+51	Sb	銻		锑		antimony （符號來自拉丁語stibium）	否		
+52	Te	碲		碲		tellurium			
+53	I	碘		碘		iodine			
+54	Xe	氙		氙		xenon			
+55	Cs	銫		铯		caesium/cesium	否		
+56	Ba	鋇		钡		barium	否		
+57	La	鑭		镧		lanthanum	否		
+58	Ce	鈰		铈		cerium	否		
+59	Pr	鐠		镨		praseodymium	否		
+60	Nd	釹		钕		neodymium	否		
+61	Pm	鉕		钷		promethium	否		
+62	Sm	釤		钐		samarium	否		
+63	Eu	銪		铕		europium	否		
+64	Gd	釓		钆		gadolinium	否		
+65	Tb	鋱		铽		terbium	否		
+66	Dy	鏑		镝		dysprosium	否		
+67	Ho	鈥		钬		holmium	否		
+68	Er	鉺		铒		erbium	否		
+69	Tm	銩		铥		thulium	否		
+70	Yb	鐿		镱		ytterbium	否		
+71	Lu	鎦	鑥	镥	镏	lutetium	否	有	
+72	Hf	鉿		铪		hafnium	否		
+73	Ta	鉭		钽		tantalum	否		
+74	W	鎢		钨		tungsten （符號來自德語wolfram）	否		
+75	Re	錸		铼		rhenium	否		
+76	Os	鋨		锇		osmium	否		
+77	Ir	銥		铱		iridium	否		
+78	Pt	鉑		铂		platinum	否		
+79	Au	金		金		gold （符號來自拉丁語aurum）			
+80	Hg	汞		汞		mercury （符號來自拉丁語hydrargyrum）			
+81	Tl	鉈		铊		thallium	否		
+82	Pb	鉛		铅		lead （符號來自拉丁語plumbum）	否		
+83	Bi	鉍		铋		bismuth	否		
+84	Po	釙		钋		polonium	否		
+85	At	砈		砹		astatine	否		
+86	Rn	氡		氡		radon			
+87	Fr	鍅	鈁	钫	鍅	francium	否	有	Yes
+88	Ra	鐳		镭		radium	否		
+89	Ac	錒		锕		actinium	否		
+90	Th	釷		钍		thorium	否		
+91	Pa	鏷		镤		protactinium	否		
+92	U	鈾		铀		uranium	否		
+93	Np	錼	鎿	镎	錼	neptunium	否	有	Yes
+94	Pu	鈽	鈈	钚	钸	plutonium	否	有	
+95	Am	鋂	鎇	镅	鋂	americium	否	有	Yes
+96	Cm	鋦		锔		curium	否		
+97	Bk	鉳	錇	锫	鉳	berkelium	否	有	Yes
+98	Cf	鉲	鐦	锎	鉲	californium	否	有	Yes
+99	Es	鑀	鎄	锿	鑀	einsteinium	否	有	Yes
+100	Fm	鐨		镄		fermium	否		
+101	Md	鍆		钔		mendelevium	否		
+102	No	鍩		锘		nobelium	否		
+103	Lr	鐒		铹		lawrencium	否		
+104	Rf	鑪		𬬻		rutherfordium	否		
+105	Db	𨧀		𬭊		dubnium	否		
+106	Sg	𨭎		𬭳		seaborgium	否		
+107	Bh	𨨏		𬭛		bohrium	否		
+108	Hs	𨭆		𬭶		hassium	否		
+109	Mt	䥑		鿏		meitnerium	否		
+110	Ds	鐽		𫟼		darmstadtium	否		
+111	Rg	錀		𬬭		roentgenium	否		
+112	Cn	鎶		鿔		copernicium	否		
+113	Nh	鉨		鿭		nihonium	否		
+114	Fl	鈇		𫓧		flerovium	否		
+115	Mc	鏌		镆		moscovium	否		
+116	Lv	鉝		𫟷		livermorium	否		
+117	Ts	鿬		鿬		tennessine			
+118	Og	鿫		鿫		oganesson			

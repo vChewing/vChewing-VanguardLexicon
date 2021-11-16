@@ -1,0 +1,11 @@
+#繁體中文音韻庫。
+#繁體中文威注音總字詞庫索引。
+---
+name: vchewing
+version: "DATE2REPLACE"
+sort: by_weight
+use_preset_vocabulary: true
+import_tables:
+  - vchewing.phrases
+#  - vchewing.extended
+...

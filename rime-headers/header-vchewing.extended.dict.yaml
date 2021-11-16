@@ -1,0 +1,9 @@
+# 該詞庫提供全字庫支援，恐需在系統內安裝花園明朝、方可正常顯示。
+---
+name: vchewing.extended
+version: "DATE2REPLACE"
+sort: by_weight
+use_preset_vocabulary: true
+max_phrase_length: 7
+min_phrase_weight: 100
+...

@@ -1297,6 +1297,10 @@ s/gé/ge2/g
 s/gě/ge3/g
 s/gè/ge4/g
 s/ge/ge5/g
+s/gī/gi1/g
+s/gí/gi2/g
+s/gǐ/gi3/g
+s/gì/gi4/g
 s/gū/gu1/g
 s/gú/gu2/g
 s/gǔ/gu3/g

@@ -350,6 +350,7 @@ s/ㄈㄛ/fo1/g
 s/ㄈㄨ/fu1/g
 s/ㄍㄚ/ga1/g
 s/ㄍㄜ/ge1/g
+s/ㄍㄧ/gi1/g
 s/ㄍㄨ/gu1/g
 s/ㄏㄚ/ha1/g
 s/ㄏㄜ/he1/g

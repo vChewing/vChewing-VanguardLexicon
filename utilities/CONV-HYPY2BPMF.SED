@@ -359,6 +359,7 @@ s/fo/ㄈㄛ/g
 s/fu/ㄈㄨ/g
 s/ga/ㄍㄚ/g
 s/ge/ㄍㄜ/g
+s/gi/ㄍㄧ/g
 s/gu/ㄍㄨ/g
 s/ha/ㄏㄚ/g
 s/he/ㄏㄜ/g

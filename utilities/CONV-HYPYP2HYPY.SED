@@ -834,6 +834,7 @@ s/kàn/kan4/g
 s/kēn/ken1/g
 s/kěn/ken3/g
 s/kèn/ken4/g
+s/kiū/kiu1/g
 s/kuā/kua1/g
 s/kuǎ/kua3/g
 s/kuà/kua4/g

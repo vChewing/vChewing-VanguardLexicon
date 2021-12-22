@@ -51,6 +51,7 @@ s/ㄐㄧㄢ/jian1/g
 s/ㄐㄧㄠ/jiao1/g
 s/ㄐㄧㄥ/jing1/g
 s/ㄐㄩㄢ/juan1/g
+s/ㄎㄧㄡ/kiu1/g
 s/ㄎㄨㄥ/kong1/g
 s/ㄎㄨㄞ/kuai1/g
 s/ㄎㄨㄢ/kuan1/g

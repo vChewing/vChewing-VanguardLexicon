@@ -222,6 +222,7 @@ s/kai/ㄎㄞ/g
 s/kan/ㄎㄢ/g
 s/kao/ㄎㄠ/g
 s/ken/ㄎㄣ/g
+s/kiu/ㄎㄧㄡ/g
 s/kou/ㄎㄡ/g
 s/kua/ㄎㄨㄚ/g
 s/kui/ㄎㄨㄟ/g

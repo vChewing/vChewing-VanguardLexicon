@@ -1,15 +1,26 @@
+# Derived Data
 Build
-vChewing-Dictionary-Data.xcodeproj/project.xcworkspace
-vChewing-Dictionary-Data.xcodeproj/xcuserdata
+phone.cin
+phone.cin-CNS11643-complete.patch
+tsi.src
+tsi-chs.src
+data-plain-bpmf.txt
+data-plain-bpmf-chs.txt
+data.txt
+data-chs.txt
+
+# Misc
+*.xcodeproj/project.xcworkspace
+*.xcodeproj/xcuserdata
 BPMFBase.txt
 BPMFMappings.txt
-data-plain-bpmf.txt
-data.txt
 phrase.list
 phrase.occ
 PhraseFreq.txt
 tmp
 .!*.txt
+~$*
+.~*
 
 # General
 .DS_Store
@@ -38,8 +49,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 BPMFMappings-tmp.txt
-.~lock.*
 .vscode/configurationCache.log
 .vscode/dryrun.log
 .vscode/settings.json
 .vscode/targets.log
+.vscode
+tsi.src

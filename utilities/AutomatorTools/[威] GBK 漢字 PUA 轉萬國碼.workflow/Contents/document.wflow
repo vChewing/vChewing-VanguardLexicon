@@ -59,7 +59,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>sed -f ~/Repos/vchewing-lingual-data/utilities/CONV-PUA2UNI.SED</string>
+					<string>sed -f ~/Repos/libvchewing-data/utilities/CONV-PUA2UNI.SED</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
 					<key>inputMethod</key>

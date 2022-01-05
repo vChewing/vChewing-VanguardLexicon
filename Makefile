@@ -11,7 +11,7 @@ clean:
 	@rm -rf ./Build
 	@rm -rf tsi.src tsi-chs.src data.txt data-chs.txt data-plain-bpmf.txt data-plain-bpmf-chs.txt phone.cin phone-CNS11643-complete.cin
 		
-install: install-vchewing install-mcbopomo clean
+install: install-mcbopomo clean
 
 deploy: clean _deploy
 
@@ -98,11 +98,11 @@ _remotedeploy-mcbopomo: _install
 	@rsync -avx data.txt data-plain-bpmf.txt $(RHOST):"Library/Input\ Methods/McBopomofo.app/Contents/Resources/"
 	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f McBopomofo || echo Remote McBopomofo is not running" || true
 
-install-vchewing: tsi-chs
+install-vchewing: tsi-chs tsi-cht
 	@pkill -HUP -f McBopomofo || echo "// Deploying Dictionary files for vChewing...."
 	rm $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/data*.txt || true
 	@cp -a data-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a data-plain-bpmf-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a data.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
 
 _remotedeploy-vchewing: _install

@@ -28,9 +28,9 @@ if __name__ == '__main__':
 		# 對出現次數小於 1 的詞條，將 0 當成 0.5 來處理、以防止除零。
 		# 統計公式著作權歸 MJHsieh 所有。
 		if float(entry['count']) < 1:
-			entry['freq'] = math.log(fscale**(len(entry['kanji'])/3-1)*0.5/norm, 10)
+			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*0.5/norm, 10), 3)
 		else:
-			entry['freq'] = math.log(fscale**(len(entry['kanji'])/3-1)*float(entry['count'])/norm, 10)
+			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*float(entry['count'])/norm, 10), 3)
 		handle.write('%s %s %s\n' % (entry['kanji'], entry['bpmf'], entry['freq']))
 	handle.close()
 	# 第三次讀取「tsi.csv」，生成辭典以及 macOS 版威注音與小麥注音專用的 data-plain-bpmf.txt。
@@ -41,9 +41,7 @@ if __name__ == '__main__':
 	except IOError as e:
 		print(("({})".format(e)))
 	for entry in dictionary:
-		# 將新酷音的詞語出現次數數據轉換成小麥引擎可讀的數據形式。
-		# 對出現次數小於 1 的詞條，將 0 當成 0.5 來處理、以防止除零。
-		# 統計公式著作權歸 MJHsieh 所有。
+		# ㄅ半注音的詞頻全部清零。
 		entry['zerofreq'] = 0.0
 		if len(entry['kanji']) == 1:
 			handle.write('%s %s %s\n' % (entry['kanji'], entry['bpmf'], entry['zerofreq']))

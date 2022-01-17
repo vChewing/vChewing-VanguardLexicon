@@ -1,17 +1,13 @@
 SHELL := /bin/sh
-.PHONY: all gc CHSBuild install install-vchewing install-mcbopomo _remotedeploy-mcbopomo _remotedeploy-vchewing deploy _deploy clean semiclean BuildDir concat-kanji-core tsi-initial tsi-chs tsi-cht phone.cin
+.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs tsi-cht phone.cin
 
-all: tsi-cht phone.cin
-
-CHSBuild: tsi-chs phone.cin
-
-vChewing-macOSBuild: tsi-chs tsi-cht
+all: macv wintsi phone.cin
 
 clean:
 	@rm -rf ./Build
-	@rm -rf tsi.src tsi-chs.src data.txt data-chs.txt data-plain-bpmf.txt data-plain-bpmf-chs.txt phone.cin phone-CNS11643-complete.cin
+	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt phone.cin phone.cin-CNS11643-complete.patch
 		
-install: install-mcbopomo clean
+install: install-vchewing clean
 
 deploy: clean _deploy
 
@@ -23,36 +19,37 @@ BuildDir:
 
 #==== 下述两组功能，不算注释的话，前兩行内容完全雷同。 ====#
 
-tsi-chs: BuildDir
-	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
-	@rm -f ./Build/DerivedData/tsi.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi.csv
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成簡體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi.src & data.txt & data-plain-bpmf.txt（簡體中文）……$$(tput sgr0)\033[0m"
-	@> ./data.txt &&> ./data-plain-bpmf.txt &&> ./tsi.src
-	@./bin/cook_neo.py
-	@mv ./data.txt ./data-chs.txt && mv ./data-plain-bpmf.txt ./data-plain-bpmf-chs.txt && mv ./tsi.src ./tsi-chs.src
+macv: tsi-chs tsi-cht
+	@> ./data-chs.txt &&> ./data-cht.txt
+	@./bin/cook_mac.py
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入標點符號與特殊表情……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data-chs.txt
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$1,$$2,"0.0"}' >> ./data-plain-bpmf-chs.txt
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data-cht.txt
+	
+winv: tsi-chs tsi-cht
+	@> ./tsi-chs.src &&> ./tsi-cht.src
+	@./bin/cook_windows.py
+
+tsi-chs: BuildDir
+	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
+	@rm -f ./Build/DerivedData/tsi-chs.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-chs.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成簡體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi-chs.src & data-chs.txt（簡體中文）……$$(tput sgr0)\033[0m"
 
 tsi-cht: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
-	@rm -f ./Build/DerivedData/tsi.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi.csv
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi.csv
+	@rm -f ./Build/DerivedData/tsi-cht.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-cht.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成繁體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi.csv
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（繁體中文）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi.src & data.txt & data-plain-bpmf.txt（繁體中文）……$$(tput sgr0)\033[0m"
-	@> ./data.txt &&> ./data-plain-bpmf.txt &&> ./tsi.src
-	@./bin/cook_neo.py
-	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入標點符號與特殊表情……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data.txt
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$1,$$2,"0.0"}' >> ./data-plain-bpmf.txt
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi-cht.src & data-cht.txt（繁體中文）……$$(tput sgr0)\033[0m"
+
 
 #==== PHONE.CIN ====#
 phone.cin: BuildDir
@@ -87,33 +84,20 @@ phone.cin: BuildDir
 	@diff -u "./Build/Products/phone.cin" "./Build/Products/phone-CNS11643-complete.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
 
 # FOR INTERNAL USE
-install-mcbopomo: tsi-cht
-	@pkill -HUP -f McBopomofo || echo "// Deploying Dictionary files for McBopomofo...."
-	rm $(HOME)/Library/Input\ Methods/McBopomofo.app/Contents/Resources/data*.txt || true
-	@cp -a data.txt $(HOME)/Library/Input\ Methods/McBopomofo.app/Contents/Resources/data.txt
-	@cp -a data-plain-bpmf.txt $(HOME)/Library/Input\ Methods/McBopomofo.app/Contents/Resources/data-plain-bpmf.txt
-	@pkill -HUP -f McBopomofo || echo "// McBopomofo is not running"
-
-_remotedeploy-mcbopomo: _install
-	@rsync -avx data.txt data-plain-bpmf.txt $(RHOST):"Library/Input\ Methods/McBopomofo.app/Contents/Resources/"
-	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f McBopomofo || echo Remote McBopomofo is not running" || true
-
-install-vchewing: tsi-chs tsi-cht
+install-vchewing: macv
 	@pkill -HUP -f McBopomofo || echo "// Deploying Dictionary files for vChewing...."
 	rm $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/data*.txt || true
 	@cp -a data-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a data.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a data-cht.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
 
-_remotedeploy-vchewing: _install
-	@rsync -avx data-chs.txt data-plain-bpmf-chs.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
+_remotedeploy-vchewing: macv
+	@rsync -avx data-chs.txt data-cht.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
 	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f vChewing || echo Remote vChewing is not running" || true
 
 _deploy:
 	cp -R ./* ~/Repos/vChewing-CHS/Source/Data/ || true
 	rm -rf ~/Repos/vChewing-CHS/Source/Data/Build || true
-	cp -R ./* ~/Repos/McBopomofo-Safe/Source/Data/ || true
-	rm -rf ~/Repos/McBopomofo-Safe/Source/Data/Build || true
 
 gc:
 	git reflog expire --expire=now --all ; git gc --prune=now --aggressive

@@ -20,6 +20,7 @@ BuildDir:
 #==== 下述两组功能，不算注释的话，前兩行内容完全雷同。 ====#
 
 macv: tsi-chs tsi-cht
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在生成 data-chs.txt & data-cht.txt……$$(tput sgr0)\033[0m"
 	@> ./data-chs.txt &&> ./data-cht.txt
 	@./bin/cook_mac.py
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入標點符號與特殊表情……$$(tput sgr0)\033[0m"
@@ -27,6 +28,7 @@ macv: tsi-chs tsi-cht
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data-cht.txt
 	
 winv: tsi-chs tsi-cht
+	@echo "\033[0;32m//$$(tput bold) 非: 正在生成 tsi-chs.src && tsi-cht.src……$$(tput sgr0)\033[0m"
 	@> ./tsi-chs.src &&> ./tsi-cht.src
 	@./bin/cook_windows.py
 
@@ -38,7 +40,6 @@ tsi-chs: BuildDir
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi-chs.src & data-chs.txt（簡體中文）……$$(tput sgr0)\033[0m"
 
 tsi-cht: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
@@ -48,8 +49,6 @@ tsi-cht: BuildDir
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（繁體中文）……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
-	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成 tsi-cht.src & data-cht.txt（繁體中文）……$$(tput sgr0)\033[0m"
-
 
 #==== PHONE.CIN ====#
 phone.cin: BuildDir

@@ -1,3 +1,9 @@
+， _ctrl_punctuation_, 0.0
+。 _ctrl_punctuation_. 0.0
+、 _ctrl_punctuation_' 0.0
+； _ctrl_punctuation_; 0.0
+？ _ctrl_punctuation_/ 0.0
+！ _ctrl_punctuation_! 0.0
 「 _punctuation_[ 0.0
 “ _punctuation_[ 0.0
 《 _punctuation_[ 0.0

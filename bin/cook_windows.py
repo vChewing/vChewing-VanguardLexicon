@@ -21,7 +21,7 @@ if __name__ == '__main__':
 	dictionary = csv.DictReader(open("./Build/DerivedData/tsi-cht.csv"), delimiter='\t')
 	print ("正在生成新酷音引擎與 Windows 版威注音專用的 tsi-cht.src")
 	try:
-		handle = open('tsi-cht.src', "w")
+		handle = open('./Build/DerivedData/tsi-cht-notyetfinished.src', "w")
 	except IOError as e:
 		print(("({})".format(e)))
 	for entry in dictionary:
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	dictionary = csv.DictReader(open("./Build/DerivedData/tsi-chs.csv"), delimiter='\t')
 	print ("正在生成新酷音引擎與 Windows 版威注音專用的 tsi-chs.src")
 	try:
-		handle = open('tsi-chs.src', "w")
+		handle = open('./Build/DerivedData/tsi-chs-notyetfinished.src', "w")
 	except IOError as e:
 		print(("({})".format(e)))
 	for entry in dictionary:

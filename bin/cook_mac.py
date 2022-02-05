@@ -21,7 +21,7 @@ if __name__ == '__main__':
 	dictionary = csv.DictReader(open("./Build/DerivedData/tsi-cht.csv"), delimiter='\t')
 	print ("正在生成 macOS 版威注音與小麥注音專用的 data-cht.txt")
 	try:
-		handle = open('data-cht.txt', "w")
+		handle = open('./Build/DerivedData/unsorted-data-cht.txt', "w")
 	except IOError as e:
 		print(("({})".format(e)))
 	for entry in dictionary:
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*0.5/norm, 10), 3)
 		else:
 			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*float(entry['count'])/norm, 10), 3)
-		handle.write('%s %s %s\n' % (entry['kanji'], entry['bpmf'], entry['freq']))
+		handle.write('%s %s %s\n' % (entry['bpmf'], entry['kanji'], entry['freq']))
 	handle.close()
 
 	# zh-Hans
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	dictionary = csv.DictReader(open("./Build/DerivedData/tsi-chs.csv"), delimiter='\t')
 	print ("正在生成 macOS 版威注音與小麥注音專用的 data-chs.txt")
 	try:
-		handle = open('data-chs.txt', "w")
+		handle = open('./Build/DerivedData/unsorted-data-chs.txt', "w")
 	except IOError as e:
 		print(("({})".format(e)))
 	for entry in dictionary:
@@ -56,5 +56,5 @@ if __name__ == '__main__':
 			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*0.5/norm, 10), 3)
 		else:
 			entry['freq'] = round(math.log(fscale**(len(entry['kanji'])/3-1)*float(entry['count'])/norm, 10), 3)
-		handle.write('%s %s %s\n' % (entry['kanji'], entry['bpmf'], entry['freq']))
+		handle.write('%s %s %s\n' % (entry['bpmf'], entry['kanji'], entry['freq']))
 	handle.close()

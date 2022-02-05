@@ -21,12 +21,18 @@ BuildDir:
 
 macv: tsi-chs tsi-cht
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在生成 data-chs.txt & data-cht.txt……$$(tput sgr0)\033[0m"
-	@> ./data-chs.txt &&> ./data-cht.txt
+	@> ./data-chs.txt &&> ./data-cht.txt &&> ./Build/DerivedData/unsorted-data-chs.txt &&> ./Build/DerivedData/unsorted-data-cht.txt
 	@./bin/cook_mac.py
-	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入標點符號與特殊表情……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data-chs.txt
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-*.txt | sed -e "/^[[:space:]]*$$/d" >> ./data-cht.txt
-	
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入標點符號……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-misc-*.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1,$$3,$$4}' | sort -k1,1 -k4,4nr | awk 'BEGIN {FS=OFS=" "}; {print $$1,$$2,$$3}'  >> ./data-chs.txt
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-misc-*.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1,$$3,$$4}' | sort -k1,1 -k4,4nr | awk 'BEGIN {FS=OFS=" "}; {print $$1,$$2,$$3}'  >> ./data-cht.txt
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在插入有讀音的符號表情……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-symbols.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1,$$3}' >> ./Build/DerivedData/unsorted-data-chs.txt
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/macos-symbols.txt | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1,$$3}' >> ./Build/DerivedData/unsorted-data-cht.txt
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在執行預先排序……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/unsorted-data-chs.txt | sort -k1,1 -k3,3nr >> ./data-chs.txt
+	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/unsorted-data-cht.txt | sort -k1,1 -k3,3nr >> ./data-cht.txt
+
 winv: tsi-chs tsi-cht
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成 tsi-chs.src && tsi-cht.src……$$(tput sgr0)\033[0m"
 	@> ./tsi-chs.src &&> ./tsi-cht.src
@@ -37,7 +43,7 @@ winv: tsi-chs tsi-cht
 tsi-chs: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
 	@rm -f ./Build/DerivedData/tsi-chs.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-chs.csv
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成簡體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
@@ -46,11 +52,12 @@ tsi-chs: BuildDir
 tsi-cht: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
 	@rm -f ./Build/DerivedData/tsi-cht.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-cht.csv
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3  | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成繁體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（繁體中文）……$$(tput sgr0)\033[0m"
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
+
 
 #==== PHONE.CIN ====#
 phone.cin: BuildDir

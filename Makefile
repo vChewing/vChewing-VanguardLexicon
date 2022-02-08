@@ -86,10 +86,12 @@ phone.cin: BuildDir
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin
-	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete.cin
-	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone-CNS11643-complete.cin
-	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone-CNS11643-complete.cin
-	@cat ./Build/DerivedData/phone.cinraw-cns.txt | uniq >> ./Build/Products/phone-CNS11643-complete.cin
+	@> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-cns.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/Products/phone-CNS11643-complete-notUnified.cin | uniq >> ./Build/Products/phone-CNS11643-complete.cin
 	@echo "%chardef  end" >> ./Build/Products/phone-CNS11643-complete.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone-CNS11643-complete.cin
 

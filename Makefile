@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs tsi-cht phone.cin
+.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs tsi-cht phone-cht.cin phone-chs.cin
 
 all: macv winv phone.cin
 
@@ -60,7 +60,7 @@ tsi-cht: BuildDir
 
 
 #==== PHONE.CIN ====#
-phone.cin: BuildDir
+phone-cht.cin: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字字音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
 	@> ./Build/DerivedData/phone.cinraw-core.txt
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -rn -k3 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
@@ -97,6 +97,45 @@ phone.cin: BuildDir
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成針對基礎集的全字庫差分增補檔案……$$(tput sgr0)\033[0m"
 	@diff -u "./Build/Products/phone.cin" "./Build/Products/phone-CNS11643-complete.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
+
+phone-chs.cin: BuildDir
+	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字字音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
+	@> ./Build/DerivedData/phone.cinraw-core.txt
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -rn -k2 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
+	@> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-phrasesonly.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED >> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
+
+	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字大千鍵序表草稿（全字庫）……$$(tput sgr0)\033[0m"
+	@> ./Build/DerivedData/phone.cinraw-cns.txt
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-cns.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-cns.txt
+
+	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字大千鍵序表草稿（符號與注音）……$$(tput sgr0)\033[0m"
+	@> ./Build/DerivedData/phone.cinraw-misc.txt
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$5,$$1}' > ./Build/DerivedData/phone.cinraw-misc.txt
+
+	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（基礎集）……$$(tput sgr0)\033[0m"
+	@cp -a ./components/common/phone-header.txt ./Build/Products/phone.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
+	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone.cin
+	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone.cin
+	@echo "%chardef  end" >> ./Build/Products/phone.cin
+	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone.cin
+	@cp -a ./Build/Products/phone.cin ./phone.cin
+
+	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
+	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin
+	@> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-cns.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/Products/phone-CNS11643-complete-notUnified.cin | uniq >> ./Build/Products/phone-CNS11643-complete.cin
+	@echo "%chardef  end" >> ./Build/Products/phone-CNS11643-complete.cin
+	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone-CNS11643-complete.cin
+
+	@echo "\033[0;32m//$$(tput bold) 非: 正在生成針對基礎集的全字庫差分增補檔案……$$(tput sgr0)\033[0m"
+	@diff -u "./Build/Products/phone.cin" "./Build/Products/phone-CNS11643-complete.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
+
 
 # FOR INTERNAL USE
 install-vchewing: macv

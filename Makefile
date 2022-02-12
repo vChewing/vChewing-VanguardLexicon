@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 .PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs tsi-cht phone.cin
 
-all: macv wintsi phone.cin
+all: macv winv phone.cin
 
 clean:
 	@rm -rf ./Build

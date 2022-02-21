@@ -80,7 +80,7 @@ tsi-cht-win: BuildDir
 phone-cht.cin: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字字音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
 	@> ./Build/DerivedData/phone.cinraw-core.txt
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -rn -k3 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -rn -k3 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
 	@> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-phrasesonly.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED >> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
 
@@ -99,7 +99,7 @@ phone-cht.cin: BuildDir
 	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@echo "%chardef  end" >> ./Build/Products/phone.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone.cin
-	@cp -a ./Build/Products/phone.cin ./phone.cin
+	@cat ./Build/Products/phone.cin | uniq > ./phone.cin
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin
@@ -118,7 +118,7 @@ phone-cht.cin: BuildDir
 phone-chs.cin: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成漢字字音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
 	@> ./Build/DerivedData/phone.cinraw-core.txt
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -rn -k2 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -rn -k2 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$4,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED > ./Build/DerivedData/phone.cinraw-core.txt
 	@> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
 	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-phrasesonly.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /g;s/[^\s]([ ]{2,})[^\s]/ /g" | sed -e "/^[[:space:]]*$$/d" | awk 'BEGIN {FS=OFS=" "}; {print $$2,$$1}' | sed -f ./utilities/CONV-BPMF2KEY.SED >> ./Build/DerivedData/phone.cinraw-phrasesonly.txt
 
@@ -137,7 +137,7 @@ phone-chs.cin: BuildDir
 	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@echo "%chardef  end" >> ./Build/Products/phone.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone.cin
-	@cp -a ./Build/Products/phone.cin ./phone.cin
+	@cat ./Build/Products/phone.cin | uniq > ./phone.cin
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin

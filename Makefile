@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs tsi-cht phone-cht.cin phone-chs.cin
+.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs-win tsi-cht-win tsi-chs-mac tsi-cht-mac phone-cht.cin phone-chs.cin
 
 all: macv winv phone.cin
 
@@ -19,7 +19,7 @@ BuildDir:
 
 #==== 下述两组功能，不算注释的话，前兩行内容完全雷同。 ====#
 
-macv: tsi-chs tsi-cht
+macv: tsi-chs-mac tsi-cht-mac
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在生成 data-chs.txt & data-cht.txt……$$(tput sgr0)\033[0m"
 	@> ./data-chs.txt &&> ./data-cht.txt &&> ./Build/DerivedData/unsorted-data-chs.txt &&> ./Build/DerivedData/unsorted-data-cht.txt
 	@./bin/cook_mac.py
@@ -33,31 +33,48 @@ macv: tsi-chs tsi-cht
 	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/unsorted-data-chs.txt | sort -k1,1 -k3,3nr >> ./data-chs.txt
 	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/unsorted-data-cht.txt | sort -k1,1 -k3,3nr >> ./data-cht.txt
 
-winv: tsi-chs tsi-cht
+winv: tsi-chs-win tsi-cht-win
 	@echo "\033[0;32m//$$(tput bold) 非: 正在生成 tsi-chs.src && tsi-cht.src……$$(tput sgr0)\033[0m"
 	@> ./tsi-chs.src &&> ./tsi-cht.src
 	@./bin/cook_windows.py
 	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/tsi-chs-notyetfinished.src | sort -rn -k2 >> ./tsi-chs.src
 	@env LC_COLLATE=C.UTF-8 cat ./Build/DerivedData/tsi-cht-notyetfinished.src | sort -rn -k2 >> ./tsi-cht.src
 
-tsi-chs: BuildDir
+tsi-chs-mac: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
 	@rm -f ./Build/DerivedData/tsi-chs.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-chs.csv
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成簡體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#WIN32$$/d;s/ #MACOS//g;" | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sed -e "/^.*#WIN32$$/d;s/ #MACOS//g;" | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
 
-tsi-cht: BuildDir
+tsi-cht-mac: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
 	@rm -f ./Build/DerivedData/tsi-cht.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-cht.csv
 	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成繁體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#WIN32$$/d;s/ #MACOS//g;" | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
 	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（繁體中文）……$$(tput sgr0)\033[0m"
-	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sed -e "/^.*#WIN32$$/d;s/ #MACOS//g;" | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
 
+tsi-chs-win: BuildDir
+	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
+	@rm -f ./Build/DerivedData/tsi-chs.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-chs.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;s/ 0 / 1 /g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成簡體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,2,4 >> ./Build/DerivedData/tsi-chs.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（簡體中文）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/chs/phrases-*-chs.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-chs.csv
+
+tsi-cht-win: BuildDir
+	@echo "\033[0;32m//$$(tput bold) 通用: 準備生成字詞總成讀音頻次表表頭及部分符號文字……$$(tput sgr0)\033[0m"
+	@rm -f ./Build/DerivedData/tsi-cht.csv && echo $$'kanji\tcount\tbpmf' >> ./Build/DerivedData/tsi-cht.csv
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/common/char-misc-*.txt | uniq | sed -e "/^#/d;s/[^\s]([ ]{2,})[^\s]/ /g;s/ /$$(printf '\t')/g;s/ 0 / 1 /g;" | cut -f1,2,3 | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在生成繁體中文字詞總成讀音頻次表草稿（基礎集）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 cat ./components/common/char-kanji-core.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -u -k1 | sed -e "/^#/d;s/ /$$(printf '\t')/g" | sed -e "/^[[:space:]]*$$/d" | cut -f1,3,4 >> ./Build/DerivedData/tsi-cht.csv
+	@echo "\033[0;32m//$$(tput bold) 通用: 正在插入詞組頻次表草稿（繁體中文）……$$(tput sgr0)\033[0m"
+	@env LC_COLLATE=C.UTF-8 awk 'NR>1 && FNR==1{print ""};1' ./components/cht/phrases-*-cht.txt | sed -e "/^.*#MACOS$$/d;s/ #WIN32//g;" | sort -u -k1 | sed -e "/^#/d;s/$$(printf '\t')/ /;s/[^\s]([ ]{2,})[^\s]/ /g;s/ \n/\n/;s/ /$$(printf '\t')/;s/ /$$(printf '\t')/;s/ /-/g;" | sed -e "/^[[:space:]]*$$/d" >> ./Build/DerivedData/tsi-cht.csv
 
 #==== PHONE.CIN ====#
 phone-cht.cin: BuildDir
@@ -77,9 +94,9 @@ phone-cht.cin: BuildDir
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（基礎集）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone.cin
-	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone.cin
 	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@echo "%chardef  end" >> ./Build/Products/phone.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone.cin
 	@cp -a ./Build/Products/phone.cin ./phone.cin
@@ -87,10 +104,10 @@ phone-cht.cin: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin
 	@> ./Build/Products/phone-CNS11643-complete-notUnified.cin
-	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-cns.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/Products/phone-CNS11643-complete-notUnified.cin | uniq >> ./Build/Products/phone-CNS11643-complete.cin
 	@echo "%chardef  end" >> ./Build/Products/phone-CNS11643-complete.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone-CNS11643-complete.cin
@@ -115,9 +132,9 @@ phone-chs.cin: BuildDir
 
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（基礎集）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone.cin
-	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone.cin
 	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone.cin
 	@echo "%chardef  end" >> ./Build/Products/phone.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone.cin
 	@cp -a ./Build/Products/phone.cin ./phone.cin
@@ -125,10 +142,10 @@ phone-chs.cin: BuildDir
 	@echo "\033[0;32m//$$(tput bold) 非: 正在拼裝漢字大千鍵序 CIN 表（全字庫）……$$(tput sgr0)\033[0m"
 	@cp -a ./components/common/phone-header.txt ./Build/Products/phone-CNS11643-complete.cin
 	@> ./Build/Products/phone-CNS11643-complete-notUnified.cin
-	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-core.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-phrasesonly.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/DerivedData/phone.cinraw-cns.txt | uniq >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
+	@cat ./Build/DerivedData/phone.cinraw-misc.txt | sort -u -k2 >> ./Build/Products/phone-CNS11643-complete-notUnified.cin
 	@cat ./Build/Products/phone-CNS11643-complete-notUnified.cin | uniq >> ./Build/Products/phone-CNS11643-complete.cin
 	@echo "%chardef  end" >> ./Build/Products/phone-CNS11643-complete.cin
 	@sed -i '' -e "/^[[:space:]]*$$/d" ./Build/Products/phone-CNS11643-complete.cin

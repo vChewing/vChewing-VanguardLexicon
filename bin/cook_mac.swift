@@ -21,9 +21,10 @@ import Foundation
 // MARK: - 前導工作
 fileprivate extension String {
     mutating func regReplace(pattern: String, replaceWith: String = "") {
+        // Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
         do {
             let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-            let range = NSRange(location: 0, length: count)
+            let range = NSRange(location: 0, length: self.utf16.count)
             self = regex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replaceWith)
         } catch { return }
     }
@@ -117,16 +118,13 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
     }
     // 預處理格式
     strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
-    strRAW = strRAW.replacingOccurrences(of: "　", with: " ") // CJKWhiteSpace (\x{3000}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: " ", with: " ") // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: "\t", with: " ") // Tab to ASCII Space
-    strRAW.regReplace(pattern: "\\f", replaceWith: "\n") // Form Feed to LF
-    strRAW = strRAW.replacingOccurrences(of: "\r", with: "\n") // CR to LF
-    strRAW.regReplace(pattern: " +", replaceWith: " ") // 統整連續空格為一個 ASCII 空格
-    // strRAW.regReplace(pattern: "\\n+", replaceWith: "\n") // 統整連續 LF 為一個 LF
-    // (不需要處理純空行，因為空記錄不會被轉為 Entry)
-    strRAW = strRAW.replacingOccurrences(of: " \n", with: "\n") // 去除行尾空格
-    strRAW = strRAW.replacingOccurrences(of: "\n ", with: "\n") // 去除行首空格
+    // CJKWhiteSpace (\x{3000}) to ASCII Space
+    // NonBreakWhiteSpace (\x{A0}) to ASCII Space
+    // Tab to ASCII Space
+    // 統整連續空格為一個 ASCII 空格
+    strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
+    strRAW.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
+    strRAW.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
     if strRAW.prefix(1) == " " { // 去除檔案開頭空格
         strRAW.removeFirst()
     }
@@ -194,16 +192,13 @@ func rawDictForKanjis(isCHS: Bool) -> [Entry] {
     }
     // 預處理格式
     strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
-    strRAW = strRAW.replacingOccurrences(of: "　", with: " ") // CJKWhiteSpace (\x{3000}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: " ", with: " ") // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: "\t", with: " ") // Tab to ASCII Space
-    strRAW.regReplace(pattern: "\\f", replaceWith: "\n") // Form Feed to LF
-    strRAW = strRAW.replacingOccurrences(of: "\r", with: "\n") // CR to LF
-    strRAW.regReplace(pattern: " +", replaceWith: " ") // 統整連續空格為一個 ASCII 空格
-    // strRAW.regReplace(pattern: "\\n+", replaceWith: "\n") // 統整連續 LF 為一個 LF
-    // (不需要處理純空行，因為空記錄不會被轉為 Entry)
-    strRAW = strRAW.replacingOccurrences(of: " \n", with: "\n") // 去除行尾空格
-    strRAW = strRAW.replacingOccurrences(of: "\n ", with: "\n") // 去除行首空格
+    // CJKWhiteSpace (\x{3000}) to ASCII Space
+    // NonBreakWhiteSpace (\x{A0}) to ASCII Space
+    // Tab to ASCII Space
+    // 統整連續空格為一個 ASCII 空格
+    strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
+    strRAW.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
+    strRAW.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
     if strRAW.prefix(1) == " " { // 去除檔案開頭空格
         strRAW.removeFirst()
     }
@@ -276,16 +271,13 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
     }
     // 預處理格式
     strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
-    strRAW = strRAW.replacingOccurrences(of: "　", with: " ") // CJKWhiteSpace (\x{3000}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: " ", with: " ") // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-    strRAW = strRAW.replacingOccurrences(of: "\t", with: " ") // Tab to ASCII Space
-    strRAW.regReplace(pattern: "\\f", replaceWith: "\n") // Form Feed to LF
-    strRAW = strRAW.replacingOccurrences(of: "\r", with: "\n") // CR to LF
-    strRAW.regReplace(pattern: " +", replaceWith: " ") // 統整連續空格為一個 ASCII 空格
-    // strRAW.regReplace(pattern: "\\n+", replaceWith: "\n") // 統整連續 LF 為一個 LF
-    // (不需要處理純空行，因為空記錄不會被轉為 Entry)
-    strRAW = strRAW.replacingOccurrences(of: " \n", with: "\n") // 去除行尾空格
-    strRAW = strRAW.replacingOccurrences(of: "\n ", with: "\n") // 去除行首空格
+    // CJKWhiteSpace (\x{3000}) to ASCII Space
+    // NonBreakWhiteSpace (\x{A0}) to ASCII Space
+    // Tab to ASCII Space
+    // 統整連續空格為一個 ASCII 空格
+    strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
+    strRAW.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
+    strRAW.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
     if strRAW.prefix(1) == " " { // 去除檔案開頭空格
         strRAW.removeFirst()
     }

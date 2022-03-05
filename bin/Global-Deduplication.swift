@@ -6,7 +6,7 @@ extension String {
 	mutating func regReplace(pattern: String, replaceWith: String = "") {
 		do {
 			let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-			let range = NSRange(location: 0, length: count)
+            let range = NSRange(location: 0, length: self.utf16.count)
 			self = regex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replaceWith)
 		} catch { return }
 	}
@@ -48,17 +48,20 @@ do {
 }
 catch {print("Exception happened when reading raw CHT data.")}
 
+// Regex Pre-Processing
+textCHT.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
+textCHT.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
+textCHT.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
+textCHS.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
+textCHS.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
+textCHS.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
+
 // 转成 Vector
 var arrData = textCHS.components(separatedBy: "\n")
 var varLineData = ""
 var strProcessed = ""
 for lineData in arrData {
 	varLineData = lineData
-	varLineData.regReplace(pattern: "　", replaceWith: " ") // CJKWhiteSpace to ASCIISpace
-	varLineData.regReplace(pattern: " ", replaceWith: " ") // NonBreakWhiteSpace to ASCIISpace
-	varLineData.regReplace(pattern: "\\s+", replaceWith: " ") // Consolidating Consecutive Spaves
-	varLineData.regReplace(pattern: "^\\s", replaceWith: "") // Trim Leading Space
-	varLineData.regReplace(pattern: "\\s$", replaceWith: "") // Trim Trailing Space
 	varLineData.regReplace(pattern: "^#.*$", replaceWith: "") // Make Comment Lines Empty
 	strProcessed += varLineData
 	strProcessed += "\n"
@@ -71,11 +74,6 @@ varLineData = ""
 strProcessed = ""
 for lineData in arrData {
 	varLineData = lineData
-	varLineData.regReplace(pattern: "　", replaceWith: " ") // CJKWhiteSpace to ASCIISpace
-	varLineData.regReplace(pattern: " ", replaceWith: " ") // NonBreakWhiteSpace to ASCIISpace
-	varLineData.regReplace(pattern: "\\s+", replaceWith: " ") // Consolidating Consecutive Spaves
-	varLineData.regReplace(pattern: "^\\s", replaceWith: "") // Trim Leading Space
-	varLineData.regReplace(pattern: "\\s$", replaceWith: "") // Trim Trailing Space
 	varLineData.regReplace(pattern: "^#.*$", replaceWith: "") // Make Comment Lines Empty
 	strProcessed += varLineData
 	strProcessed += "\n"

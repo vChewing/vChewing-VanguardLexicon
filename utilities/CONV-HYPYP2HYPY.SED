@@ -1069,6 +1069,7 @@ s/cān/can1/g
 s/cán/can2/g
 s/cǎn/can3/g
 s/càn/can4/g
+s/cèi/cei4/g
 s/cēn/cen1/g
 s/cén/cen2/g
 s/cuō/cuo1/g

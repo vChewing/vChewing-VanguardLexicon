@@ -165,6 +165,7 @@ s/bin/ㄅㄧㄣ/g
 s/cai/ㄘㄞ/g
 s/can/ㄘㄢ/g
 s/cao/ㄘㄠ/g
+s/cei/ㄘㄟ/g
 s/cen/ㄘㄣ/g
 s/cha/ㄔㄚ/g
 s/che/ㄔㄜ/g

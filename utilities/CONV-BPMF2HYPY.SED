@@ -175,6 +175,7 @@ s/ㄒㄩㄣ/xun1/g
 s/ㄗㄨㄟ/zui1/g
 s/ㄗㄨㄣ/zun1/g
 s/ㄗㄨㄛ/zuo1/g
+s/ㄘㄟ/cei1/g
 s/ㄔㄤ/chang1/g
 s/ㄔㄥ/cheng1/g
 s/ㄕㄤ/shang1/g

@@ -21,45 +21,23 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #include <codecvt>
 #include <regex>
 #include <iostream>
-
+#include <string>
 #include <syslog.h>
 
 # pragma mark - Basic Functions and Structure
 
-std::string replace_all(
-    std::string& s,
-    std::string const& toReplace,
-    std::string const& replaceWith
-) {
-    std::ostringstream oss;
-    std::size_t pos = 0;
-    std::size_t prevPos = pos;
-    
-    while (true) {
-        prevPos = pos;
-        pos = s.find(toReplace, pos);
-        if (pos == std::string::npos)
-            break;
-        oss << s.substr(prevPos, pos - prevPos);
-        oss << replaceWith;
-        pos += toReplace.size();
+std::string readFileIntoString(const std::string& path) {
+    std::ifstream input_file(path);
+    if (!input_file.is_open()) {
+        std::cerr << "Could not open the file - '"
+        << path << "'" << std::endl;
+        exit(EXIT_FAILURE);
     }
-    
-    oss << s.substr(prevPos);
-    return oss.str();
+    return std::string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
 }
 
-std::string readFile(const char* filename)
-{
-    std::ifstream strInput(filename);
-    strInput.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
-    std::stringstream strString;
-    strString << strInput.rdbuf();
-    return strString.str();
-}
-
-using convert_type = std::codecvt_utf8<wchar_t>;
-std::wstring_convert<convert_type, wchar_t> converter;
+// using convert_type = std::codecvt_utf8<wchar_t>;
+// std::wstring_convert<convert_type, wchar_t> converter;
 
 struct Entry {
     std::string valPhone = "";
@@ -71,20 +49,20 @@ struct Entry {
 
 # pragma mark - Constants
 
-const char* url_CHS_Custom = "../Source/Data/components/chs/phrases-custom-chs.txt";
-const char* url_CHS_MCBP = "../Source/Data/components/chs/phrases-mcbp-chs.txt";
-const char* url_CHS_MOE = "../Source/Data/components/chs/phrases-moe-chs.txt";
-const char* url_CHS_VCHEW = "../Source/Data/components/chs/phrases-vchewing-chs.txt";
+const char* url_CHS_Custom = "../../components/chs/phrases-custom-chs.txt";
+const char* url_CHS_MCBP = "../../components/chs/phrases-mcbp-chs.txt";
+const char* url_CHS_MOE = "../../components/chs/phrases-moe-chs.txt";
+const char* url_CHS_VCHEW = "../../components/chs/phrases-vchewing-chs.txt";
 
-const char* url_CHT_Custom = "../Source/Data/components/cht/phrases-custom-cht.txt";
-const char* url_CHT_MCBP = "../Source/Data/components/cht/phrases-mcbp-cht.txt";
-const char* url_CHT_MOE = "../Source/Data/components/cht/phrases-moe-cht.txt";
-const char* url_CHT_VCHEW = "../Source/Data/components/cht/phrases-vchewing-cht.txt";
+const char* url_CHT_Custom = "../../components/cht/phrases-custom-cht.txt";
+const char* url_CHT_MCBP = "../../components/cht/phrases-mcbp-cht.txt";
+const char* url_CHT_MOE = "../../components/cht/phrases-moe-cht.txt";
+const char* url_CHT_VCHEW = "../../components/cht/phrases-vchewing-cht.txt";
 
-const char* urlKanjiCore = "../Source/Data/components/common/char-kanji-core.txt";
-const char* urlPunctuation = "../Source/Data/components/common/data-punctuations.txt";
-const char* urlMiscBPMF = "../Source/Data/components/common/char-misc-bpmf.txt";
-const char* urlMiscNonKanji = "../Source/Data/components/common/char-misc-nonkanji.txt";
+const char* urlKanjiCore = "../../components/common/char-kanji-core.txt";
+const char* urlPunctuation = "../../components/common/data-punctuations.txt";
+const char* urlMiscBPMF = "../../components/common/char-misc-bpmf.txt";
+const char* urlMiscNonKanji = "../../components/common/char-misc-nonkanji.txt";
 
 const char* urlOutputCHS = "./data-chs.txt";
 const char* urlOutputCHT = "./data-cht.txt";
@@ -92,26 +70,16 @@ const char* urlOutputCHT = "./data-cht.txt";
 # pragma mark - Functions
 
 std::vector<std::string> lineBleacher(std::string path, std::vector<std::string> vec) {
-    std::ifstream fstr(path);
-    while(!fstr.eof()) {
-        std::string fstrBuffer;
-        getline(fstr, fstrBuffer);
-        // 預處理格式
-        fstrBuffer = replace_all(fstrBuffer, " #MACOS", ""); // 去掉 macOS 標記
-        fstrBuffer = replace_all(fstrBuffer, "　", " "); // CJKWhiteSpace (\x{3000}) to ASCII Space
-        fstrBuffer = replace_all(fstrBuffer, " ", " "); // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-        fstrBuffer = replace_all(fstrBuffer, "\t", " "); // Tab to ASCII Space
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex("\\f"), "\n"); // Form Feed to LF
-        fstrBuffer = replace_all(fstrBuffer, "\r", "\n"); // CR to LF
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex(" +"), " "); // 統整連續空格為一個 ASCII 空格
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex("\\n+"), "\n"); // 統整連續 LF 為一個 LF
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex(" $"), ""); // 去除行尾空格
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex("^ "), ""); // 去除行首空格
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex("^#.*"), ""); // 以#開頭的行都淨空
-        fstrBuffer = std::regex_replace(fstrBuffer, std::regex(".*#WIN32.*"), ""); // 去掉所有 WIN32 特有的行
-        vec.push_back(fstrBuffer);
+    std::string strIncoming = readFileIntoString(path);
+    std::string strBuffer = "";
+    strIncoming = std::regex_replace(strIncoming, std::regex("( +|　+| +|\\t+)+"), " "); // Space Concatenation
+    strIncoming = std::regex_replace(strIncoming, std::regex("(^ | $)"), ""); // 去除行尾行首空格
+    strIncoming = std::regex_replace(strIncoming, std::regex("(\\f+|\\r+|\\n+)+"), "\n"); // CR & Form Feed to LF, 且去除重複行
+    strIncoming = std::regex_replace(strIncoming, std::regex("^(#.*|.*#WIN32.*)$\n"), ""); // 以#開頭的行都淨空 & 去掉所有 WIN32 特有的行
+    std::stringstream strStream(strIncoming);    
+    while(std::getline(strStream, strBuffer, '\n')){
+        vec.push_back(strBuffer);
     }
-    fstr.close();
     return vec;
 }
 
@@ -136,5 +104,3 @@ int main()
     printf("// 準備編譯繁體中文核心語料檔案。\n");
     rawDictForPhrases(true);
 }
-
-

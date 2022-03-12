@@ -27,17 +27,31 @@
 /* End PBXGroup section */
 
 /* Begin PBXLegacyTarget section */
-		5B6FC7782760E0820060D9E0 /* Data4vChewing */ = {
+		5B4FFB9F27DC9E8000E2D3AE /* libchewing */ = {
 			isa = PBXLegacyTarget;
-			buildArgumentsString = deploy;
-			buildConfigurationList = 5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "Data4vChewing" */;
+			buildArgumentsString = ./bin/cook_win.swift;
+			buildConfigurationList = 5B4FFBA027DC9E8000E2D3AE /* Build configuration list for PBXLegacyTarget "libchewing" */;
 			buildPhases = (
 			);
-			buildToolPath = /usr/bin/make;
+			buildToolPath = /usr/bin/swift;
 			buildWorkingDirectory = ./;
 			dependencies = (
 			);
-			name = Data4vChewing;
+			name = libchewing;
+			passBuildSettingsInEnvironment = 1;
+			productName = "libchewing-CHS";
+		};
+		5B6FC7782760E0820060D9E0 /* macOS */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = ./bin/cook_mac.swift;
+			buildConfigurationList = 5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "macOS" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/swift;
+			buildWorkingDirectory = ./;
+			dependencies = (
+			);
+			name = macOS;
 			passBuildSettingsInEnvironment = 1;
 			productName = "vChewing-Dictionary-Data";
 		};
@@ -64,6 +78,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1310;
 				TargetAttributes = {
+					5B4FFB9F27DC9E8000E2D3AE = {
+						CreatedOnToolsVersion = 13.2;
+					};
 					5B6FC7782760E0820060D9E0 = {
 						CreatedOnToolsVersion = 13.1;
 					};
@@ -84,13 +101,39 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5B6FC7782760E0820060D9E0 /* Data4vChewing */,
+				5B6FC7782760E0820060D9E0 /* macOS */,
+				5B4FFB9F27DC9E8000E2D3AE /* libchewing */,
 				5B6FC77E2760E6F20060D9E0 /* Scheme4Rime */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin XCBuildConfiguration section */
+		5B4FFBA127DC9E8000E2D3AE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5B4FFBA227DC9E8000E2D3AE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		5B6FC7792760E0820060D9E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -251,6 +294,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5B4FFBA027DC9E8000E2D3AE /* Build configuration list for PBXLegacyTarget "libchewing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B4FFBA127DC9E8000E2D3AE /* Debug */,
+				5B4FFBA227DC9E8000E2D3AE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5B6FC7772760E0820060D9E0 /* Build configuration list for PBXProject "libvchewing-data" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -260,7 +312,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "Data4vChewing" */ = {
+		5B6FC77B2760E0820060D9E0 /* Build configuration list for PBXLegacyTarget "macOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5B6FC77C2760E0820060D9E0 /* Debug */,

@@ -5,9 +5,9 @@ import Foundation
 extension String {
 	mutating func regReplace(pattern: String, replaceWith: String = "") {
 		do {
-			let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-            let range = NSRange(location: 0, length: self.utf16.count)
-			self = regex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replaceWith)
+            let regex = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines])
+            let range = NSRange(self.startIndex..., in: self)
+            self = regex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replaceWith)
 		} catch { return }
 	}
 }
@@ -50,11 +50,11 @@ catch {print("Exception happened when reading raw CHT data.")}
 
 // Regex Pre-Processing
 textCHT.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
-textCHT.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
-textCHT.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
+textCHT.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+textCHT.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
 textCHS.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
-textCHS.regReplace(pattern: #"(\f+|\r+)+"#, replaceWith: "\n") // CR & Form Feed to LF
-textCHS.regReplace(pattern: #"(\n+| \n+|\n+ )"#, replaceWith: "\n") // 去除行尾行首空格與重複行
+textCHS.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+textCHS.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
 
 // 转成 Vector
 var arrData = textCHS.components(separatedBy: "\n")

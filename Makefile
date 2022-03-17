@@ -128,7 +128,7 @@ phone-chs.cin: BuildDir
 # FOR INTERNAL USE
 install-vchewing: macv
 	@pkill -HUP -f vChewing || echo "// Deploying Dictionary files for vChewing...."
-	rm $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/data*.txt || true
+	rm $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/data-ch*.txt || true
 	@cp -a data-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@cp -a data-cht.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"

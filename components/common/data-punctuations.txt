@@ -1,3 +1,9 @@
+_ctrl_punctuation_- ー 0.0
+_ctrl_punctuation_, ， 0.0
+_ctrl_punctuation_; ； 0.0
+_ctrl_punctuation_! ！ 0.0
+_ctrl_punctuation_. 。 0.0
+_ctrl_punctuation_' 、 0.0
 _ctrl_punctuation_[ 《 0.0
 _ctrl_punctuation_[ 〈 0.0
 _ctrl_punctuation_[ ︽ 0.0
@@ -6,13 +12,7 @@ _ctrl_punctuation_] 》 0.0
 _ctrl_punctuation_] 〉 0.0
 _ctrl_punctuation_] ︾ 0.0
 _ctrl_punctuation_] ﹀ 0.0
-_ctrl_punctuation_! ！ 0.0
-_ctrl_punctuation_' 、 0.0
-_ctrl_punctuation_, ， 0.0
-_ctrl_punctuation_- ー 0.0
-_ctrl_punctuation_. 。 0.0
 _ctrl_punctuation_/ ？ 0.0
-_ctrl_punctuation_; ； 0.0
 _half_punctuation_! ! 0.0
 _half_punctuation_" " 0.0
 _half_punctuation_# # 0.0
@@ -183,6 +183,10 @@ _letter_W W 0.0
 _letter_W w 0.0
 _letter_W Ｗ 0.0
 _letter_W ｗ 0.0
+_letter_X X 0.0
+_letter_X x 0.0
+_letter_X Ｘ 0.0
+_letter_X ｘ 0.0
 _letter_Y Y 0.0
 _letter_Y y 0.0
 _letter_Y Ｙ 0.0
@@ -191,10 +195,6 @@ _letter_Z Z 0.0
 _letter_Z z 0.0
 _letter_Z Ｚ 0.0
 _letter_Z ｚ 0.0
-_letter_x X 0.0
-_letter_x x 0.0
-_letter_x Ｘ 0.0
-_letter_x ｘ 0.0
 _punctuation_! ！ 0.0
 _punctuation_" ； 0.0
 _punctuation_" “ 0.0
@@ -210,6 +210,7 @@ _punctuation_$ ¥ 0.0
 _punctuation_$ £ 0.0
 _punctuation_% ％ 0.0
 _punctuation_& ＆ 0.0
+_punctuation_' 、 0.0
 _punctuation_' ‘ 0.0
 _punctuation_' ’ 0.0
 _punctuation_( （ 0.0
@@ -262,6 +263,7 @@ _punctuation_Standard_" “ 0.0
 _punctuation_Standard_" ” 0.0
 _punctuation_Standard_" ． 0.0
 _punctuation_Standard_: ： 0.0
+_punctuation_Standard_: ； 0.0
 _punctuation_Standard_< ， 0.0
 _punctuation_Standard_< 〈 0.0
 _punctuation_Standard_< 《 0.0

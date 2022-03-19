@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: all gc macv install install-vchewing _remotedeploy-vchewing deploy _deploy clean BuildDir tsi-chs-win tsi-cht-win phone-cht.cin phone-chs.cin
+.PHONY: all gc macv install install-vchewing _remoteinstall-vchewing clean BuildDir tsi-chs-win tsi-cht-win phone-cht.cin phone-chs.cin
 
 all: macv winv phone.cin
 
@@ -8,8 +8,6 @@ clean:
 	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt phone.cin phone.cin-CNS11643-complete.patch
 		
 install: install-vchewing clean
-
-deploy: clean _deploy
 
 #==== 以下是核心功能 ====#
 
@@ -127,19 +125,22 @@ phone-chs.cin: BuildDir
 
 # FOR INTERNAL USE
 install-vchewing: macv
-	@pkill -HUP -f vChewing || echo "// Deploying Dictionary files for vChewing...."
-	rm $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/data-ch*.txt || true
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
 	@cp -a data-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@cp -a data-cht.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a ./components/common/data*.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a ./components/common/char-kanji-cns.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在確保威注音不被 Gatekeeper 刁難……$$(tput sgr0)\033[0m"
+	@/usr/bin/xattr -drs "com.apple.quarantine" $(HOME)/Library/Input\ Methods/vChewing.app
+	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 
-_remotedeploy-vchewing: macv
+_remoteinstall-vchewing: macv
 	@rsync -avx data-chs.txt data-cht.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
+	@rsync -avx ./components/common/data*.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
+	@rsync -avx ./components/common/char-kanji-cns.txt.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
 	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f vChewing || echo Remote vChewing is not running" || true
-
-_deploy:
-	cp -R ./* ~/Repos/vChewing-CHS/Source/Data/ || true
-	rm -rf ~/Repos/vChewing-CHS/Source/Data/Build || true
 
 gc:
 	git reflog expire --expire=now --all ; git gc --prune=now --aggressive

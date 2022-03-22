@@ -19,6 +19,11 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 import Foundation
 
 // MARK: - 前導工作
+fileprivate func getDocumentsDirectory() -> URL {
+    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+    return paths[0]
+}
+
 fileprivate extension String {
     mutating func regReplace(pattern: String, replaceWith: String = "") {
         // Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
@@ -28,12 +33,54 @@ fileprivate extension String {
             self = regex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: replaceWith)
         } catch { return }
     }
+    mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
+        self = self.replacingOccurrences(of: strOf, with: strWith)
+    }
+    mutating func bpmf2Dachien() {
+        self.selfReplace("ㄝ", ",")
+        self.selfReplace("ㄦ", "-")
+        self.selfReplace("ㄡ", ".")
+        self.selfReplace("ㄥ", "/")
+        self.selfReplace("ㄢ", "0")
+        self.selfReplace("ㄅ", "1")
+        self.selfReplace("ㄉ", "2")
+        self.selfReplace("ˇ", "3")
+        self.selfReplace("ˋ", "4")
+        self.selfReplace("ㄓ", "5")
+        self.selfReplace("ˊ", "6")
+        self.selfReplace("˙", "7")
+        self.selfReplace("ㄚ", "8")
+        self.selfReplace("ㄞ", "9")
+        self.selfReplace("ㄤ", ";")
+        self.selfReplace("ㄇ", "a")
+        self.selfReplace("ㄖ", "b")
+        self.selfReplace("ㄏ", "c")
+        self.selfReplace("ㄎ", "d")
+        self.selfReplace("ㄍ", "e")
+        self.selfReplace("ㄑ", "f")
+        self.selfReplace("ㄕ", "g")
+        self.selfReplace("ㄘ", "h")
+        self.selfReplace("ㄛ", "i")
+        self.selfReplace("ㄨ", "j")
+        self.selfReplace("ㄜ", "k")
+        self.selfReplace("ㄠ", "l")
+        self.selfReplace("ㄩ", "m")
+        self.selfReplace("ㄙ", "n")
+        self.selfReplace("ㄟ", "o")
+        self.selfReplace("ㄣ", "p")
+        self.selfReplace("ㄆ", "q")
+        self.selfReplace("ㄐ", "r")
+        self.selfReplace("ㄋ", "s")
+        self.selfReplace("ㄔ", "t")
+        self.selfReplace("ㄧ", "u")
+        self.selfReplace("ㄒ", "v")
+        self.selfReplace("ㄊ", "w")
+        self.selfReplace("ㄌ", "x")
+        self.selfReplace("ㄗ", "y")
+        self.selfReplace("ㄈ", "z")
+    }
 }
 
-fileprivate func getDocumentsDirectory() -> URL {
-    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-    return paths[0]
-}
 
 // MARK: - 引入小數點位數控制函數
 // Ref: https://stackoverflow.com/a/32581409/4162914
@@ -85,13 +132,29 @@ fileprivate let url_CHT_MOE: String = "./components/cht/phrases-moe-cht.txt"
 fileprivate let url_CHT_VCHEW: String = "./components/cht/phrases-vchewing-cht.txt"
 
 fileprivate let urlKanjiCore: String = "./components/common/char-kanji-core.txt"
-fileprivate let urlPunctuation: String = "./components/common/data-punctuations.txt"
+fileprivate let urlKanjiSupplement: String = "./components/common/char-kanji-phrasesonly.txt"
+fileprivate let urlKanjiCNS: String = "./components/common/char-kanji-cns.txt"
 fileprivate let urlMiscBPMF: String = "./components/common/char-misc-bpmf.txt"
 fileprivate let urlMiscNonKanji: String = "./components/common/char-misc-nonkanji.txt"
 
-fileprivate let urlOutputCHS: String = "./tsi-chs.src"
-fileprivate let urlOutputCHT: String = "./tsi-cht.src"
+fileprivate let urlCINHeader: String = "./components/common/phone-header.txt"
 
+fileprivate let urlOutputCHS_Tsi: String = "./Build/tsi-chs.src"
+fileprivate let urlOutputCHT_Tsi: String = "./Build/tsi-cht.src"
+fileprivate let urlOutputCHS_CIN: String = "./Build/phone-chs.cin"
+fileprivate let urlOutputCHT_CIN: String = "./Build/phone-cht.cin"
+fileprivate let urlOutputCHS_CINEX: String = "./Build/phone-chs-ex.cin"
+fileprivate let urlOutputCHT_CINEX: String = "./Build/phone-cht-ex.cin"
+
+func ensureOutputFolder() {
+    if !FileManager.default.fileExists(atPath: "./Build") {
+        do {
+            try FileManager.default.createDirectory(atPath: "./Build", withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            NSLog(" - Failed to ensure the existence of build folder.")
+        }
+    }
+}
 // MARK: - 載入詞組檔案且輸出數組
 
 func rawDictForPhrases(isCHS: Bool) -> [Entry] {
@@ -138,7 +201,7 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
             if count < 3 {
                 varLineDataProcessed += currentCell + "\t"
             } else if count < arrLineData.count {
-                    varLineDataProcessed += currentCell + "-"
+                    varLineDataProcessed += currentCell + " "
             } else {
                 varLineDataProcessed += currentCell
             }
@@ -154,7 +217,11 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
             switch count {
             case 1: phrase = cell
             case 3: phone = cell
-            case 2: occurrence = Int(cell) ?? 0
+            case 2:
+                occurrence = Int(cell) ?? 0
+                if occurrence < 0 {
+                    occurrence = 0
+                }
             default: break
             }
         }
@@ -162,19 +229,27 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
             arrEntryRAW += [Entry.init(valPhone: phone, valPhrase: phrase, valWeight: 0.0, valCount: occurrence)]
         }
     }
-    NSLog(" - \(i18n): 成功生成詞語語料辭典（權重待計算）。")
+    NSLog(" - \(i18n): 成功生成詞語語料辭典（尚未排序）。")
     return arrEntryRAW
 }
 
 // MARK: - 載入單字檔案且輸出數組
 
-func rawDictForKanjis(isCHS: Bool) -> [Entry] {
+func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = false) -> [Entry] {
     var arrEntryRAW: [Entry] = []
     var strRAW: String = ""
+    var strRAWOther: String = ""
     let i18n: String = isCHS ? "簡體中文" : "繁體中文"
     // 讀取內容
     do {
         strRAW += try String(contentsOfFile: urlKanjiCore, encoding: .utf8)
+        if isSupplemetal {
+            strRAWOther += try String(contentsOfFile: urlKanjiSupplement, encoding: .utf8)
+            strRAWOther.selfReplace("\t", " ")
+        }
+        if isCNS {
+            strRAWOther += try String(contentsOfFile: urlKanjiCNS, encoding: .utf8)
+        }
     }
     catch {
         NSLog(" - Exception happened when reading raw core kanji data.")
@@ -191,7 +266,7 @@ func rawDictForKanjis(isCHS: Bool) -> [Entry] {
     strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
     strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
     // 正式整理格式，現在就開始去重複：
-    let arrData = Array(NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
+    var arrData = Array(NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
     var varLineData: String = ""
     for lineData in arrData {
         // 簡體中文的話，提取 1,2,4；繁體中文的話，提取 1,3,4。
@@ -222,15 +297,38 @@ func rawDictForKanjis(isCHS: Bool) -> [Entry] {
             switch count {
             case 1: phrase = cell
             case 3: phone = cell
-            case 2: occurrence = Int(cell) ?? 0
+            case 2:
+                occurrence = Int(cell) ?? 0
+                occurrence += 1
             default: break
             }
         }
-        if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
+        if phrase.count == 1 { // 只要單個字符的數據
             arrEntryRAW += [Entry.init(valPhone: phone, valPhrase: phrase, valWeight: 0.0, valCount: occurrence)]
         }
     }
-    NSLog(" - \(i18n): 成功生成單字語料辭典（權重待計算）。")
+    // - 處理 CNS 等其他單字數據
+    strRAWOther.regReplace(pattern: #"^(#.*)$"#, replaceWith: "") // 以#開頭的行都淨空
+    arrData = Array(NSOrderedSet(array: strRAWOther.components(separatedBy: "\n")).array as! [String])
+    for lineData in arrData {
+        let arrCells : [String] = lineData.components(separatedBy: " ")
+        var count = 0
+        var phone = ""
+        var phrase = ""
+        let occurrence = 0
+        for cell in arrCells {
+            count += 1
+            switch count {
+            case 1: phrase = cell
+            case 2: phone = cell
+            default: break
+            }
+        }
+        if phrase.count == 1 { // 只要單個字符的數據
+            arrEntryRAW += [Entry.init(valPhone: phone, valPhrase: phrase, valWeight: 0.0, valCount: occurrence)]
+        }
+    }
+    NSLog(" - \(i18n): 成功生成單字語料辭典（尚未排序）。")
     return arrEntryRAW
 }
 
@@ -291,57 +389,77 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
             switch count {
             case 1: phrase = cell
             case 3: phone = cell
-            case 2: occurrence = Int(cell) ?? 0
+            case 2:
+                occurrence = Int(cell) ?? 0
+                occurrence += 1
             default: break
             }
         }
-        if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
+        if phrase.count == 1 { // 只要單個字符的數據
             arrEntryRAW += [Entry.init(valPhone: phone, valPhrase: phrase, valWeight: 0.0, valCount: occurrence)]
         }
     }
-    NSLog(" - \(i18n): 成功生成非漢字語料辭典（權重待計算）。")
+    NSLog(" - \(i18n): 成功生成非漢字語料辭典（尚未排序）。")
     return arrEntryRAW
 }
 
-func weightAndSort(_ arrStructUncalculated: [Entry], isCHS: Bool) -> [Entry] {
+// MARK: - 排序
+
+func SortEntry(_ arrStructUnsorted: [Entry], isCHS: Bool) -> [Entry] {
     let i18n: String = isCHS ? "簡體中文" : "繁體中文"
-    var arrStructCalculated: [Entry] = []
-    let fscale: Float = 2.7
-    var norm: Float = 0.0
-    for entry in arrStructUncalculated {
-        if entry.valCount >= 0 {
-            norm += fscale**(Float(entry.valPhrase.count) / 3.0 - 1.0) * Float(entry.valCount)
-        }
-    }
-    // norm 計算完畢，開始將 norm 作為新的固定常數來為每個詞條記錄計算權重。
-    // 將新酷音的詞語出現次數數據轉換成小麥引擎可讀的數據形式。
-    // 對出現次數小於 1 的詞條，將 0 當成 0.5 來處理、以防止除零。
-    for entry in arrStructUncalculated {
-        var weight: Float = 0
-        switch entry.valCount {
-        case -2: // 拗音假名
-            weight = -13
-        case -1: // 單個假名
-            weight = -13
-        case 0: // 墊底低頻漢字與詞語
-            weight = log10(fscale**(Float(entry.valPhrase.count) / 3.0 - 1.0) * 0.5 / norm)
-        default:
-            weight = log10(fscale**(Float(entry.valPhrase.count) / 3.0 - 1.0) * Float(entry.valCount) / norm) // Credit: MJHsieh.
-        }
-        let weightRounded: Float = weight.rounded(toPlaces: 3) // 為了節省生成的檔案體積，僅保留小數點後三位。
-        arrStructCalculated += [Entry.init(valPhone: entry.valPhone, valPhrase: entry.valPhrase, valWeight: weightRounded, valCount: entry.valCount)]
-    }
-    NSLog(" - \(i18n): 成功計算權重。")
-    // ==========================================
     // 接下來是排序，先按照注音遞減排序一遍、再按照權重遞減排序一遍。
-    let arrStructSorted: [Entry] = arrStructCalculated.sorted(by: {(lhs, rhs) -> Bool in return (lhs.valPhone, rhs.valCount) < (rhs.valPhone, lhs.valCount)})
+    let arrStructSorted: [Entry] = arrStructUnsorted.sorted(by: {(lhs, rhs) -> Bool in return (lhs.valPhone, rhs.valCount) < (rhs.valPhone, lhs.valCount)})
     NSLog(" - \(i18n): 排序整理完畢，準備編譯要寫入的檔案內容。")
     return arrStructSorted
 }
 
-func fileOutput(isCHS: Bool) {
+// MARK: - 生成 CIN
+
+func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
     let i18n: String = isCHS ? "簡體中文" : "繁體中文"
-    let pathOutput = urlCurrentFolder.appendingPathComponent(isCHS ? urlOutputCHS : urlOutputCHT)
+    let pathOutput = urlCurrentFolder.appendingPathComponent(isCHS ? (isCNS ? urlOutputCHS_CINEX : urlOutputCHS_CIN) : (isCNS ? urlOutputCHT_CINEX : urlOutputCHT_CIN))
+    var strPrintLine = ""
+    // 讀取標點內容
+    do {
+        strPrintLine += try String(contentsOfFile: urlCINHeader, encoding: .utf8)
+    }
+    catch {
+        NSLog(" - \(i18n): Exception happened when reading raw punctuation data.")
+    }
+    NSLog(" - \(i18n): 成功讀入 CIN 檔案標頭。")
+    // 統合辭典內容
+    var arrStructUnified: [Entry] = []
+    arrStructUnified += rawDictForKanjis(isCHS: isCHS, isSupplemetal: true, isCNS: isCNS)
+    arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
+    // 計算權重且排序
+    arrStructUnified = SortEntry(arrStructUnified, isCHS: isCHS)
+
+    for entry in arrStructUnified {
+        var varDachien = entry.valPhone
+        varDachien.bpmf2Dachien()
+        strPrintLine += varDachien + " " + entry.valPhrase + "\n"
+    }
+
+    strPrintLine += "%chardef  end" + "\n"
+    // Deduplication
+    let arrPrintLine = Array(NSOrderedSet(array: strPrintLine.components(separatedBy: "\n")).array as! [String])
+    strPrintLine = arrPrintLine.joined(separator: "\n")
+
+    NSLog(" - \(i18n): 要寫入 CIN 檔案的內容編譯完畢。")
+    do {
+        try strPrintLine.write(to: pathOutput, atomically: false, encoding: .utf8)
+    }
+    catch {
+        NSLog(" - \(i18n): Error on writing strings to file: \(error)")
+    }
+    NSLog(" - \(i18n): 寫入完成。")
+}
+
+// MARK: - 生成 TSI
+
+func fileOutputTSI(isCHS: Bool) {
+    let i18n: String = isCHS ? "簡體中文" : "繁體中文"
+    let pathOutput = urlCurrentFolder.appendingPathComponent(isCHS ? urlOutputCHS_Tsi : urlOutputCHT_Tsi)
     var strPrintLine = ""
     // 統合辭典內容
     var arrStructUnified: [Entry] = []
@@ -349,13 +467,12 @@ func fileOutput(isCHS: Bool) {
     arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
     arrStructUnified += rawDictForPhrases(isCHS: isCHS)
     // 計算權重且排序
-    arrStructUnified = weightAndSort(arrStructUnified, isCHS: isCHS)
+    arrStructUnified = SortEntry(arrStructUnified, isCHS: isCHS)
     
     for entry in arrStructUnified {
-        let valPhoneNT = entry.valPhone.replacingOccurrences(of: "-", with: " ")
-        strPrintLine += entry.valPhrase + " " + String(entry.valCount) + " " + valPhoneNT + "\n"
+        strPrintLine += entry.valPhrase + " " + String(entry.valCount) + " " + entry.valPhone + "\n"
     }
-    NSLog(" - \(i18n): 要寫入檔案的內容編譯完畢。")
+    NSLog(" - \(i18n): 要寫入 TSI 檔案的內容編譯完畢。")
     do {
         try strPrintLine.write(to: pathOutput, atomically: false, encoding: .utf8)
     }
@@ -366,11 +483,22 @@ func fileOutput(isCHS: Bool) {
 }
 
 // MARK: - 主执行绪
-func main() {
-    NSLog("// 準備編譯繁體中文核心語料檔案。")
-    fileOutput(isCHS: false)
-    NSLog("// 準備編譯簡體中文核心語料檔案。")
-    fileOutput(isCHS: true)
+if CommandLine.arguments.count > 1 {
+    ensureOutputFolder()
+    if CommandLine.arguments[1] == "chs" {
+        NSLog("// 準備編譯簡體中文 CIN 檔案-標準集。")
+        fileOutputCIN(isCHS: true)
+        NSLog("// 準備編譯簡體中文 CIN 檔案-全字庫。")
+        fileOutputCIN(isCHS: true, isCNS: true)
+        NSLog("// 準備編譯簡體中文 TSI 檔案。")
+        fileOutputTSI(isCHS: true)
+    }
+    if CommandLine.arguments[1] == "cht" {
+        NSLog("// 準備編譯繁體中文 CIN 檔案-標準集。")
+        fileOutputCIN(isCHS: false)
+        NSLog("// 準備編譯繁體中文 CIN 檔案-全字庫。")
+        fileOutputCIN(isCHS: false, isCNS: true)
+        NSLog("// 準備編譯繁體中文 TSI 檔案。")
+        fileOutputTSI(isCHS: false)
+    }
 }
-
-main()

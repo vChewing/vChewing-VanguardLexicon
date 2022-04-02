@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: all gc macv libv libv-chs libv-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir
+.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir
 
 all: macv winv phone.cin
 
@@ -12,6 +12,18 @@ install: install-vchewing clean
 BuildDir:
 	@mkdir -p ./Build
 
+fcitx5-chs: macv
+	@echo "\033[0;32m//$$(tput bold) Linux: 正在生成 FCITX5 版小麥注音專用的簡體中文威注音語料檔案……$$(tput sgr0)\033[0m"
+	@> ./mcbopomofo-data.txt
+	@echo "# format org.openvanilla.mcbopomofo.sorted" >> ./mcbopomofo-data.txt
+	@env LC_COLLATE=C.UTF-8 cat ./data-chs.txt >> ./mcbopomofo-data.txt
+	
+fcitx5-cht: macv
+	@echo "\033[0;32m//$$(tput bold) Linux: 正在生成 FCITX5 版小麥注音專用的繁體中文威注音語料檔案……$$(tput sgr0)\033[0m"
+	@> ./mcbopomofo-data.txt
+	@echo "# format org.openvanilla.mcbopomofo.sorted" >> ./mcbopomofo-data.txt
+	@env LC_COLLATE=C.UTF-8 cat ./data-cht.txt >> ./mcbopomofo-data.txt
+
 macv:
 	@swift ./bin/cook_mac.swift
 
@@ -19,13 +31,13 @@ libv:
 	swift ./bin/cook_libchewing.swift chs
 	swift ./bin/cook_libchewing.swift cht
 
-libv-chs: 
+libv-chs:
 	@swift ./bin/cook_libchewing.swift chs
 	@diff -u "./Build/phone-chs.cin" "./Build/phone-chs-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
 	@cp -a ./Build/tsi-chs.src ./tsi.src
 	@cp -a ./Build/phone-chs.cin ./phone.cin
 
-libv-cht: 
+libv-cht:
 	@swift ./bin/cook_libchewing.swift cht
 	@diff -u "./Build/phone-cht.cin" "./Build/phone-cht-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
 	@cp -a ./Build/tsi-cht.src ./tsi.src

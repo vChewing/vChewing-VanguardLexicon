@@ -11,12 +11,14 @@
 		5B33B7C92760E7D500E72899 /* components */ = {isa = PBXFileReference; lastKnownFileType = folder; path = components; sourceTree = "<group>"; };
 		5B33B7CD2760E7D500E72899 /* bin */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bin; sourceTree = "<group>"; };
 		5B44177C277F449A00A44640 /* utilities */ = {isa = PBXFileReference; lastKnownFileType = folder; path = utilities; sourceTree = "<group>"; };
+		5B7C681927F8813B000802AC /* README.MD */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.MD; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		5B6FC7732760E0820060D9E0 = {
 			isa = PBXGroup;
 			children = (
+				5B7C681927F8813B000802AC /* README.MD */,
 				5B33B7CD2760E7D500E72899 /* bin */,
 				5B33B7C92760E7D500E72899 /* components */,
 				5B33B7C82760E7D500E72899 /* Makefile */,

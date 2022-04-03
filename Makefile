@@ -1,7 +1,13 @@
 SHELL := /bin/sh
-.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir
+.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint
 
 all: macv winv phone.cin
+
+clang-format:
+	swift-format format --in-place --configuration ./.clang-format-swift.json --recursive ./
+
+lint:
+	swift-format lint --configuration ./.clang-format-swift.json --recursive ./
 
 clean:
 	@rm -rf ./Build

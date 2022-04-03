@@ -6,15 +6,23 @@ import Foundation
 
 extension String {
 	// by 瓜子
-	mutating func replacingMatches(of target: String, with replacement: String, keyword: String) throws {
+	mutating func replacingMatches(of target: String, with replacement: String, keyword: String)
+		throws
+	{
 		let pattern = "(?<=\(keyword).{0,100})\(target)"
 		// 考虑到每一行可能会重复出现需要批配的词的情况，所以先重复三遍。会误伤到同音异字的读音，
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-			.stringByReplacingMatches(in: self, range: .init(startIndex..<endIndex, in: self), withTemplate: replacement)
+			.stringByReplacingMatches(
+				in: self, range: .init(startIndex..<endIndex, in: self),
+				withTemplate: replacement)
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-			.stringByReplacingMatches(in: self, range: .init(startIndex..<endIndex, in: self), withTemplate: replacement)
+			.stringByReplacingMatches(
+				in: self, range: .init(startIndex..<endIndex, in: self),
+				withTemplate: replacement)
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-			.stringByReplacingMatches(in: self, range: .init(startIndex..<endIndex, in: self), withTemplate: replacement)
+			.stringByReplacingMatches(
+				in: self, range: .init(startIndex..<endIndex, in: self),
+				withTemplate: replacement)
 	}
 }
 
@@ -25,16 +33,17 @@ func getDocumentsDirectory() -> URL {
 
 // MARK: - 定義檔案路徑
 
-let urlCHS = "./ToProcess-CHS.txt", urlCHT = "./ToProcess-CHT.txt"
+let urlCHS = "./ToProcess-CHS.txt"
+let urlCHT = "./ToProcess-CHT.txt"
 
 // MARK: - 檔案載入
-var strClusterCHS = "", strClusterCHT = ""
+var strClusterCHS = ""
+var strClusterCHT = ""
 
 do {
 	strClusterCHS = try String(contentsOfFile: urlCHS, encoding: .utf8)
 	strClusterCHT = try String(contentsOfFile: urlCHT, encoding: .utf8)
-}
-catch {print("Exception happened when reading raw data.")}
+} catch { print("Exception happened when reading raw data.") }
 
 // MARK: - 轉換音韻
 

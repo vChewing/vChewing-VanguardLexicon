@@ -1,60 +1,46 @@
-# Derived Data
-Build
-phone.cin
-phone.cin-CNS11643-complete.patch
-tsi.src
-tsi-chs.src
-data-plain-bpmf.txt
-data-plain-bpmf-chs.txt
-data.txt
-data-chs.txt
-
-# Misc
-*.xcodeproj/project.xcworkspace
-*.xcodeproj/xcuserdata
-BPMFBase.txt
-BPMFMappings.txt
-phrase.list
-phrase.occ
-PhraseFreq.txt
-tmp
-.!*.txt
-~$*
-.~*
-
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-# Thumbnails
 ._*
-
-# Files that might appear in the root of a volume
+.!*.txt
+.~*
+.apdisk
+.AppleDB
+.AppleDesktop
+.AppleDouble
+.com.apple.timemachine.donotpresent
 .DocumentRevisions-V100
+.DS_Store
 .fseventsd
+.LSOverride
 .Spotlight-V100
 .TemporaryItems
 .Trashes
 .VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-BPMFMappings-tmp.txt
+.vscode
 .vscode/configurationCache.log
 .vscode/dryrun.log
 .vscode/settings.json
 .vscode/targets.log
-.vscode
-tsi.src
-tsi-cht.src
+*.xcodeproj/project.xcworkspace
+*.xcodeproj/xcuserdata
+~$*
+BPMFBase.txt
+BPMFMappings-tmp.txt
+BPMFMappings.txt
+Build
+data-chs.txt
 data-cht.txt
+data-plain-bpmf-chs.txt
+data-plain-bpmf.txt
+data.txt
+Icon
 mcbopomofo-data.txt
+Network Trash Folder
+phone.cin
+phone.cin-CNS11643-complete.patch
+phrase.list
+phrase.occ
+PhraseFreq.txt
+Temporary Items
+tmp
+tsi-chs.src
+tsi-cht.src
+tsi.src

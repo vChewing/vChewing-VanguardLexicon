@@ -7,21 +7,25 @@ import Foundation
 extension String {
 	// by 瓜子
 	mutating func replacingMatches(of target: String, with replacement: String, keyword: String)
-		throws {
+		throws
+	{
 		let pattern = "(?<=\(keyword).{0,100})\(target)"
 		// 考虑到每一行可能会重复出现需要批配的词的情况，所以先重复三遍。会误伤到同音异字的读音，
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
 			.stringByReplacingMatches(
 				in: self, range: .init(startIndex..<endIndex, in: self),
-				withTemplate: replacement)
+				withTemplate: replacement
+			)
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
 			.stringByReplacingMatches(
 				in: self, range: .init(startIndex..<endIndex, in: self),
-				withTemplate: replacement)
+				withTemplate: replacement
+			)
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
 			.stringByReplacingMatches(
 				in: self, range: .init(startIndex..<endIndex, in: self),
-				withTemplate: replacement)
+				withTemplate: replacement
+			)
 	}
 }
 
@@ -36,6 +40,7 @@ let urlCHS = "./ToProcess-CHS.txt"
 let urlCHT = "./ToProcess-CHT.txt"
 
 // MARK: - 檔案載入
+
 var strClusterCHS = ""
 var strClusterCHT = ""
 
@@ -116,6 +121,7 @@ for blob in arrClusterCHT {
 	try? currentBlobCHT.replacingMatches(of: #"\bㄐㄩㄣˋ\b"#, with: "ㄐㄩㄣ", keyword: "菌")
 	print(currentBlobCHT)
 }
+
 print("==========Border=========")
 var arrClusterCHS = strClusterCHS.components(separatedBy: "\n")
 var currentBlobCHS = ""

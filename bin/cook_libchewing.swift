@@ -27,6 +27,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import Foundation
 
 // MARK: - 前導工作
+
 private func getDocumentsDirectory() -> URL {
 	let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
 	return paths[0]
@@ -37,61 +38,66 @@ extension String {
 		// Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
 		do {
 			let regex = try NSRegularExpression(
-				pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines])
-			let range = NSRange(self.startIndex..., in: self)
+				pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines]
+			)
+			let range = NSRange(startIndex..., in: self)
 			self = regex.stringByReplacingMatches(
-				in: self, options: [], range: range, withTemplate: replaceWith)
+				in: self, options: [], range: range, withTemplate: replaceWith
+			)
 		} catch { return }
 	}
+
 	fileprivate mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
-		self = self.replacingOccurrences(of: strOf, with: strWith)
+		self = replacingOccurrences(of: strOf, with: strWith)
 	}
+
 	fileprivate mutating func bpmf2Dachien() {
-		self.selfReplace("ㄝ", ",")
-		self.selfReplace("ㄦ", "-")
-		self.selfReplace("ㄡ", ".")
-		self.selfReplace("ㄥ", "/")
-		self.selfReplace("ㄢ", "0")
-		self.selfReplace("ㄅ", "1")
-		self.selfReplace("ㄉ", "2")
-		self.selfReplace("ˇ", "3")
-		self.selfReplace("ˋ", "4")
-		self.selfReplace("ㄓ", "5")
-		self.selfReplace("ˊ", "6")
-		self.selfReplace("˙", "7")
-		self.selfReplace("ㄚ", "8")
-		self.selfReplace("ㄞ", "9")
-		self.selfReplace("ㄤ", ";")
-		self.selfReplace("ㄇ", "a")
-		self.selfReplace("ㄖ", "b")
-		self.selfReplace("ㄏ", "c")
-		self.selfReplace("ㄎ", "d")
-		self.selfReplace("ㄍ", "e")
-		self.selfReplace("ㄑ", "f")
-		self.selfReplace("ㄕ", "g")
-		self.selfReplace("ㄘ", "h")
-		self.selfReplace("ㄛ", "i")
-		self.selfReplace("ㄨ", "j")
-		self.selfReplace("ㄜ", "k")
-		self.selfReplace("ㄠ", "l")
-		self.selfReplace("ㄩ", "m")
-		self.selfReplace("ㄙ", "n")
-		self.selfReplace("ㄟ", "o")
-		self.selfReplace("ㄣ", "p")
-		self.selfReplace("ㄆ", "q")
-		self.selfReplace("ㄐ", "r")
-		self.selfReplace("ㄋ", "s")
-		self.selfReplace("ㄔ", "t")
-		self.selfReplace("ㄧ", "u")
-		self.selfReplace("ㄒ", "v")
-		self.selfReplace("ㄊ", "w")
-		self.selfReplace("ㄌ", "x")
-		self.selfReplace("ㄗ", "y")
-		self.selfReplace("ㄈ", "z")
+		selfReplace("ㄝ", ",")
+		selfReplace("ㄦ", "-")
+		selfReplace("ㄡ", ".")
+		selfReplace("ㄥ", "/")
+		selfReplace("ㄢ", "0")
+		selfReplace("ㄅ", "1")
+		selfReplace("ㄉ", "2")
+		selfReplace("ˇ", "3")
+		selfReplace("ˋ", "4")
+		selfReplace("ㄓ", "5")
+		selfReplace("ˊ", "6")
+		selfReplace("˙", "7")
+		selfReplace("ㄚ", "8")
+		selfReplace("ㄞ", "9")
+		selfReplace("ㄤ", ";")
+		selfReplace("ㄇ", "a")
+		selfReplace("ㄖ", "b")
+		selfReplace("ㄏ", "c")
+		selfReplace("ㄎ", "d")
+		selfReplace("ㄍ", "e")
+		selfReplace("ㄑ", "f")
+		selfReplace("ㄕ", "g")
+		selfReplace("ㄘ", "h")
+		selfReplace("ㄛ", "i")
+		selfReplace("ㄨ", "j")
+		selfReplace("ㄜ", "k")
+		selfReplace("ㄠ", "l")
+		selfReplace("ㄩ", "m")
+		selfReplace("ㄙ", "n")
+		selfReplace("ㄟ", "o")
+		selfReplace("ㄣ", "p")
+		selfReplace("ㄆ", "q")
+		selfReplace("ㄐ", "r")
+		selfReplace("ㄋ", "s")
+		selfReplace("ㄔ", "t")
+		selfReplace("ㄧ", "u")
+		selfReplace("ㄒ", "v")
+		selfReplace("ㄊ", "w")
+		selfReplace("ㄌ", "x")
+		selfReplace("ㄗ", "y")
+		selfReplace("ㄈ", "z")
 	}
 }
 
 // MARK: - 引入小數點位數控制函數
+
 // Ref: https://stackoverflow.com/a/32581409/4162914
 extension Float {
 	fileprivate func rounded(toPlaces places: Int) -> Float {
@@ -101,6 +107,7 @@ extension Float {
 }
 
 // MARK: - 引入幂乘函數
+
 // Ref: https://stackoverflow.com/a/41581695/4162914
 precedencegroup ExponentiationPrecedence {
 	associativity: right
@@ -110,11 +117,11 @@ precedencegroup ExponentiationPrecedence {
 infix operator **: ExponentiationPrecedence
 
 func ** (_ base: Double, _ exp: Double) -> Double {
-	return pow(base, exp)
+	pow(base, exp)
 }
 
 func ** (_ base: Float, _ exp: Float) -> Float {
-	return pow(base, exp)
+	pow(base, exp)
 }
 
 // MARK: - 定義檔案結構
@@ -160,17 +167,19 @@ func ensureOutputFolder() {
 		do {
 			try FileManager.default.createDirectory(
 				atPath: "./Build", withIntermediateDirectories: true,
-				attributes: nil)
+				attributes: nil
+			)
 		} catch {
 			NSLog(" - Failed to ensure the existence of build folder.")
 		}
 	}
 }
+
 // MARK: - 載入詞組檔案且輸出數組
 
 func rawDictForPhrases(isCHS: Bool) -> [Entry] {
 	var arrEntryRAW: [Entry] = []
-	var strRAW: String = ""
+	var strRAW = ""
 	let urlCustom: String = isCHS ? urlCHSforCustom : urlCHTforCustom
 	let urlMCBP: String = isCHS ? urlCHSforMCBP : urlCHTforMCBP
 	let urlMOE: String = isCHS ? urlCHSforMOE : urlCHTforMOE
@@ -205,7 +214,7 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
 	for lineData in arrData {
 		// 第三欄開始是注音
 		let arrLineData = lineData.components(separatedBy: " ")
-		var varLineDataProcessed: String = ""
+		var varLineDataProcessed = ""
 		var count = 0
 		for currentCell in arrLineData {
 			count += 1
@@ -238,9 +247,10 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
 		}
 		if phrase != "" {  // 廢掉空數據；之後無須再這樣處理。
 			arrEntryRAW += [
-				Entry.init(
+				Entry(
 					valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-					valCount: occurrence)
+					valCount: occurrence
+				)
 			]
 		}
 	}
@@ -252,15 +262,16 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
 
 func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = false) -> [Entry] {
 	var arrEntryRAW: [Entry] = []
-	var strRAW: String = ""
-	var strRAWOther: String = ""
+	var strRAW = ""
+	var strRAWOther = ""
 	let i18n: String = isCHS ? "簡體中文" : "繁體中文"
 	// 讀取內容
 	do {
 		strRAW += try String(contentsOfFile: urlKanjiCore, encoding: .utf8)
 		if isSupplemetal {
 			strRAWOther += try String(
-				contentsOfFile: urlKanjiSupplement, encoding: .utf8)
+				contentsOfFile: urlKanjiSupplement, encoding: .utf8
+			)
 			strRAWOther.selfReplace("\t", " ")
 		}
 		if isCNS {
@@ -283,7 +294,7 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
 	// 正式整理格式，現在就開始去重複：
 	var arrData = Array(
 		NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
-	var varLineData: String = ""
+	var varLineData = ""
 	for lineData in arrData {
 		// 簡體中文的話，提取 1,2,4；繁體中文的話，提取 1,3,4。
 		let varLineDataPre = lineData.components(separatedBy: " ").prefix(isCHS ? 2 : 1)
@@ -294,7 +305,7 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
 				separator: "\t")
 		varLineData = varLineDataPre + "\t" + varLineDataPost
 		let arrLineData = varLineData.components(separatedBy: " ")
-		var varLineDataProcessed: String = ""
+		var varLineDataProcessed = ""
 		var count = 0
 		for currentCell in arrLineData {
 			count += 1
@@ -325,9 +336,10 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
 		}
 		if phrase.count == 1 {  // 只要單個字符的數據
 			arrEntryRAW += [
-				Entry.init(
+				Entry(
 					valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-					valCount: occurrence)
+					valCount: occurrence
+				)
 			]
 		}
 	}
@@ -351,9 +363,10 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
 		}
 		if phrase.count == 1 {  // 只要單個字符的數據
 			arrEntryRAW += [
-				Entry.init(
+				Entry(
 					valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-					valCount: occurrence)
+					valCount: occurrence
+				)
 			]
 		}
 	}
@@ -365,7 +378,7 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
 
 func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
 	var arrEntryRAW: [Entry] = []
-	var strRAW: String = ""
+	var strRAW = ""
 	let i18n: String = isCHS ? "簡體中文" : "繁體中文"
 	// 讀取內容
 	do {
@@ -389,14 +402,14 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
 	// 正式整理格式，現在就開始去重複：
 	let arrData = Array(
 		NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
-	var varLineData: String = ""
+	var varLineData = ""
 	for lineData in arrData {
 		varLineData = lineData
 		// 先完成某兩步需要分行處理才能完成的格式整理。
 		varLineData = varLineData.components(separatedBy: " ").prefix(3).joined(
 			separator: "\t")  // 提取前三欄的內容。
 		let arrLineData = varLineData.components(separatedBy: " ")
-		var varLineDataProcessed: String = ""
+		var varLineDataProcessed = ""
 		var count = 0
 		for currentCell in arrLineData {
 			count += 1
@@ -427,9 +440,10 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
 		}
 		if phrase.count == 1 {  // 只要單個字符的數據
 			arrEntryRAW += [
-				Entry.init(
+				Entry(
 					valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-					valCount: occurrence)
+					valCount: occurrence
+				)
 			]
 		}
 	}
@@ -442,8 +456,8 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
 func sortEntry(_ arrStructUnsorted: [Entry], isCHS: Bool) -> [Entry] {
 	let i18n: String = isCHS ? "簡體中文" : "繁體中文"
 	// 接下來是排序，先按照注音遞減排序一遍、再按照權重遞減排序一遍。
-	let arrStructSorted: [Entry] = arrStructUnsorted.sorted(by: { (lhs, rhs) -> Bool in
-		return (lhs.valPhone, rhs.valCount) < (rhs.valPhone, lhs.valCount)
+	let arrStructSorted: [Entry] = arrStructUnsorted.sorted(by: { lhs, rhs -> Bool in
+		(lhs.valPhone, rhs.valCount) < (rhs.valPhone, lhs.valCount)
 	})
 	NSLog(" - \(i18n): 排序整理完畢，準備編譯要寫入的檔案內容。")
 	return arrStructSorted
@@ -522,6 +536,7 @@ func fileOutputTSI(isCHS: Bool) {
 }
 
 // MARK: - 主执行绪
+
 if CommandLine.arguments.count > 1 {
 	ensureOutputFolder()
 	if CommandLine.arguments[1] == "chs" {

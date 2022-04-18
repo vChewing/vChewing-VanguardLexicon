@@ -30,10 +30,12 @@ extension String {
 	mutating func regReplace(pattern: String, replaceWith: String = "") {
 		do {
 			let regex = try NSRegularExpression(
-				pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines])
-			let range = NSRange(self.startIndex..., in: self)
+				pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines]
+			)
+			let range = NSRange(startIndex..., in: self)
 			self = regex.stringByReplacingMatches(
-				in: self, options: [], range: range, withTemplate: replaceWith)
+				in: self, options: [], range: range, withTemplate: replaceWith
+			)
 		} catch { return }
 	}
 }
@@ -90,6 +92,7 @@ for lineData in arrData {
 	strProcessed += varLineData
 	strProcessed += "\n"
 }
+
 arrData = strProcessed.components(separatedBy: "\n")
 let arrCHS = Array(NSOrderedSet(array: arrData).array as! [String])  // Deduplication
 
@@ -102,6 +105,7 @@ for lineData in arrData {
 	strProcessed += varLineData
 	strProcessed += "\n"
 }
+
 arrData = strProcessed.components(separatedBy: "\n")
 let arrCHT = Array(NSOrderedSet(array: arrData).array as! [String])  // Deduplication
 
@@ -110,6 +114,7 @@ for lineData in arrCHT {
 	varLineData = lineData
 	print(varLineData)
 }
+
 print("@@@@@@@@@@@@@@@@@@@@")
 for lineData in arrCHS {
 	varLineData = lineData

@@ -7,8 +7,7 @@ import Foundation
 extension String {
 	// by 瓜子
 	mutating func replacingMatches(of target: String, with replacement: String, keyword: String)
-		throws
-	{
+		throws {
 		let pattern = "(?<=\(keyword).{0,100})\(target)"
 		// 考虑到每一行可能会重复出现需要批配的词的情况，所以先重复三遍。会误伤到同音异字的读音，
 		self = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)

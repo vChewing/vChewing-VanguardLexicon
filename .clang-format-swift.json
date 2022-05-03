@@ -3,7 +3,7 @@
     "accessLevel" : "private"
   },
   "indentation" : {
-    "tabs" : 1
+    "spaces" : 2
   },
   "indentConditionalCompilationBlocks" : true,
   "indentSwitchCaseLabels" : true,
@@ -21,7 +21,7 @@
     "AmbiguousTrailingClosureOverload" : true,
     "BeginDocumentationCommentWithOneLineSummary" : false,
     "DoNotUseSemicolons" : true,
-    "DontRepeatTypeInStaticProperties" : true,
+    "DontRepeatTypeInStaticProperties" : false,
     "FileScopedDeclarationPrivacy" : true,
     "FullyIndirectEnum" : true,
     "GroupNumericLiterals" : true,
@@ -39,7 +39,7 @@
     "NoVoidReturnOnFunctionSignature" : true,
     "OneCasePerLine" : true,
     "OneVariableDeclarationPerLine" : true,
-    "OnlyOneTrailingClosureArgument" : true,
+    "OnlyOneTrailingClosureArgument" : false,
     "OrderedImports" : true,
     "ReturnVoidInsteadOfEmptyTuple" : true,
     "UseEarlyExits" : false,
@@ -47,10 +47,10 @@
     "UseShorthandTypeNames" : true,
     "UseSingleLinePropertyGetter" : true,
     "UseSynthesizedInitializer" : true,
-    "UseTripleSlashForDocumentationComments" : true,
+    "UseTripleSlashForDocumentationComments" : false,
     "UseWhereClausesInForLoops" : false,
     "ValidateDocumentationComments" : false
   },
-  "tabWidth" : 4,
+  "tabWidth" : 8,
   "version" : 1
 }

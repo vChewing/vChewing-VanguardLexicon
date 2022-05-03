@@ -27,22 +27,22 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import Foundation
 
 extension String {
-	mutating func regReplace(pattern: String, replaceWith: String = "") {
-		do {
-			let regex = try NSRegularExpression(
-				pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines]
-			)
-			let range = NSRange(startIndex..., in: self)
-			self = regex.stringByReplacingMatches(
-				in: self, options: [], range: range, withTemplate: replaceWith
-			)
-		} catch { return }
-	}
+  mutating func regReplace(pattern: String, replaceWith: String = "") {
+    do {
+      let regex = try NSRegularExpression(
+        pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines]
+      )
+      let range = NSRange(startIndex..., in: self)
+      self = regex.stringByReplacingMatches(
+        in: self, options: [], range: range, withTemplate: replaceWith
+      )
+    } catch { return }
+  }
 }
 
 func getDocumentsDirectory() -> URL {
-	let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-	return paths[0]
+  let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+  return paths[0]
 }
 
 let urlCHSforMCBP = "../components/chs/phrases-mcbp-chs.txt"
@@ -57,21 +57,21 @@ var textCHT = ""
 
 // 档案载入
 do {
-	textCHS += "@# phrases-moe-chs.txt\n"
-	textCHS += try String(contentsOfFile: urlCHSforMOE, encoding: .utf8)
-	textCHS += "\n@# phrases-mcbp-chs.txt\n"
-	textCHS += try String(contentsOfFile: urlCHSforMCBP, encoding: .utf8)
-	textCHS += "\n@# phrases-moe-vchewing.txt\n"
-	textCHS += try String(contentsOfFile: urlCHSforVCHEW, encoding: .utf8)
+  textCHS += "@# phrases-moe-chs.txt\n"
+  textCHS += try String(contentsOfFile: urlCHSforMOE, encoding: .utf8)
+  textCHS += "\n@# phrases-mcbp-chs.txt\n"
+  textCHS += try String(contentsOfFile: urlCHSforMCBP, encoding: .utf8)
+  textCHS += "\n@# phrases-moe-vchewing.txt\n"
+  textCHS += try String(contentsOfFile: urlCHSforVCHEW, encoding: .utf8)
 } catch { print("Exception happened when reading raw CHS data.") }
 
 do {
-	textCHT += "@# phrases-moe-cht.txt\n"
-	textCHT += try String(contentsOfFile: urlCHTforMOE, encoding: .utf8)
-	textCHT += "\n@# phrases-mcbp-cht.txt\n"
-	textCHT += try String(contentsOfFile: urlCHTforMCBP, encoding: .utf8)
-	textCHT += "\n@# phrases-moe-vchewing.txt\n"
-	textCHT += try String(contentsOfFile: urlCHTforVCHEW, encoding: .utf8)
+  textCHT += "@# phrases-moe-cht.txt\n"
+  textCHT += try String(contentsOfFile: urlCHTforMOE, encoding: .utf8)
+  textCHT += "\n@# phrases-mcbp-cht.txt\n"
+  textCHT += try String(contentsOfFile: urlCHTforMCBP, encoding: .utf8)
+  textCHT += "\n@# phrases-moe-vchewing.txt\n"
+  textCHT += try String(contentsOfFile: urlCHTforVCHEW, encoding: .utf8)
 } catch { print("Exception happened when reading raw CHT data.") }
 
 // Regex Pre-Processing
@@ -87,10 +87,10 @@ var arrData = textCHS.components(separatedBy: "\n")
 var varLineData = ""
 var strProcessed = ""
 for lineData in arrData {
-	varLineData = lineData
-	varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
-	strProcessed += varLineData
-	strProcessed += "\n"
+  varLineData = lineData
+  varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
+  strProcessed += varLineData
+  strProcessed += "\n"
 }
 
 arrData = strProcessed.components(separatedBy: "\n")
@@ -100,10 +100,10 @@ arrData = textCHT.components(separatedBy: "\n")
 varLineData = ""
 strProcessed = ""
 for lineData in arrData {
-	varLineData = lineData
-	varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
-	strProcessed += varLineData
-	strProcessed += "\n"
+  varLineData = lineData
+  varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
+  strProcessed += varLineData
+  strProcessed += "\n"
 }
 
 arrData = strProcessed.components(separatedBy: "\n")
@@ -111,12 +111,12 @@ let arrCHT = Array(NSOrderedSet(array: arrData).array as! [String])  // Deduplic
 
 // Print Out
 for lineData in arrCHT {
-	varLineData = lineData
-	print(varLineData)
+  varLineData = lineData
+  print(varLineData)
 }
 
 print("@@@@@@@@@@@@@@@@@@@@")
 for lineData in arrCHS {
-	varLineData = lineData
-	print(varLineData)
+  varLineData = lineData
+  print(varLineData)
 }

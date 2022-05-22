@@ -11,7 +11,7 @@ lint:
 
 clean:
 	@rm -rf ./Build
-	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt phone.cin phone.cin-CNS11643-complete.patch
+	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt data-*.plist phone.cin phone.cin-CNS11643-complete.patch
 		
 install: install-vchewing clean
 
@@ -55,6 +55,7 @@ install-vchewing: macv
 	@cp -a data-cht.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@cp -a ./components/common/data*.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 	@cp -a ./components/common/char-kanji-cns.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a ./data-*.plist $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
 
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在確保威注音不被 Gatekeeper 刁難……$$(tput sgr0)\033[0m"

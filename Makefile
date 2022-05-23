@@ -3,11 +3,20 @@ SHELL := /bin/sh
 
 all: macv winv phone.cin
 
+format: batchfix clang-format lint
+
 clang-format:
-	swift-format format --in-place --configuration ./.clang-format-swift.json --recursive ./
+	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format format --in-place --configuration ./.clang-format-swift.json --parallel
+	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format lint --configuration ./.clang-format-swift.json --parallel
 
 lint:
-	swift-format lint --configuration ./.clang-format-swift.json --recursive ./
+	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format lint --configuration ./.clang-format-swift.json --parallel 
+
+batchfix:
+	@git ls-files --exclude-standard | grep -E '\.swift$$' | swiftlint --fix --autocorrect
+
+advanced-lint:
+	@swiftformat --swiftversion 5.5 --indent 2 ./
 
 clean:
 	@rm -rf ./Build

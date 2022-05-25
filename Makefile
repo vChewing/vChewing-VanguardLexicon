@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint
+.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg
 
 all: macv winv phone.cin
 
@@ -85,3 +85,6 @@ _remoteinstall-vchewing: macv
 
 gc:
 	git reflog expire --expire=now --all ; git gc --prune=now --aggressive
+
+gitcfg:
+	cp .config_backup .git/config

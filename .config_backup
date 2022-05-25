@@ -1,0 +1,20 @@
+[core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+        ignorecase = true
+        precomposeunicode = true
+[submodule]
+        active = .
+[remote "origin"]
+        url = https://gitee.com/vchewing/libvchewing-data
+        fetch = +refs/heads/*:refs/remotes/origin/*
+        pushurl = https://gitee.com/vchewing/libvchewing-data
+[remote "github"]
+        url = https://github.com/ShikiSuen/libvchewing-data
+        fetch = +refs/heads/*:refs/remotes/origin/*
+        pushurl = https://github.com/ShikiSuen/libvchewing-data
+[branch "main"]
+        remote = origin
+        merge = refs/heads/main

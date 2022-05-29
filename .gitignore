@@ -45,3 +45,4 @@ tsi-chs.src
 tsi-cht.src
 tsi.src
 data-*.plist
+bin/libchewing-database-initializer/init_database

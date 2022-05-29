@@ -1,7 +1,23 @@
 SHELL := /bin/sh
-.PHONY: all gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht debug install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg
+.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht
 
-all: macv winv phone.cin
+install-linux-chewing-amd64-chs: prepare-linux-amd64 libv-chs
+	@sudo cp ./Build/Release/LibChewing-CHS/dictionary.dat /usr/share/libchewing/
+	@sudo cp ./Build/Release/LibChewing-CHS/index_tree.dat /usr/share/libchewing/
+	@echo "\033[0;32m//$$(tput bold) 簡體中文威注音詞庫已部署至當前系統 /usr/share/libchewing 內，請手動重新啟動您在使用的主輸入法框架。$$(tput sgr0)\033[0m"
+
+install-linux-chewing-amd64-cht: prepare-linux-amd64 libv-cht
+	@sudo cp ./Build/Release/LibChewing-CHT/dictionary.dat /usr/share/libchewing/
+	@sudo cp ./Build/Release/LibChewing-CHT/index_tree.dat /usr/share/libchewing/
+	@echo "\033[0;32m//$$(tput bold) 繁體中文威注音詞庫已部署至當前系統 /usr/share/libchewing 內，請手動重新啟動您在使用的主輸入法框架。$$(tput sgr0)\033[0m"
+
+prepare-macos:
+	@echo "\033[0;32m//$$(tput bold) 已經準備設定 macOS 專用酷音編譯器……$$(tput sgr0)\033[0m"
+	@cp ./bin/libchewing-database-initializer/init_database_macos_universal ./bin/libchewing-database-initializer/init_database
+
+prepare-linux-amd64:
+	@echo "\033[0;32m//$$(tput bold) 已經準備設定 Linux amd64 專用酷音編譯器……$$(tput sgr0)\033[0m"
+	@cp ./bin/libchewing-database-initializer/init_database_linux_amd64 ./bin/libchewing-database-initializer/init_database
 
 format: batchfix clang-format lint
 
@@ -21,7 +37,7 @@ advanced-lint:
 clean:
 	@rm -rf ./Build
 	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt data-*.plist phone.cin phone.cin-CNS11643-complete.patch
-		
+	
 install: install-vchewing clean
 
 BuildDir:
@@ -39,6 +55,9 @@ fcitx5-cht: macv
 	@echo "# format org.openvanilla.mcbopomofo.sorted" >> ./mcbopomofo-data.txt
 	@env LC_COLLATE=C.UTF-8 cat ./data-cht.txt >> ./mcbopomofo-data.txt
 
+fcitx5-install:
+	@cp ./mcbopomofo-data.txt /usr/share/fcitx5/data/
+
 macv:
 	@swift ./bin/cook_mac.swift
 
@@ -47,16 +66,24 @@ libv:
 	swift ./bin/cook_libchewing.swift cht
 
 libv-chs:
+	@mkdir -p ./Build/Release/LibChewing-CHS/
+	@mkdir -p ./Build/Intermediate/LibChewing-CHS/
 	@swift ./bin/cook_libchewing.swift chs
-	@diff -u "./Build/phone-chs.cin" "./Build/phone-chs-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
-	@cp -a ./Build/tsi-chs.src ./tsi.src
-	@cp -a ./Build/phone-chs.cin ./phone.cin
+	@diff -u "./Build/phone-chs.cin" "./Build/phone-chs-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./Build/Intermediate/LibChewing-CHS/phone.cin-CNS11643-complete.patch" || true
+	@./bin/libchewing-database-initializer/init_database ./Build/phone-chs.cin ./Build/tsi-chs.src
+	@mv ./Build/phone-chs.cin ./Build/Intermediate/LibChewing-CHS/phone.cin
+	@mv ./Build/tsi-chs.src ./Build/Intermediate/LibChewing-CHS/tsi.src
+	@mv index_tree.dat dictionary.dat ./Build/Release/LibChewing-CHS/
 
 libv-cht:
+	@mkdir -p ./Build/Release/LibChewing-CHT/
+	@mkdir -p ./Build/Intermediate/LibChewing-CHT/
 	@swift ./bin/cook_libchewing.swift cht
-	@diff -u "./Build/phone-cht.cin" "./Build/phone-cht-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./phone.cin-CNS11643-complete.patch" || true
-	@cp -a ./Build/tsi-cht.src ./tsi.src
-	@cp -a ./Build/phone-cht.cin ./phone.cin
+	@diff -u "./Build/phone-cht.cin" "./Build/phone-cht-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./Build/Intermediate/LibChewing-CHT/phone.cin-CNS11643-complete.patch" || true
+	@./bin/libchewing-database-initializer/init_database ./Build/phone-cht.cin ./Build/tsi-cht.src
+	@mv ./Build/phone-cht.cin ./Build/Intermediate/LibChewing-CHT/phone.cin
+	@mv ./Build/tsi-cht.src ./Build/Intermediate/LibChewing-CHT/tsi.src
+	@mv index_tree.dat dictionary.dat ./Build/Release/LibChewing-CHT/
 
 install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
@@ -72,10 +99,6 @@ install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 
 # FOR INTERNAL USE
-debug:
-	@rsync -avx ./phone.cin-CNS11643-complete.patch ./phone.cin ./tsi.src ~/Repos/libchewing/data/ || true
-	@echo "\033[0;32m//$$(tput bold) libChewing: 開始偵錯測試。$$(tput sgr0)\033[0m"
-	@make -f ~/Repos/libchewing/data/makefile  -C ~/Repos/libchewing/data/
 
 _remoteinstall-vchewing: macv
 	@rsync -avx data-chs.txt data-cht.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"

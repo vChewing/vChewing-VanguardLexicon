@@ -1,5 +1,10 @@
 SHELL := /bin/sh
-.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht
+.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
+
+deploy-swift-env-linux:
+	sudo apt install -y curl
+	curl -s https://archive.swiftlang.xyz/install.sh | sudo bash
+	sudo apt install swiftlang
 
 install-linux-chewing-amd64-chs: prepare-linux-amd64 libv-chs
 	@sudo cp ./Build/Release/LibChewing-CHS/dictionary.dat /usr/share/libchewing/

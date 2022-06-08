@@ -522,7 +522,15 @@ func fileOutputTSI(isCHS: Bool) {
   // 計算權重且排序
   arrStructUnified = sortEntry(arrStructUnified, isCHS: isCHS)
 
+  var setAlreadyInserted = Set<String>()
+  var arrFoundedDuplications = [String]()
+
   for entry in arrStructUnified {
+    if setAlreadyInserted.contains(entry.valPhrase + "\t" + entry.valPhone) {
+      arrFoundedDuplications.append(entry.valPhrase + "\t" + entry.valPhone)
+    } else {
+      setAlreadyInserted.insert(entry.valPhrase + "\t" + entry.valPhone)
+    }
     strPrintLine +=
       entry.valPhrase + " " + String(entry.valCount) + " " + entry.valPhone + "\n"
   }
@@ -533,6 +541,12 @@ func fileOutputTSI(isCHS: Bool) {
     NSLog(" - \(i18n): Error on writing strings to file: \(error)")
   }
   NSLog(" - \(i18n): 寫入完成。")
+  if !arrFoundedDuplications.isEmpty {
+    NSLog(" - \(i18n): 尋得下述重複項目，請務必手動排查：")
+    print("-------------------")
+    print(arrFoundedDuplications.joined(separator: "\n"))
+  }
+  print("===================")
 }
 
 // MARK: - 主执行绪

@@ -45,10 +45,10 @@ func getDocumentsDirectory() -> URL {
   return paths[0]
 }
 
-let urlCHSforMCBP = "../components/chs/phrases-mcbp-chs.txt"
+let urlCHSforTABE = "../components/chs/phrases-tabe-chs.txt"
 let urlCHSforMOE = "../components/chs/phrases-moe-chs.txt"
 let urlCHSforVCHEW = "../components/chs/phrases-vchewing-chs.txt"
-let urlCHTforMCBP = "../components/cht/phrases-mcbp-cht.txt"
+let urlCHTforTABE = "../components/cht/phrases-tabe-cht.txt"
 let urlCHTforMOE = "../components/cht/phrases-moe-cht.txt"
 let urlCHTforVCHEW = "../components/cht/phrases-vchewing-cht.txt"
 
@@ -59,8 +59,8 @@ var textCHT = ""
 do {
   textCHS += "@# phrases-moe-chs.txt\n"
   textCHS += try String(contentsOfFile: urlCHSforMOE, encoding: .utf8)
-  textCHS += "\n@# phrases-mcbp-chs.txt\n"
-  textCHS += try String(contentsOfFile: urlCHSforMCBP, encoding: .utf8)
+  textCHS += "\n@# phrases-tabe-chs.txt\n"
+  textCHS += try String(contentsOfFile: urlCHSforTABE, encoding: .utf8)
   textCHS += "\n@# phrases-moe-vchewing.txt\n"
   textCHS += try String(contentsOfFile: urlCHSforVCHEW, encoding: .utf8)
 } catch { print("Exception happened when reading raw CHS data.") }
@@ -68,8 +68,8 @@ do {
 do {
   textCHT += "@# phrases-moe-cht.txt\n"
   textCHT += try String(contentsOfFile: urlCHTforMOE, encoding: .utf8)
-  textCHT += "\n@# phrases-mcbp-cht.txt\n"
-  textCHT += try String(contentsOfFile: urlCHTforMCBP, encoding: .utf8)
+  textCHT += "\n@# phrases-tabe-cht.txt\n"
+  textCHT += try String(contentsOfFile: urlCHTforTABE, encoding: .utf8)
   textCHT += "\n@# phrases-moe-vchewing.txt\n"
   textCHT += try String(contentsOfFile: urlCHTforVCHEW, encoding: .utf8)
 } catch { print("Exception happened when reading raw CHT data.") }

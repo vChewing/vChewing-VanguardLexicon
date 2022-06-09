@@ -64,7 +64,8 @@ fcitx5-install:
 	@cp ./mcbopomofo-data.txt /usr/share/fcitx5/data/
 
 macv:
-	@swift ./bin/cook_mac.swift
+	swiftc ./bin/cook_mac.swift -o ./bin/cook_mac.exe
+	@swift ./bin/cook_mac.exe
 
 libv:
 	swift ./bin/cook_libchewing.swift chs

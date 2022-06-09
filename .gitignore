@@ -22,10 +22,14 @@
 *.xcodeproj/project.xcworkspace
 *.xcodeproj/xcuserdata
 ~$*
+bin/cook_mac.exe
+bin/dataCompiler.exe
+bin/libchewing-database-initializer/init_database
 BPMFBase.txt
 BPMFMappings-tmp.txt
 BPMFMappings.txt
 Build
+data-*.plist
 data-chs.txt
 data-cht.txt
 data-plain-bpmf-chs.txt
@@ -44,5 +48,3 @@ tmp
 tsi-chs.src
 tsi-cht.src
 tsi.src
-data-*.plist
-bin/libchewing-database-initializer/init_database

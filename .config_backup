@@ -3,18 +3,31 @@
         filemode = true
         bare = false
         logallrefupdates = true
-        ignorecase = true
+        ignorecase = false
         precomposeunicode = true
 [submodule]
         active = .
-[remote "origin"]
-        url = https://gitee.com/vchewing/libvchewing-data
-        fetch = +refs/heads/*:refs/remotes/origin/*
-        pushurl = https://gitee.com/vchewing/libvchewing-data
-[remote "github"]
-        url = https://github.com/ShikiSuen/libvchewing-data
-        fetch = +refs/heads/*:refs/remotes/origin/*
-        pushurl = https://github.com/ShikiSuen/libvchewing-data
 [branch "main"]
         remote = origin
         merge = refs/heads/main
+[submodule "Source/Data"]
+        url = https://gitee.com/vchewing/libvchewing-data
+[remote "origin"]
+        url = https://gitee.com/vchewing/libvchewing-data
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[remote "gitcode"]
+        url = https://gitcode.net/vChewing/libvchewing-data.git/
+        fetch = +refs/heads/*:refs/remotes/gitcode/*
+[remote "gitlab"]
+        url = https://jihulab.com/vChewing/libvchewing-data.git/
+        fetch = +refs/heads/*:refs/remotes/gitlab/*
+[remote "github"]
+        url = https://github.com/ShikiSuen//libvchewing-data
+        fetch = +refs/heads/*:refs/remotes/github/*
+[remote "all"]
+        url = https://gitee.com/vchewing/libvchewing-data
+        fetch = +refs/heads/*:refs/remotes/all/*
+        pushurl = https://gitee.com/vchewing/libvchewing-data
+        pushurl = https://gitcode.net/vChewing/libvchewing-data.git/
+        pushurl = https://jihulab.com/vChewing/libvchewing-data.git/
+        pushurl = https://github.com/ShikiSuen//libvchewing-data

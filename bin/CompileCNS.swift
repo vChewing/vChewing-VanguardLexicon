@@ -10,7 +10,10 @@ var pathIDG2PNB: String = "./Open_Data/Properties/CNS_phonetic.txt"
 var dicCNS2UTF: [String: String] = .init()
 var strIDG2PNB: String = ""
 do {
-  let strCNS2UTF: String = try String(contentsOfFile: pathCNS2UTF_1, encoding: .utf8) + "\n" + String(contentsOfFile: pathCNS2UTF_2, encoding: .utf8) + "\n" + String(contentsOfFile: pathCNS2UTF_3, encoding: .utf8)
+  let strCNS2UTF: String =
+    try String(contentsOfFile: pathCNS2UTF_1, encoding: .utf8) + "\n"
+    + String(contentsOfFile: pathCNS2UTF_2, encoding: .utf8) + "\n"
+    + String(contentsOfFile: pathCNS2UTF_3, encoding: .utf8)
   strIDG2PNB = try String(contentsOfFile: pathIDG2PNB, encoding: .utf8)
   var currentLine = ""
   for line in strCNS2UTF.split(separator: "\n") {

@@ -11,9 +11,9 @@
         remote = origin
         merge = refs/heads/main
 [submodule "Source/Data"]
-        url = https://gitee.com/vchewing/libvchewing-data
+        url = https://gitee.com/vChewing/libvchewing-data.git/
 [remote "origin"]
-        url = https://gitee.com/vchewing/libvchewing-data
+        url = https://gitee.com/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/origin/*
 [remote "gitcode"]
         url = https://gitcode.net/vChewing/libvchewing-data.git/
@@ -22,12 +22,12 @@
         url = https://jihulab.com/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/gitlab/*
 [remote "github"]
-        url = https://github.com/ShikiSuen//libvchewing-data
+        url = https://github.com/vChewing/libvchewing-data/
         fetch = +refs/heads/*:refs/remotes/github/*
 [remote "all"]
-        url = https://gitee.com/vchewing/libvchewing-data
+        url = https://gitee.com/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/all/*
-        pushurl = https://gitee.com/vchewing/libvchewing-data
+        pushurl = https://gitee.com/vChewing/libvchewing-data.git/
         pushurl = https://gitcode.net/vChewing/libvchewing-data.git/
         pushurl = https://jihulab.com/vChewing/libvchewing-data.git/
-        pushurl = https://github.com/ShikiSuen//libvchewing-data
+        pushurl = https://github.com/vChewing/libvchewing-data/

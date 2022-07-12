@@ -12,7 +12,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>[威] 注音→拼音二式</string>
+				<string>[威] 按長度排序且篩除重複項</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>runWorkflowAsService</string>

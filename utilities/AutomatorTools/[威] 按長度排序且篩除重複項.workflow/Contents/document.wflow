@@ -59,7 +59,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>sed -f ~/Repos/!vChewing/libvchewing-data/utilities/CONV-BPMF2KEY.SED</string>
+					<string>env LC_ALL=zh_TW.UTF8 sort -uf | awk -F' ' '{print length($1),$0}' | sort -k1nr | cut -d' ' -f 2-</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
 					<key>inputMethod</key>

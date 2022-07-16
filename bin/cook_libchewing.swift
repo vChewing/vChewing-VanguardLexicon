@@ -148,7 +148,6 @@ private let urlCHTforMOE: String = "./components/cht/phrases-moe-cht.txt"
 private let urlCHTforVCHEW: String = "./components/cht/phrases-vchewing-cht.txt"
 
 private let urlKanjiCore: String = "./components/common/char-kanji-core.txt"
-private let urlKanjiSupplement: String = "./components/common/char-kanji-phrasesonly.txt"
 private let urlKanjiCNS: String = "./components/common/char-kanji-cns.txt"
 private let urlMiscBPMF: String = "./components/common/char-misc-bpmf.txt"
 private let urlMiscNonKanji: String = "./components/common/char-misc-nonkanji.txt"
@@ -260,7 +259,7 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
 
 // MARK: - 載入單字檔案且輸出數組
 
-func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = false) -> [Entry] {
+func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
   var arrEntryRAW: [Entry] = []
   var strRAW = ""
   var strRAWOther = ""
@@ -268,12 +267,6 @@ func rawDictForKanjis(isCHS: Bool, isSupplemetal: Bool = false, isCNS: Bool = fa
   // 讀取內容
   do {
     strRAW += try String(contentsOfFile: urlKanjiCore, encoding: .utf8)
-    if isSupplemetal {
-      strRAWOther += try String(
-        contentsOfFile: urlKanjiSupplement, encoding: .utf8
-      )
-      strRAWOther.selfReplace("\t", " ")
-    }
     if isCNS {
       strRAWOther += try String(contentsOfFile: urlKanjiCNS, encoding: .utf8)
     }
@@ -481,7 +474,7 @@ func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
   NSLog(" - \(i18n): 成功讀入 CIN 檔案標頭。")
   // 統合辭典內容
   var arrStructUnified: [Entry] = []
-  arrStructUnified += rawDictForKanjis(isCHS: isCHS, isSupplemetal: true, isCNS: isCNS)
+  arrStructUnified += rawDictForKanjis(isCHS: isCHS, isCNS: isCNS)
   arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
   // 計算權重且排序
   arrStructUnified = sortEntry(arrStructUnified, isCHS: isCHS)

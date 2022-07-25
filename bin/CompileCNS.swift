@@ -42,6 +42,8 @@ arrIDG2PNB = arrIDG2PNB.sorted {
   $0.compare($1, locale: locale) == .orderedAscending
 }
 
+var currentReading = ""
+
 for line in arrIDG2PNB {
   currentLine = String(line)
   let fields = currentLine.split(separator: "\t")
@@ -52,7 +54,12 @@ for line in arrIDG2PNB {
   guard let char = dicCNS2UTF[String(fields[0])] else {
     continue
   }
-  strOutput += char + " " + String(fields[1]) + "\n"
+  currentReading = String(fields[1])
+  if currentReading.contains("˙") {
+    currentReading = String(currentReading.dropFirst().appending("˙"))
+  }
+
+  strOutput += char + " " + currentReading + "\n"
 }
 
 do {

@@ -314,8 +314,8 @@ _punctuation__ ＿ 0.0
 _punctuation__ ─ 0.0
 _punctuation__ │ 0.0
 _punctuation__ – 0.0
-_punctuation_list ｀ 0.0
 _punctuation_list 　 0.0
+_punctuation_list ｀ 0.0
 _punctuation_list ， 0.0
 _punctuation_list 、 0.0
 _punctuation_list 。 0.0

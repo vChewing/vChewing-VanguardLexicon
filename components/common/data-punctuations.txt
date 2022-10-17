@@ -104,6 +104,7 @@ _alt_punctuation_/ ／ 0.0
 _alt_punctuation_/ ÷ 0.0
 _alt_punctuation_/ ∞ 0.0
 _alt_punctuation_; … 0.0
+_alt_punctuation_; ⋮ 0.0
 _alt_punctuation_; ﹏ 0.0
 _alt_punctuation_= ≠ 0.0
 _alt_punctuation_= ≄ 0.0

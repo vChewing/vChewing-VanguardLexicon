@@ -512,7 +512,7 @@ _punctuation_] ︾ 0.0
 _punctuation_] ︺ 0.0
 _punctuation_] ︼ 0.0
 _punctuation_] ﹈ 0.0
-_punctuation_^ ︿ 0.0
+_punctuation_^ ＾ 0.0
 _punctuation__ — 0.0
 _punctuation__ … 0.0
 _punctuation__ － 0.0

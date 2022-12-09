@@ -30,6 +30,8 @@ BPMFMappings-tmp.txt
 BPMFMappings.txt
 Build
 data-*.plist
+data-bpmf-reverse-lookup.plist
+data-bpmf-reverse-lookup-CNS*.plist
 data-chs.txt
 data-cht.txt
 data-plain-bpmf-chs.txt

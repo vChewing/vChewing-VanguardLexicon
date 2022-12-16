@@ -4,6 +4,7 @@ name: vchewing.phrases
 version: "DATE2REPLACE"
 sort: by_weight
 use_preset_vocabulary: true
+vocabulary: vchewing-tc-essay.txt
 max_phrase_length: 7
 min_phrase_weight: 100
 ...

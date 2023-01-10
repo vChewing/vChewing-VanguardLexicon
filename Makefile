@@ -92,23 +92,21 @@ libv-cht:
 
 install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
-	@cp -a data-chs.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a data-cht.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a ./components/common/data*.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a ./components/common/char-kanji-cns.txt $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
-	@cp -a ./data-*.plist $(HOME)/Library/Input\ Methods/vChewing.app/Contents/Resources/
+	@cp -a data-chs.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+	@cp -a data-cht.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+	@cp -a ./components/common/data*.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+	@cp -a ./components/common/char-kanji-cns.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+	@cp -a ./data-*.plist $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
-	@echo "\033[0;32m//$$(tput bold) macOS: 正在確保威注音不被 Gatekeeper 刁難……$$(tput sgr0)\033[0m"
-	@/usr/bin/xattr -drs "com.apple.quarantine" $(HOME)/Library/Input\ Methods/vChewing.app
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 
 # FOR INTERNAL USE
 
 _remoteinstall-vchewing: macv
-	@rsync -avx data-chs.txt data-cht.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
-	@rsync -avx ./components/common/data*.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
-	@rsync -avx ./components/common/char-kanji-cns.txt.txt $(RHOST):"Library/Input\ Methods/vChewing.app/Contents/Resources/"
+	@rsync -avx data-chs.txt data-cht.txt $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/"
+	@rsync -avx ./components/common/data*.txt $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/"
+	@rsync -avx ./components/common/char-kanji-cns.txt.txt $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/"
 	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f vChewing || echo Remote vChewing is not running" || true
 
 gc:

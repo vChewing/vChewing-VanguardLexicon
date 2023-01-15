@@ -92,6 +92,7 @@ libv-cht:
 
 install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
+	@mkdir -p $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 	@cp -a data-chs.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 	@cp -a data-cht.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 	@cp -a ./components/common/data*.txt $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/

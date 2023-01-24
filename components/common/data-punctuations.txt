@@ -171,6 +171,9 @@ _alt_punctuation_\ “” 0.0
 _alt_punctuation_\ ‘’ 0.0
 _alt_punctuation_] ” 0.0
 _alt_punctuation_] ’ 0.0
+_alt_punctuation_¥ + 0.0
+_alt_punctuation_¥ \ 0.0
+_alt_punctuation_· ` 0.0
 _ctrl_punctuation_' 、 0.0
 _ctrl_punctuation_, ， 0.0
 _ctrl_punctuation_. 。 0.0
@@ -273,6 +276,7 @@ _half_punctuation_{ { 0.0
 _half_punctuation_| | 0.0
 _half_punctuation_} } 0.0
 _half_punctuation_~ ~ 0.0
+_half_punctuation_¥ ¥ 0.0
 _letter_A A 0.0
 _letter_A a 0.0
 _letter_A Ａ 0.0
@@ -766,3 +770,16 @@ _punctuation_} ﹀ 0.0
 _punctuation_} ︘ 0.0
 _punctuation_~ ～ 0.0
 _punctuation_~ 〜 0.0
+_punctuation_¥ ￥ 0.0
+_punctuation_¥ 、 0.0
+_punctuation_¥ ＼ 0.0
+_punctuation_¥ ／ 0.0
+_punctuation_¥ 【】 0.0
+_punctuation_¥ 〖〗 0.0
+_punctuation_¥ 〔〕 0.0
+_punctuation_¥ ︻︼ 0.0
+_punctuation_¥ ︗︘ 0.0
+_punctuation_¥ ︹︺ 0.0
+_punctuation_· ｀ 0.0
+_punctuation_· ～ 0.0
+_punctuation_· 〜 0.0

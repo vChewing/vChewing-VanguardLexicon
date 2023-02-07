@@ -17,8 +17,8 @@ private func getDocumentsDirectory() -> URL {
   return paths[0]
 }
 
-extension String {
-  fileprivate mutating func regReplace(pattern: String, replaceWith: String = "") {
+fileprivate extension String {
+  mutating func regReplace(pattern: String, replaceWith: String = "") {
     // Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
     do {
       let regex = try NSRegularExpression(
@@ -31,11 +31,11 @@ extension String {
     } catch { return }
   }
 
-  fileprivate mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
+  mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
     self = replacingOccurrences(of: strOf, with: strWith)
   }
 
-  fileprivate mutating func bpmf2Dachien() {
+  mutating func bpmf2Dachien() {
     selfReplace("ㄝ", ",")
     selfReplace("ㄦ", "-")
     selfReplace("ㄡ", ".")
@@ -83,8 +83,8 @@ extension String {
 // MARK: - 引入小數點位數控制函式
 
 // Ref: https://stackoverflow.com/a/32581409/4162914
-extension Float {
-  fileprivate func rounded(toPlaces places: Int) -> Float {
+fileprivate extension Float {
+  func rounded(toPlaces places: Int) -> Float {
     let divisor = pow(10.0, Float(places))
     return (self * divisor).rounded() / divisor
   }
@@ -182,15 +182,15 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
     return []
   }
   // 預處理格式
-  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "")  // 去掉 macOS 標記
+  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
   // CJKWhiteSpace (\x{3000}) to ASCII Space
   // NonBreakWhiteSpace (\x{A0}) to ASCII Space
   // Tab to ASCII Space
   // 統整連續空格為一個 ASCII 空格
   strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
-  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "")  // 去除行尾行首空格
-  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n")  // CR & Form Feed to LF, 且去除重複行
-  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "")  // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
+  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
   // 正式整理格式，現在就開始去重複：
   let arrData = Array(
     NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
@@ -211,29 +211,29 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
     }
     // 然後直接乾脆就轉成 Entry 吧。
     let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
-    count = 0  // 不需要再定義，因為之前已經有定義過了。
+    count = 0 // 不需要再定義，因為之前已經有定義過了。
     var phone = ""
     var phrase = ""
     var occurrence = 0
     for cell in arrCells {
       count += 1
       switch count {
-        case 1: phrase = cell
-        case 3: phone = cell
-        case 2:
-          occurrence = Int(cell) ?? 0
-          if occurrence < 0 {
-            occurrence = 0
-          }
-        default: break
+      case 1: phrase = cell
+      case 3: phone = cell
+      case 2:
+        occurrence = Int(cell) ?? 0
+        if occurrence < 0 {
+          occurrence = 0
+        }
+      default: break
       }
     }
-    if phrase != "" {  // 廢掉空數據；之後無須再這樣處理。
+    if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
       arrEntryRAW += [
         Entry(
           valPhone: phone, valPhrase: phrase, valWeight: 0.0,
           valCount: occurrence
-        )
+        ),
       ]
     }
   }
@@ -259,15 +259,15 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
     return []
   }
   // 預處理格式
-  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "")  // 去掉 macOS 標記
+  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
   // CJKWhiteSpace (\x{3000}) to ASCII Space
   // NonBreakWhiteSpace (\x{A0}) to ASCII Space
   // Tab to ASCII Space
   // 統整連續空格為一個 ASCII 空格
   strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
-  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "")  // 去除行尾行首空格
-  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n")  // CR & Form Feed to LF, 且去除重複行
-  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "")  // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
+  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
   // 正式整理格式，現在就開始去重複：
   var arrData = Array(
     NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
@@ -296,32 +296,32 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
     }
     // 然後直接乾脆就轉成 Entry 吧。
     let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
-    count = 0  // 不需要再定義，因為之前已經有定義過了。
+    count = 0 // 不需要再定義，因為之前已經有定義過了。
     var phone = ""
     var phrase = ""
     var occurrence = 0
     for cell in arrCells {
       count += 1
       switch count {
-        case 1: phrase = cell
-        case 3: phone = cell
-        case 2:
-          occurrence = Int(cell) ?? 0
-          occurrence += 1
-        default: break
+      case 1: phrase = cell
+      case 3: phone = cell
+      case 2:
+        occurrence = Int(cell) ?? 0
+        occurrence += 1
+      default: break
       }
     }
-    if phrase.count == 1 {  // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的數據
       arrEntryRAW += [
         Entry(
           valPhone: phone, valPhrase: phrase, valWeight: 0.0,
           valCount: occurrence
-        )
+        ),
       ]
     }
   }
   // - 處理 CNS 等其他單字數據
-  strRAWOther.regReplace(pattern: #"^(#.*)$"#, replaceWith: "")  // 以#開頭的行都淨空
+  strRAWOther.regReplace(pattern: #"^(#.*)$"#, replaceWith: "") // 以#開頭的行都淨空
   arrData = Array(
     NSOrderedSet(array: strRAWOther.components(separatedBy: "\n")).array as! [String])
   for lineData in arrData {
@@ -333,17 +333,17 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
     for cell in arrCells {
       count += 1
       switch count {
-        case 1: phrase = cell
-        case 2: phone = cell
-        default: break
+      case 1: phrase = cell
+      case 2: phone = cell
+      default: break
       }
     }
-    if phrase.count == 1 {  // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的數據
       arrEntryRAW += [
         Entry(
           valPhone: phone, valPhrase: phrase, valWeight: 0.0,
           valCount: occurrence
-        )
+        ),
       ]
     }
   }
@@ -367,15 +367,15 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
     return []
   }
   // 預處理格式
-  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "")  // 去掉 macOS 標記
+  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
   // CJKWhiteSpace (\x{3000}) to ASCII Space
   // NonBreakWhiteSpace (\x{A0}) to ASCII Space
   // Tab to ASCII Space
   // 統整連續空格為一個 ASCII 空格
   strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
-  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "")  // 去除行尾行首空格
-  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n")  // CR & Form Feed to LF, 且去除重複行
-  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "")  // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
+  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
   // 正式整理格式，現在就開始去重複：
   let arrData = Array(
     NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
@@ -384,7 +384,7 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
     varLineData = lineData
     // 先完成某兩步需要分行處理才能完成的格式整理。
     varLineData = varLineData.components(separatedBy: " ").prefix(3).joined(
-      separator: "\t")  // 提取前三欄的內容。
+      separator: "\t") // 提取前三欄的內容。
     let arrLineData = varLineData.components(separatedBy: " ")
     var varLineDataProcessed = ""
     var count = 0
@@ -400,27 +400,27 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
     }
     // 然後直接乾脆就轉成 Entry 吧。
     let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
-    count = 0  // 不需要再定義，因為之前已經有定義過了。
+    count = 0 // 不需要再定義，因為之前已經有定義過了。
     var phone = ""
     var phrase = ""
     var occurrence = 0
     for cell in arrCells {
       count += 1
       switch count {
-        case 1: phrase = cell
-        case 3: phone = cell
-        case 2:
-          occurrence = Int(cell) ?? 0
-          occurrence += 1
-        default: break
+      case 1: phrase = cell
+      case 3: phone = cell
+      case 2:
+        occurrence = Int(cell) ?? 0
+        occurrence += 1
+      default: break
       }
     }
-    if phrase.count == 1 {  // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的數據
       arrEntryRAW += [
         Entry(
           valPhone: phone, valPhrase: phrase, valWeight: 0.0,
           valCount: occurrence
-        )
+        ),
       ]
     }
   }

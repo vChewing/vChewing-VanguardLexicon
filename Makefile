@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir clang-format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
+.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
 
 deploy-swift-env-linux:
 	sudo apt install -y curl
@@ -24,20 +24,11 @@ prepare-linux-amd64:
 	@echo "\033[0;32m//$$(tput bold) 已經準備設定 Linux amd64 專用酷音編譯器……$$(tput sgr0)\033[0m"
 	@cp ./bin/libchewing-database-initializer/init_database_linux_amd64 ./bin/libchewing-database-initializer/init_database
 
-format: batchfix clang-format lint
-
-clang-format:
-	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format format --in-place --configuration ./.clang-format-swift.json --parallel
-	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format lint --configuration ./.clang-format-swift.json --parallel
+format:
+	@swiftformat --swiftversion 5.5 --indent 2 ./
 
 lint:
-	@git ls-files --exclude-standard | grep -E '\.swift$$' | xargs swift-format lint --configuration ./.clang-format-swift.json --parallel 
-
-batchfix:
 	@git ls-files --exclude-standard | grep -E '\.swift$$' | swiftlint --fix --autocorrect
-
-advanced-lint:
-	@swiftformat --swiftversion 5.5 --indent 2 ./
 
 clean:
 	@rm -rf ./Build

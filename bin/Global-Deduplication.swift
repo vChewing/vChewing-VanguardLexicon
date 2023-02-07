@@ -59,12 +59,12 @@ do {
 } catch { print("Exception happened when reading raw CHT data.") }
 
 // Regex Pre-Processing
-textCHT.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")  // Concatenating Spaces
-textCHT.regReplace(pattern: #"(^ | $)"#, replaceWith: "")  // 去除行尾行首空格
-textCHT.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n")  // CR & Form Feed to LF, 且去除重複行
-textCHS.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")  // Concatenating Spaces
-textCHS.regReplace(pattern: #"(^ | $)"#, replaceWith: "")  // 去除行尾行首空格
-textCHS.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n")  // CR & Form Feed to LF, 且去除重複行
+textCHT.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
+textCHT.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+textCHT.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+textCHS.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ") // Concatenating Spaces
+textCHS.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+textCHS.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
 
 // 转成 Vector
 var arrData = textCHS.components(separatedBy: "\n")
@@ -72,26 +72,26 @@ var varLineData = ""
 var strProcessed = ""
 for lineData in arrData {
   varLineData = lineData
-  varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
+  varLineData.regReplace(pattern: "^#.*$", replaceWith: "") // Make Comment Lines Empty
   strProcessed += varLineData
   strProcessed += "\n"
 }
 
 arrData = strProcessed.components(separatedBy: "\n")
-let arrCHS = Array(NSOrderedSet(array: arrData).array as! [String])  // Deduplication
+let arrCHS = Array(NSOrderedSet(array: arrData).array as! [String]) // Deduplication
 
 arrData = textCHT.components(separatedBy: "\n")
 varLineData = ""
 strProcessed = ""
 for lineData in arrData {
   varLineData = lineData
-  varLineData.regReplace(pattern: "^#.*$", replaceWith: "")  // Make Comment Lines Empty
+  varLineData.regReplace(pattern: "^#.*$", replaceWith: "") // Make Comment Lines Empty
   strProcessed += varLineData
   strProcessed += "\n"
 }
 
 arrData = strProcessed.components(separatedBy: "\n")
-let arrCHT = Array(NSOrderedSet(array: arrData).array as! [String])  // Deduplication
+let arrCHT = Array(NSOrderedSet(array: arrData).array as! [String]) // Deduplication
 
 // Print Out
 for lineData in arrCHT {

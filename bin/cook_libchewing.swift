@@ -110,11 +110,11 @@ func ** (_ base: Float, _ exp: Float) -> Float {
 
 // MARK: - 定義檔案結構
 
-struct Entry {
-  var valPhone: String = ""
-  var valPhrase: String = ""
-  var valWeight: Float = -1.0
-  var valCount: Int = 0
+struct Unigram {
+  var key: String = ""
+  var value: String = ""
+  var score: Float = -1.0
+  var count: Int = 0
 }
 
 // MARK: - 登記全局根常數變數
@@ -160,9 +160,9 @@ func ensureOutputFolder() {
 
 // MARK: - 載入詞組檔案且輸出數組
 
-func rawDictForPhrases(isCHS: Bool) -> [Entry] {
-  var arrEntryRAW: [Entry] = []
-  var strRAW = ""
+func rawDictForPhrases(isCHS: Bool) -> [Unigram] {
+  var arrUnigramRAW: [Unigram] = []
+  var strRAWOrig: [String] = []
   let urlCustom: String = isCHS ? urlCHSforCustom : urlCHTforCustom
   let urlTABE: String = isCHS ? urlCHSforTABE : urlCHTforTABE
   let urlMOE: String = isCHS ? urlCHSforMOE : urlCHTforMOE
@@ -170,81 +170,84 @@ func rawDictForPhrases(isCHS: Bool) -> [Entry] {
   let i18n: String = isCHS ? "簡體中文" : "繁體中文"
   // 讀取內容
   do {
-    strRAW += try String(contentsOfFile: urlCustom, encoding: .utf8)
-    strRAW += "\n"
-    strRAW += try String(contentsOfFile: urlTABE, encoding: .utf8)
-    strRAW += "\n"
-    strRAW += try String(contentsOfFile: urlMOE, encoding: .utf8)
-    strRAW += "\n"
-    strRAW += try String(contentsOfFile: urlVCHEW, encoding: .utf8)
+    let str1 = try String(contentsOfFile: urlCustom, encoding: .utf8)
+    let str2 = try String(contentsOfFile: urlTABE, encoding: .utf8)
+    let str3 = try String(contentsOfFile: urlMOE, encoding: .utf8)
+    let str4 = try String(contentsOfFile: urlVCHEW, encoding: .utf8)
+    strRAWOrig.append(str1)
+    strRAWOrig.append(str2)
+    strRAWOrig.append(str3)
+    strRAWOrig.append(str4)
   } catch {
     NSLog(" - Exception happened when reading raw phrases data.")
     return []
   }
-  // 預處理格式
-  strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
-  // CJKWhiteSpace (\x{3000}) to ASCII Space
-  // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-  // Tab to ASCII Space
-  // 統整連續空格為一個 ASCII 空格
-  strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
-  strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
-  strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
-  strRAW.regReplace(pattern: #"^(#.*|.*#WIN32.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 WIN32 特有的行
-  // 正式整理格式，現在就開始去重複：
-  let arrData = Array(
-    NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
-  for lineData in arrData {
-    // 第三欄開始是注音
-    let arrLineData = lineData.components(separatedBy: " ")
-    var varLineDataProcessed = ""
-    var count = 0
-    for currentCell in arrLineData {
-      count += 1
-      if count < 3 {
-        varLineDataProcessed += currentCell + "\t"
-      } else if count < arrLineData.count {
-        varLineDataProcessed += currentCell + " "
-      } else {
-        varLineDataProcessed += currentCell
-      }
-    }
-    // 然後直接乾脆就轉成 Entry 吧。
-    let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
-    count = 0 // 不需要再定義，因為之前已經有定義過了。
-    var phone = ""
-    var phrase = ""
-    var occurrence = 0
-    for cell in arrCells {
-      count += 1
-      switch count {
-      case 1: phrase = cell
-      case 3: phone = cell
-      case 2:
-        occurrence = Int(cell) ?? 0
-        if occurrence < 0 {
-          occurrence = 0
+  for i in 0 ..< strRAWOrig.count {
+    var strRAW = strRAWOrig[i]
+    // 預處理格式
+    strRAW = strRAW.replacingOccurrences(of: " #MACOS", with: "") // 去掉 macOS 標記
+    // CJKWhiteSpace (\x{3000}) to ASCII Space
+    // NonBreakWhiteSpace (\x{A0}) to ASCII Space
+    // Tab to ASCII Space
+    // 統整連續空格為一個 ASCII 空格
+    strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
+    strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
+    strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+    strRAW.regReplace(pattern: #"^(#.*|.*#MACOS.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 MACOS 特有的行
+    strRAWOrig[i] = strRAW
+
+    var lineData = ""
+    for lineNeta in strRAW.split(separator: "\n") {
+      lineData = lineNeta.description
+      // 第三欄開始是注音
+      let arrLineData = lineData.components(separatedBy: " ")
+      var varLineDataProcessed = ""
+      var count = 0
+      for currentCell in arrLineData {
+        count += 1
+        if count < 3 {
+          varLineDataProcessed += currentCell + "\t"
+        } else if count < arrLineData.count {
+          varLineDataProcessed += currentCell + " "
+        } else {
+          varLineDataProcessed += currentCell
         }
-      default: break
       }
-    }
-    if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
-      arrEntryRAW += [
-        Entry(
-          valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-          valCount: occurrence
-        ),
-      ]
+      // 然後直接乾脆就轉成 Unigram 吧。
+      let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
+      count = 0 // 不需要再定義，因為之前已經有定義過了。
+      var phone = ""
+      var phrase = ""
+      var occurrence = 0
+      for cell in arrCells {
+        count += 1
+        switch count {
+        case 1: phrase = cell
+        case 3: phone = cell
+        case 2:
+          occurrence = Int(cell) ?? 0
+        default: break
+        }
+      }
+      if phrase != "", occurrence >= 0 { // 廢掉空數據；之後無須再這樣處理。
+        arrUnigramRAW += [
+          Unigram(
+            key: phone, value: phrase, score: 0.0,
+            count: occurrence
+          ),
+        ]
+      }
     }
   }
-  NSLog(" - \(i18n): 成功生成詞語語料辭典（尚未排序）。")
-  return arrEntryRAW
+
+  NSLog(" - \(i18n): 成功生成詞語語料辭典（權重待計算）。")
+  return arrUnigramRAW
 }
 
 // MARK: - 載入單字檔案且輸出數組
 
-func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
-  var arrEntryRAW: [Entry] = []
+func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
+  var arrUnigramRAW: [Unigram] = []
   var strRAW = ""
   var strRAWOther = ""
   let i18n: String = isCHS ? "簡體中文" : "繁體中文"
@@ -294,7 +297,7 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
         varLineDataProcessed += currentCell
       }
     }
-    // 然後直接乾脆就轉成 Entry 吧。
+    // 然後直接乾脆就轉成 Unigram 吧。
     let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
     count = 0 // 不需要再定義，因為之前已經有定義過了。
     var phone = ""
@@ -312,10 +315,10 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
       }
     }
     if phrase.count == 1 { // 只要單個字符的數據
-      arrEntryRAW += [
-        Entry(
-          valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-          valCount: occurrence
+      arrUnigramRAW += [
+        Unigram(
+          key: phone, value: phrase, score: 0.0,
+          count: occurrence
         ),
       ]
     }
@@ -339,22 +342,22 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Entry] {
       }
     }
     if phrase.count == 1 { // 只要單個字符的數據
-      arrEntryRAW += [
-        Entry(
-          valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-          valCount: occurrence
+      arrUnigramRAW += [
+        Unigram(
+          key: phone, value: phrase, score: 0.0,
+          count: occurrence
         ),
       ]
     }
   }
   NSLog(" - \(i18n): 成功生成單字語料辭典（尚未排序）。")
-  return arrEntryRAW
+  return arrUnigramRAW
 }
 
 // MARK: - 載入非漢字檔案且輸出數組
 
-func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
-  var arrEntryRAW: [Entry] = []
+func rawDictForNonKanjis(isCHS: Bool) -> [Unigram] {
+  var arrUnigramRAW: [Unigram] = []
   var strRAW = ""
   let i18n: String = isCHS ? "簡體中文" : "繁體中文"
   // 讀取內容
@@ -398,7 +401,7 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
         varLineDataProcessed += currentCell
       }
     }
-    // 然後直接乾脆就轉成 Entry 吧。
+    // 然後直接乾脆就轉成 Unigram 吧。
     let arrCells: [String] = varLineDataProcessed.components(separatedBy: "\t")
     count = 0 // 不需要再定義，因為之前已經有定義過了。
     var phone = ""
@@ -416,25 +419,25 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Entry] {
       }
     }
     if phrase.count == 1 { // 只要單個字符的數據
-      arrEntryRAW += [
-        Entry(
-          valPhone: phone, valPhrase: phrase, valWeight: 0.0,
-          valCount: occurrence
+      arrUnigramRAW += [
+        Unigram(
+          key: phone, value: phrase, score: 0.0,
+          count: occurrence
         ),
       ]
     }
   }
   NSLog(" - \(i18n): 成功生成非漢字語料辭典（尚未排序）。")
-  return arrEntryRAW
+  return arrUnigramRAW
 }
 
 // MARK: - 排序
 
-func sortEntry(_ arrStructUnsorted: [Entry], isCHS: Bool) -> [Entry] {
+func sortUnigram(_ arrStructUnsorted: [Unigram], isCHS: Bool) -> [Unigram] {
   let i18n: String = isCHS ? "簡體中文" : "繁體中文"
   // 接下來是排序，先按照注音遞減排序一遍、再按照權重遞減排序一遍。
-  let arrStructSorted: [Entry] = arrStructUnsorted.sorted(by: { lhs, rhs -> Bool in
-    (lhs.valPhone, rhs.valCount) < (rhs.valPhone, lhs.valCount)
+  let arrStructSorted: [Unigram] = arrStructUnsorted.sorted(by: { lhs, rhs -> Bool in
+    (lhs.key, rhs.count) < (rhs.key, lhs.count)
   })
   NSLog(" - \(i18n): 排序整理完畢，準備編譯要寫入的檔案內容。")
   return arrStructSorted
@@ -457,16 +460,16 @@ func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
   }
   NSLog(" - \(i18n): 成功讀入 CIN 檔案標頭。")
   // 統合辭典內容
-  var arrStructUnified: [Entry] = []
+  var arrStructUnified: [Unigram] = []
   arrStructUnified += rawDictForKanjis(isCHS: isCHS, isCNS: isCNS)
   arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
   // 計算權重且排序
-  arrStructUnified = sortEntry(arrStructUnified, isCHS: isCHS)
+  arrStructUnified = sortUnigram(arrStructUnified, isCHS: isCHS)
 
   for entry in arrStructUnified {
-    var varDachien = entry.valPhone
+    var varDachien = entry.key
     varDachien.bpmf2Dachien()
-    strPrintLine += varDachien + " " + entry.valPhrase + "\n"
+    strPrintLine += varDachien + " " + entry.value + "\n"
   }
 
   strPrintLine += "%chardef  end" + "\n"
@@ -492,24 +495,24 @@ func fileOutputTSI(isCHS: Bool) {
     isCHS ? urlOutputCHSforTsi : urlOutputCHTforTsi)
   var strPrintLine = ""
   // 統合辭典內容
-  var arrStructUnified: [Entry] = []
+  var arrStructUnified: [Unigram] = []
   arrStructUnified += rawDictForKanjis(isCHS: isCHS)
   arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
   arrStructUnified += rawDictForPhrases(isCHS: isCHS)
   // 計算權重且排序
-  arrStructUnified = sortEntry(arrStructUnified, isCHS: isCHS)
+  arrStructUnified = sortUnigram(arrStructUnified, isCHS: isCHS)
 
   var setAlreadyInserted = Set<String>()
   var arrFoundedDuplications = [String]()
 
   for entry in arrStructUnified {
-    if setAlreadyInserted.contains(entry.valPhrase + "\t" + entry.valPhone) {
-      arrFoundedDuplications.append(entry.valPhrase + "\t" + entry.valPhone)
+    if setAlreadyInserted.contains(entry.value + "\t" + entry.key) {
+      arrFoundedDuplications.append(entry.value + "\t" + entry.key)
     } else {
-      setAlreadyInserted.insert(entry.valPhrase + "\t" + entry.valPhone)
+      setAlreadyInserted.insert(entry.value + "\t" + entry.key)
     }
     strPrintLine +=
-      entry.valPhrase + " " + String(entry.valCount) + " " + entry.valPhone + "\n"
+      entry.value + " " + String(entry.count) + " " + entry.key + "\n"
   }
   NSLog(" - \(i18n): 要寫入 TSI 檔案的內容編譯完畢。")
   do {

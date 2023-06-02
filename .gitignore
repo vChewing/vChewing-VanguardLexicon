@@ -29,6 +29,7 @@ BPMFBase.txt
 BPMFMappings-tmp.txt
 BPMFMappings.txt
 Build
+data-*.json
 data-*.plist
 data-bpmf-reverse-lookup.plist
 data-bpmf-reverse-lookup-CNS*.plist

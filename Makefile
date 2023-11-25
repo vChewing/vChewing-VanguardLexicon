@@ -55,6 +55,7 @@ fcitx5-install:
 	@cp ./mcbopomofo-data.txt /usr/share/fcitx5/data/
 
 macv:
+	@mkdir -p ./Build/Release/
 	@swift ./bin/cook_mac.swift
 
 libv:
@@ -85,6 +86,7 @@ install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
 	@mkdir -p $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 	@cp -a ./data-*.json $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+	@cp -a ./Build/Release/vChewingFactoryDatabase.sqlite $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"

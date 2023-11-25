@@ -28,7 +28,7 @@ bin/libchewing-database-initializer/init_database
 BPMFBase.txt
 BPMFMappings-tmp.txt
 BPMFMappings.txt
-Build
+[Bb]uild
 data-*.json
 data-*.plist
 data-bpmf-reverse-lookup.plist

@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: gc macv libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
+.PHONY: gc macv macv-json libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
 
 deploy-swift-env-linux:
 	sudo apt install -y curl
@@ -58,6 +58,10 @@ macv:
 	@mkdir -p ./Build/Release/
 	@swift ./bin/cook_mac.swift
 
+macv-json:
+	@mkdir -p ./Build/Release/
+	@swift ./bin/cook_mac.swift --json
+
 libv:
 	swift ./bin/cook_libchewing.swift chs
 	swift ./bin/cook_libchewing.swift cht
@@ -85,7 +89,6 @@ libv-cht:
 install-vchewing: macv
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
 	@mkdir -p $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
-	@cp -a ./data-*.json $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 	@cp -a ./Build/Release/vChewingFactoryDatabase.sqlite $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
 
 	@pkill -HUP -f vChewing || echo "// vChewing is not running"

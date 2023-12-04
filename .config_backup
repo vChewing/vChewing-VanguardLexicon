@@ -19,7 +19,7 @@
         url = https://gitcode.net/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/gitcode/*
 [remote "gitlab"]
-        url = https://jihulab.com/vChewing/libvchewing-data.git/
+        url = https://gitlab.com/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/gitlab/*
 [remote "github"]
         url = https://github.com/vChewing/libvchewing-data/
@@ -29,5 +29,5 @@
         fetch = +refs/heads/*:refs/remotes/all/*
         pushurl = https://gitee.com/vChewing/libvchewing-data.git/
         pushurl = https://gitcode.net/vChewing/libvchewing-data.git/
-        pushurl = https://jihulab.com/vChewing/libvchewing-data.git/
+        pushurl = https://gitlab.com/vChewing/libvchewing-data.git/
         pushurl = https://github.com/vChewing/libvchewing-data/

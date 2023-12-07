@@ -7,14 +7,20 @@
         precomposeunicode = true
 [submodule]
         active = .
+[remote "origin"]
+        url = https://gitee.com/vChewing/libvchewing-data.git/
+        fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "main"]
         remote = origin
         merge = refs/heads/main
 [submodule "Source/Data"]
-        url = https://gitee.com/vChewing/libvchewing-data.git/
-[remote "origin"]
-        url = https://gitee.com/vChewing/libvchewing-data.git/
-        fetch = +refs/heads/*:refs/remotes/origin/*
+        url = https://gitee.com/vChewing/libvchewing-data
+[branch "upd/dev"]
+        remote = origin
+        merge = refs/heads/upd/dev
+[remote "gitlink"]
+        url = https://gitlink.org.cn/vChewing/libvchewing-data.git
+        fetch = +refs/heads/*:refs/remotes/gitlink/*
 [remote "gitcode"]
         url = https://gitcode.net/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/gitcode/*
@@ -27,7 +33,8 @@
 [remote "all"]
         url = https://gitee.com/vChewing/libvchewing-data.git/
         fetch = +refs/heads/*:refs/remotes/all/*
-        pushurl = https://gitee.com/vChewing/libvchewing-data.git/
+        pushurl = https://gitee.com/vchewing/libvchewing-data.git/
+        pushurl = https://gitlink.org.cn/vChewing/libvchewing-data.git/
         pushurl = https://gitcode.net/vChewing/libvchewing-data.git/
         pushurl = https://gitlab.com/vChewing/libvchewing-data.git/
         pushurl = https://github.com/vChewing/libvchewing-data/

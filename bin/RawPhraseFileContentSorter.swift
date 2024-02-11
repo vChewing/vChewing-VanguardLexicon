@@ -1,3 +1,13 @@
+#!/usr/bin/env swift
+
+// Copyright (c) 2021 and onwards The vChewing Project (MIT-NTL License).
+// ====================
+// This code is released under the MIT license (SPDX-License-Identifier: MIT)
+// ... with NTL restriction stating that:
+// No trademark license is granted to use the trade names, trademarks, service
+// marks, or product names of Contributor, except as required to fulfill notice
+// requirements defined in MIT License.
+
 import Foundation
 
 let strDataPath = "../components"
@@ -28,7 +38,10 @@ handleFiles { url, fileName in
     $0.compare($1, locale: locale) == .orderedAscending
   }
   do {
-    try (headerLines + contentLines).joined(separator: "\n").write(to: url, atomically: false, encoding: .utf8)
+    try (headerLines + contentLines)
+      .joined(separator: "\n")
+      .description.appending("\n")
+      .write(to: url, atomically: false, encoding: .utf8)
   } catch {
     print("!! Error writing to \(fileName)")
   }

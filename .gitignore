@@ -53,3 +53,6 @@ tsi-cht.src
 tsi.src
 index_tree.dat
 dictionary.dat
+default.profraw
+MACVCompiler/[Bb]in
+MACVCompiler/*.fire.*

@@ -57,6 +57,7 @@ fcitx5-install:
 macv:
 	@mkdir -p ./Build/Release/
 	@swift ./bin/cook_mac.swift
+	@sqlite3 ./Build/Release/vChewingFactoryDatabase.sqlite < ./Build/Release/vChewingFactoryDatabase.sql
 
 macv-json:
 	@mkdir -p ./Build/Release/

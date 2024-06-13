@@ -12,10 +12,14 @@ import Foundation
 
 let strDataPath = "../components"
 
-func handleFiles(_ handler: @escaping ((url: URL, fileName: String)) -> Void) {
-  let rawURLs = FileManager.default.enumerator(at: URL(fileURLWithPath: strDataPath), includingPropertiesForKeys: nil)?.compactMap { $0 as? URL }
+func handleFiles(_ handler: @escaping ((url: URL, fileName: String)) -> ()) {
+  let rawURLs = FileManager.default.enumerator(
+    at: URL(fileURLWithPath: strDataPath),
+    includingPropertiesForKeys: nil
+  )?.compactMap { $0 as? URL }
   rawURLs?.forEach { url in
-    guard let fileName = url.pathComponents.last, fileName.suffix(4).lowercased() == ".txt", fileName.prefix(8) == "phrases-" else { return }
+    guard let fileName = url.pathComponents.last, fileName.suffix(4).lowercased() == ".txt",
+          fileName.prefix(8) == "phrases-" else { return }
     guard !fileName.contains("custom") else { return }
     handler((url, fileName))
   }
@@ -28,7 +32,7 @@ handleFiles { url, fileName in
   rawStr.enumerateLines { currentLine, _ in
     guard !currentLine.isEmpty else { return }
     switch currentLine.prefix(2) {
-    case "#=", "# ": headerLines.append(currentLine)
+    case "# ", "#=": headerLines.append(currentLine)
     default: contentLines.append(currentLine)
     }
   }

@@ -12,16 +12,9 @@
 
 import Foundation
 
-// MARK: - Type
+// MARK: - Phrase
 
 struct Phrase {
-  let text: String
-  let pronunciation: String
-  var count = 4
-  var isOverridden = false
-  var requireKanjiCheck = false
-  var isGame = false
-
   static var cellTitlesForReport: [String] {
     ["字詞 次數 讀音", "電玩", "複寫", "錯字檢查"]
   }
@@ -29,6 +22,13 @@ struct Phrase {
   static var bareCellTitlesForReport: [String] {
     ["字詞 次數 讀音"]
   }
+
+  let text: String
+  let pronunciation: String
+  var count = 4
+  var isOverridden = false
+  var requireKanjiCheck = false
+  var isGame = false
 
   var reportAsCells: [String] {
     [
@@ -46,8 +46,14 @@ struct Phrase {
 
 // MARK: - Constants
 
-let chsFilterRaw = try? String(contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt")
-let chtFilterRaw = try? String(contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt")
+let chsFilterRaw =
+  try? String(
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt"
+  )
+let chtFilterRaw =
+  try? String(
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt"
+  )
 let urlCHS = URL(fileURLWithPath: "../components/chs/")
 let urlCHT = URL(fileURLWithPath: "../components/cht/")
 
@@ -83,10 +89,18 @@ let chtFilter: [Phrase] = makeFilter(from: chtFilterRaw)
 extension Array where Element == Phrase {
   func makeReport(bare: Bool = false) -> String {
     let result = NSMutableString()
-    result.append(bare ? Phrase.bareCellTitlesForReport.joined(separator: "\t") : Phrase.cellTitlesForReport.joined(separator: "\t"))
+    result
+      .append(
+        bare ? Phrase.bareCellTitlesForReport.joined(separator: "\t") : Phrase
+          .cellTitlesForReport.joined(separator: "\t")
+      )
     result.append("\n")
     forEach { phrase in
-      result.append(bare ? phrase.reportAsBareCells.joined(separator: "\t") : phrase.reportAsCells.joined(separator: "\t"))
+      result
+        .append(
+          bare ? phrase.reportAsBareCells.joined(separator: "\t") : phrase.reportAsCells
+            .joined(separator: "\t")
+        )
       result.append("\n")
     }
     return result.description

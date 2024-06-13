@@ -17,8 +17,8 @@ private func getDocumentsDirectory() -> URL {
   return paths[0]
 }
 
-fileprivate extension String {
-  mutating func regReplace(pattern: String, replaceWith: String = "") {
+extension String {
+  fileprivate mutating func regReplace(pattern: String, replaceWith: String = "") {
     // Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
     do {
       let regex = try NSRegularExpression(
@@ -31,11 +31,11 @@ fileprivate extension String {
     } catch { return }
   }
 
-  mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
+  fileprivate mutating func selfReplace(_ strOf: String, _ strWith: String = "") {
     self = replacingOccurrences(of: strOf, with: strWith)
   }
 
-  mutating func bpmf2Dachien() {
+  fileprivate mutating func bpmf2Dachien() {
     selfReplace("ㄝ", ",")
     selfReplace("ㄦ", "-")
     selfReplace("ㄡ", ".")
@@ -83,8 +83,8 @@ fileprivate extension String {
 // MARK: - 引入小數點位數控制函式
 
 // Ref: https://stackoverflow.com/a/32581409/4162914
-fileprivate extension Float {
-  func rounded(toPlaces places: Int) -> Float {
+extension Float {
+  fileprivate func rounded(toPlaces places: Int) -> Float {
     let divisor = pow(10.0, Float(places))
     return (self * divisor).rounded() / divisor
   }
@@ -108,7 +108,7 @@ func ** (_ base: Float, _ exp: Float) -> Float {
   pow(base, exp)
 }
 
-// MARK: - 定義檔案結構
+// MARK: - Unigram
 
 struct Unigram {
   var key: String = ""
@@ -184,7 +184,8 @@ func rawDictForPhrases(isCHS: Bool) -> [Unigram] {
     // 統整連續空格為一個 ASCII 空格
     strRAW.regReplace(pattern: #"( +|　+| +|\t+)+"#, replaceWith: " ")
     strRAW.regReplace(pattern: #"(^ | $)"#, replaceWith: "") // 去除行尾行首空格
-    strRAW.regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
+    strRAW
+      .regReplace(pattern: #"(\f+|\r+|\n+)+"#, replaceWith: "\n") // CR & Form Feed to LF, 且去除重複行
     strRAW.regReplace(pattern: #"^(#.*|.*#MACOS.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 MACOS 特有的行
     strRAWOrigDict[key] = strRAW
 
@@ -265,16 +266,19 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
   strRAW.regReplace(pattern: #"^(#.*|.*#MACOS.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 MACOS 特有的行
   // 正式整理格式，現在就開始去重複：
   var arrData = Array(
-    NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
+    NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String]
+  )
   var varLineData = ""
   for lineData in arrData {
     // 簡體中文的話，提取 1,2,4；繁體中文的話，提取 1,3,4。
     let varLineDataPre = lineData.components(separatedBy: " ").prefix(isCHS ? 2 : 1)
       .joined(
-        separator: "\t")
+        separator: "\t"
+      )
     let varLineDataPost = lineData.components(separatedBy: " ").suffix(isCHS ? 1 : 2)
       .joined(
-        separator: "\t")
+        separator: "\t"
+      )
     varLineData = varLineDataPre + "\t" + varLineDataPost
     let arrLineData = varLineData.components(separatedBy: " ")
     var varLineDataProcessed = ""
@@ -318,7 +322,8 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
   // - 處理 CNS 等其他單字數據
   strRAWOther.regReplace(pattern: #"^(#.*)$"#, replaceWith: "") // 以#開頭的行都淨空
   arrData = Array(
-    NSOrderedSet(array: strRAWOther.components(separatedBy: "\n")).array as! [String])
+    NSOrderedSet(array: strRAWOther.components(separatedBy: "\n")).array as! [String]
+  )
   for lineData in arrData {
     let arrCells: [String] = lineData.components(separatedBy: " ")
     var count = 0
@@ -373,7 +378,8 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Unigram] {
   strRAW.regReplace(pattern: #"^(#.*|.*#MACOS.*)$"#, replaceWith: "") // 以#開頭的行都淨空+去掉所有 MACOS 特有的行
   // 正式整理格式，現在就開始去重複：
   let arrData = Array(
-    NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String])
+    NSOrderedSet(array: strRAW.components(separatedBy: "\n")).array as! [String]
+  )
   var varLineData = ""
   for lineData in arrData {
     varLineData = lineData
@@ -442,7 +448,8 @@ func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
   let pathOutput = urlCurrentFolder.appendingPathComponent(
     isCHS
       ? (isCNS ? urlOutputCHSforCINEX : urlOutputCHSforCIN)
-      : (isCNS ? urlOutputCHTforCINEX : urlOutputCHTforCIN))
+      : (isCNS ? urlOutputCHTforCINEX : urlOutputCHTforCIN)
+  )
   var strPrintLine = ""
   // 讀取標點內容
   do {
@@ -467,7 +474,8 @@ func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
   strPrintLine += "%chardef  end" + "\n"
   // Deduplication
   let arrPrintLine = Array(
-    NSOrderedSet(array: strPrintLine.components(separatedBy: "\n")).array as! [String])
+    NSOrderedSet(array: strPrintLine.components(separatedBy: "\n")).array as! [String]
+  )
   strPrintLine = arrPrintLine.joined(separator: "\n")
 
   NSLog(" - \(i18n): 要寫入 CIN 檔案的內容編譯完畢。")
@@ -484,7 +492,8 @@ func fileOutputCIN(isCHS: Bool, isCNS: Bool = false) {
 func fileOutputTSI(isCHS: Bool) {
   let i18n: String = isCHS ? "簡體中文" : "繁體中文"
   let pathOutput = urlCurrentFolder.appendingPathComponent(
-    isCHS ? urlOutputCHSforTsi : urlOutputCHTforTsi)
+    isCHS ? urlOutputCHSforTsi : urlOutputCHTforTsi
+  )
   var strPrintLine = ""
   // 統合辭典內容
   var arrStructUnified: [Unigram] = []

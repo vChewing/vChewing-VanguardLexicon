@@ -14,8 +14,14 @@ import Foundation
 
 // MARK: - Constants
 
-let chsFilterRaw = try? String(contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt")
-let chtFilterRaw = try? String(contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt")
+let chsFilterRaw =
+  try? String(
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt"
+  )
+let chtFilterRaw =
+  try? String(
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt"
+  )
 let urlCHS = URL(fileURLWithPath: "../components/chs/")
 let urlCHT = URL(fileURLWithPath: "../components/cht/")
 
@@ -36,11 +42,13 @@ func makeFilter(from rawString: String) -> [(String, String)] {
 let chsFilter: [(String, String)] = makeFilter(from: chsFilterRaw)
 let chtFilter: [(String, String)] = makeFilter(from: chtFilterRaw)
 
-// MARK: - Enums and Methods
+// MARK: - LangTag
 
 enum LangTag: String, CaseIterable {
   case chs
   case cht
+
+  // MARK: Internal
 
   var folderURL: URL { URL(fileURLWithPath: "../components/\(rawValue)/") }
 
@@ -67,13 +75,18 @@ func trimSingleFile(lang: LangTag, target: inout String) {
   target = tempTarget.description
 }
 
-func handleURLs(lang: LangTag, handler: @escaping (LangTag, URL) -> Void) {
+func handleURLs(lang: LangTag, handler: @escaping (LangTag, URL) -> ()) {
   let url = lang.folderURL
-  FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])?.forEach { rawURL in
+  FileManager.default.enumerator(
+    at: url,
+    includingPropertiesForKeys: [.isRegularFileKey],
+    options: [.skipsHiddenFiles, .skipsPackageDescendants]
+  )?.forEach { rawURL in
     guard let fileURL = rawURL as? URL else { return }
     let filePath = fileURL.path
     guard filePath.contains("/phrases-"), filePath.lowercased().hasSuffix(".txt") else { return }
-    guard (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false else { return }
+    guard (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile ?? false
+    else { return }
     handler(lang, fileURL)
   }
 }

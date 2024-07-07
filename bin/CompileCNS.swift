@@ -12,10 +12,10 @@
 
 import Foundation
 
-var pathCNS2UTF_1: String = "./Open_Data/MapingTables/Unicode/CNS2UNICODE_Unicode BMP.txt"
-var pathCNS2UTF_2: String = "./Open_Data/MapingTables/Unicode/CNS2UNICODE_Unicode 15.txt"
-var pathCNS2UTF_3: String = "./Open_Data/MapingTables/Unicode/CNS2UNICODE_Unicode 2.txt"
-var pathIDG2PNB: String = "./Open_Data/Properties/CNS_phonetic.txt"
+var pathCNS2UTF_1: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode BMP.txt"
+var pathCNS2UTF_2: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode 15.txt"
+var pathCNS2UTF_3: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode 2.txt"
+var pathIDG2PNB: String = "./Tables/Properties/CNS_phonetic.txt"
 
 var dicCNS2UTF: [String: String] = .init()
 var strIDG2PNB: String = ""

@@ -9,13 +9,14 @@
 // requirements defined in MIT License.
 
 // 該檔案用來將全字庫 OpenData 當中的資料轉成可以交給 libvchewing-data 編譯的那種原始資料格式。
+// 原始資料得是「全字庫中文碼對照表」與「全字庫屬性資料集對照表」，兩個資料夾得在同一目錄下。
 
 import Foundation
 
-var pathCNS2UTF_1: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode BMP.txt"
-var pathCNS2UTF_2: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode 15.txt"
-var pathCNS2UTF_3: String = "./Tables/MapingTables/Unicode/CNS2UNICODE_Unicode 2.txt"
-var pathIDG2PNB: String = "./Tables/Properties/CNS_phonetic.txt"
+var pathCNS2UTF_1: String = "./MapingTables/Unicode/CNS2UNICODE_Unicode BMP.txt"
+var pathCNS2UTF_2: String = "./MapingTables/Unicode/CNS2UNICODE_Unicode 15.txt"
+var pathCNS2UTF_3: String = "./MapingTables/Unicode/CNS2UNICODE_Unicode 2.txt"
+var pathIDG2PNB: String = "./Properties/CNS_phonetic.txt"
 
 var dicCNS2UTF: [String: String] = .init()
 var strIDG2PNB: String = ""

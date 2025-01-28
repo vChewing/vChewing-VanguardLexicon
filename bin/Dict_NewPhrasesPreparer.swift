@@ -48,11 +48,13 @@ struct Phrase {
 
 let chsFilterRaw =
   try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt"
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt",
+    encoding: .utf8
   )
 let chtFilterRaw =
   try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt"
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt",
+    encoding: .utf8
   )
 let urlCHS = URL(fileURLWithPath: "../components/chs/")
 let urlCHT = URL(fileURLWithPath: "../components/cht/")

@@ -16,11 +16,13 @@ import Foundation
 
 let chsFilterRaw =
   try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt"
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt",
+    encoding: .utf8
   )
 let chtFilterRaw =
   try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt"
+    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt",
+    encoding: .utf8
   )
 let urlCHS = URL(fileURLWithPath: "../components/chs/")
 let urlCHT = URL(fileURLWithPath: "../components/cht/")
@@ -93,7 +95,7 @@ func handleURLs(lang: LangTag, handler: @escaping (LangTag, URL) -> ()) {
 
 LangTag.allCases.forEach { langTag in
   handleURLs(lang: langTag) { i18nTag, fileURL in
-    guard var target = try? String(contentsOf: fileURL) else { return }
+    guard var target = try? String(contentsOf: fileURL, encoding: .utf8) else { return }
     trimSingleFile(lang: i18nTag, target: &target)
     print("\(target.count) \(fileURL.path)")
     try? target.write(to: fileURL, atomically: true, encoding: .utf8)

@@ -86,7 +86,6 @@ strongifiedSelf
 --maxwidth 100
 --typeattributes prev-line
 --storedvarattrs prev-line
---computedvarattrs prev-line
 --voidtype tuple
 --wraparguments before-first
 --wrapparameters before-first

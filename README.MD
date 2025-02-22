@@ -8,7 +8,9 @@
 
 针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.5。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
 
-Linux 系统的话，请洽 [SwiftLang.xyz](https://www.swiftlang.xyz/) 网站提供的指引、来安装 Swift 语言。
+Linux 系统的话，请注意两个先决条件：
+1. 洽 [swiftlygo.xyz](https://swiftlygo.xyz/) 网站提供的指引、来安装 Swift 语言。
+2. 安装最新 Rust 稳定版之后、通过 `cargo install chewing-cli` 命令安装 chewing-cli。
 
 - Ubuntu / Debian 的话，可以直接跑 `make deploy-swift-env-linux` 来完成 Swift 的安装。
 	- Deepin 20 也可以。之后 Deepin 要是脱离 Debian 的话就难讲了。
@@ -19,6 +21,7 @@ Linux 系统的话，请洽 [SwiftLang.xyz](https://www.swiftlang.xyz/) 网站�
     - `make macv` 直接生成核心词库档案 data-chs.txt 与 data-cht.txt。
     - `make install` 直接将生成的核心词库档案部署到当前系统安装的威注音输入法内（会破坏 app 签名，但会自动申请 gatekeeper 绕行）。
 - 针对 libchewing 新酷音引擎组译其原始语料档案：
+    - 系统内需要有最新稳定版的 Swift 语言与 Rust 语言。（后者乃 chewing-cli 所需。）
     - 根据当前系统与 CPU 种类，事先执行 `make prepare-macos` 或者 `prepare-linux-amd64` 以部署工具链。
     - 之后再：
         - `make libv-chs` 直接生成简体中文版 tsi.src、phone.cin 及 phone.cin-CNS11643-complete.patch。
@@ -85,6 +88,6 @@ Linux 系统的话，请洽 [SwiftLang.xyz](https://www.swiftlang.xyz/) 网站�
 
 注一：该仓库的 Swift 脚本编译系统虽有对新酷音词库格式的支持，却并未使用新酷音的字词库与频率语料，故不受其 LGPLv2 协议之约束。
 
-注二：该仓库随赠一套 LibChewing 酷音输入法引擎的辞典编译程式「init_database」的修改版本（可以辨识高于 65535 的词频资料），方便大陆使用者「哪怕无法存取 GitHub、也能编译出用于新酷音的词库档案」。这套档案继承酷音输入法引擎的授权「LGPL 2.1」。
+注二：该仓库随赠一套 LibChewing 酷音输入法引擎的辞典编译程式「init_database」的修改版本（可以辨识高于 65535 的词频资料），方便大陆使用者「哪怕无法存取 GitHub、也能编译出用于新酷音的词库档案」。这套档案继承酷音输入法引擎的授权「LGPL 2.1」。另外，这个 binary 仅针对以 C 语言写就的新酷音引擎。至于以 Rust 写就的新酷音引擎所需要的档案，敝仓库也会同时正常建置、且建置过程不依赖这个 binary。
 
 $ EOF.

@@ -1,28 +1,24 @@
 SHELL := /bin/sh
-.PHONY: gc macv macv-json libv libv-chs libv-cht fcitx5-chs fcitx5-cht install install-vchewing _remoteinstall-vchewing clean BuildDir format lint gitcfg prepare-macos prepare-linux-amd64 install-linux-chewing-amd64-chs install-linux-chewing-amd64-cht deploy-swift-env-linux
 
-deploy-swift-env-linux:
-	sudo apt install -y curl
-	curl -s https://archive.swiftlang.xyz/install.sh | sudo bash
-	sudo apt install swiftlang
+# 目錄常數定義
+BUILD_DIR := "$(shell pwd)/Build"
+RELEASE_DIR := "$(BUILD_DIR)/Release"
+INTERMEDIATE_DIR := "$(BUILD_DIR)/Intermediate"
+CHEWING_C_INITIALIZER := "$(shell pwd)/bin/libchewing-database-initializer/init_database"
+CONFIG_DIR_LINUX := "$(HOME)/.config/chewing"
+CONFIG_DIR_WIN := "C:/Users/$(USERNAME)/ChewingTextService"
 
-install-linux-chewing-amd64-chs: prepare-linux-amd64 libv-chs
-	@sudo cp ./Build/Release/LibChewing-CHS/dictionary.dat /usr/share/libchewing/
-	@sudo cp ./Build/Release/LibChewing-CHS/index_tree.dat /usr/share/libchewing/
-	@echo "\033[0;32m//$$(tput bold) 簡體中文威注音詞庫已部署至當前系統 /usr/share/libchewing 內，請手動重新啟動您在使用的主輸入法框架。$$(tput sgr0)\033[0m"
+.PHONY: BuildDir format lint clean install macv macv-json install-vchewing \
+        fcitx5-chs fcitx5-cht fcitx5-install \
+        libchewing-all libchewing-chs libchewing-cht libchewing-rust \
+        libchewing-c-prepare-macos libchewing-c-prepare-linux-amd64 \
+        libchewing-all-c libv-c-chs libv-c-cht libchewing-c \
+        _remoteinstall-vchewing gc gitcfg
 
-install-linux-chewing-amd64-cht: prepare-linux-amd64 libv-cht
-	@sudo cp ./Build/Release/LibChewing-CHT/dictionary.dat /usr/share/libchewing/
-	@sudo cp ./Build/Release/LibChewing-CHT/index_tree.dat /usr/share/libchewing/
-	@echo "\033[0;32m//$$(tput bold) 繁體中文威注音詞庫已部署至當前系統 /usr/share/libchewing 內，請手動重新啟動您在使用的主輸入法框架。$$(tput sgr0)\033[0m"
+# MARK: - General
 
-prepare-macos:
-	@echo "\033[0;32m//$$(tput bold) 已經準備設定 macOS 專用酷音編譯器……$$(tput sgr0)\033[0m"
-	@cp ./bin/libchewing-database-initializer/init_database_macos_universal ./bin/libchewing-database-initializer/init_database
-
-prepare-linux-amd64:
-	@echo "\033[0;32m//$$(tput bold) 已經準備設定 Linux amd64 專用酷音編譯器……$$(tput sgr0)\033[0m"
-	@cp ./bin/libchewing-database-initializer/init_database_linux_amd64 ./bin/libchewing-database-initializer/init_database
+BuildDir:
+	@mkdir -p ./Build
 
 format:
 	@swiftformat --swiftversion 5.5 --indent 2 ./
@@ -33,19 +29,37 @@ lint:
 clean:
 	@rm -rf ./Build
 	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt data-*.plist data-*.json phone.cin phone.cin-CNS11643-complete.patch
+
+# MARK: - macOS (vChewing)
 	
 install: install-vchewing clean
 
-BuildDir:
-	@mkdir -p ./Build
+macv: BuildDir
+	@mkdir -p ./Build/Release/
+	@swift ./bin/cook_mac.swift
+	@sqlite3 ./Build/Release/vChewingFactoryDatabase.sqlite < ./Build/Release/vChewingFactoryDatabase.sql
 
-fcitx5-chs: macv
+macv-json: BuildDir
+	@mkdir -p ./Build/Release/
+	@swift ./bin/cook_mac.swift --json
+
+install-vchewing: macv
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
+	@mkdir -p "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
+	@cp -a ./Build/Release/vChewingFactoryDatabase.sqlite "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
+
+	@pkill -HUP -f vChewing || echo "// vChewing is not running"
+	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
+
+# MARK: - Linux (McBopomofo)
+
+fcitx5-chs: macv-json
 	@echo "\033[0;32m//$$(tput bold) Linux: 正在生成 FCITX5 版小麥注音專用的簡體中文威注音語料檔案……$$(tput sgr0)\033[0m"
 	@> ./mcbopomofo-data.txt
 	@echo "# format org.openvanilla.mcbopomofo.sorted" >> ./mcbopomofo-data.txt
 	@env LC_COLLATE=C.UTF-8 cat ./data-chs.txt >> ./mcbopomofo-data.txt
 	
-fcitx5-cht: macv
+fcitx5-cht: macv-json
 	@echo "\033[0;32m//$$(tput bold) Linux: 正在生成 FCITX5 版小麥注音專用的繁體中文威注音語料檔案……$$(tput sgr0)\033[0m"
 	@> ./mcbopomofo-data.txt
 	@echo "# format org.openvanilla.mcbopomofo.sorted" >> ./mcbopomofo-data.txt
@@ -54,51 +68,72 @@ fcitx5-cht: macv
 fcitx5-install:
 	@cp ./mcbopomofo-data.txt /usr/share/fcitx5/data/
 
-macv:
-	@mkdir -p ./Build/Release/
-	@swift ./bin/cook_mac.swift
-	@sqlite3 ./Build/Release/vChewingFactoryDatabase.sqlite < ./Build/Release/vChewingFactoryDatabase.sql
+# MARK: - LibChewing (Rust-Based)
 
-macv-json:
-	@mkdir -p ./Build/Release/
-	@swift ./bin/cook_mac.swift --json
+libchewing-all: libchewing-chs libchewing-cht
 
-libv:
-	swift ./bin/cook_libchewing.swift chs
-	swift ./bin/cook_libchewing.swift cht
+libchewing-chs:
+	$(MAKE) libchewing-rust LANG=chs
 
-libv-chs:
-	@mkdir -p ./Build/Release/LibChewing-CHS/
-	@mkdir -p ./Build/Intermediate/LibChewing-CHS/
-	@swift ./bin/cook_libchewing.swift chs
-	@diff -u "./Build/phone-chs.cin" "./Build/phone-chs-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./Build/Intermediate/LibChewing-CHS/phone.cin-CNS11643-complete.patch" || true
-	@./bin/libchewing-database-initializer/init_database ./Build/phone-chs.cin ./Build/tsi-chs.src
-	@mv ./Build/phone-chs.cin ./Build/Intermediate/LibChewing-CHS/phone.cin
-	@mv ./Build/tsi-chs.src ./Build/Intermediate/LibChewing-CHS/tsi.src
-	@mv index_tree.dat dictionary.dat ./Build/Release/LibChewing-CHS/
+libchewing-cht:
+	$(MAKE) libchewing-rust LANG=cht
 
-libv-cht:
-	@mkdir -p ./Build/Release/LibChewing-CHT/
-	@mkdir -p ./Build/Intermediate/LibChewing-CHT/
-	@swift ./bin/cook_libchewing.swift cht
-	@diff -u "./Build/phone-cht.cin" "./Build/phone-cht-ex.cin" --label phone.cin --label phone-CNS11643-complete.cin > "./Build/Intermediate/LibChewing-CHT/phone.cin-CNS11643-complete.patch" || true
-	@./bin/libchewing-database-initializer/init_database ./Build/phone-cht.cin ./Build/tsi-cht.src
-	@mv ./Build/phone-cht.cin ./Build/Intermediate/LibChewing-CHT/phone.cin
-	@mv ./Build/tsi-cht.src ./Build/Intermediate/LibChewing-CHT/tsi.src
-	@mv index_tree.dat dictionary.dat ./Build/Release/LibChewing-CHT/
+libchewing-rust:
+	@$(eval LANG := $(LANG))
+	@$(eval WORK_DIR := "$(INTERMEDIATE_DIR)/LibChewing-$(shell echo $(LANG) | tr 'a-z' 'A-Z')")
+	@$(eval BUILD_DIR_RUST := "$(RELEASE_DIR)/LibChewing-$(shell echo $(LANG) | tr 'a-z' 'A-Z')/Rust_Based")
+	@mkdir -p "$(BUILD_DIR_RUST)/"
+	@mkdir -p "$(WORK_DIR)/"
+	@swift ./bin/cook_libchewing.swift $(LANG)
+	@chewing-cli init-database -t trie "$(WORK_DIR)/tsi.src" "$(WORK_DIR)/tsi.dat"
+	@chewing-cli init-database -t trie "$(WORK_DIR)/word.src" "$(WORK_DIR)/word.dat"
+	@mv "$(WORK_DIR)/tsi.dat" "$(WORK_DIR)/word.dat" "$(BUILD_DIR_RUST)/"
 
-install-vchewing: macv
-	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
-	@mkdir -p $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
-	@cp -a ./Build/Release/vChewingFactoryDatabase.sqlite $(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/
+libchewing-install: libchewing-rust
+	@$(eval LANG := $(shell echo $(LANG) | tr 'A-Z' 'a-z'))
+	@$(eval BUILD_DIR_RUST := "$(RELEASE_DIR)/LibChewing-$(shell echo $(LANG) | tr 'a-z' 'A-Z')/Rust_Based")
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		mkdir -p $(CONFIG_DIR_WIN); \
+		cp "$(BUILD_DIR_RUST)/tsi.dat" "$(BUILD_DIR_RUST)/word.dat" $(CONFIG_DIR_WIN)/; \
+		echo "\033[0;32m//$$(tput bold) 已將詞庫檔案部署至 $(CONFIG_DIR_WIN) 目錄下。$$(tput sgr0)\033[0m"; \
+	else \
+		mkdir -p $(CONFIG_DIR_LINUX); \
+		cp "$(BUILD_DIR_RUST)/tsi.dat" "$(BUILD_DIR_RUST)/word.dat" $(CONFIG_DIR_LINUX)/; \
+		echo "\033[0;32m//$$(tput bold) 已將詞庫檔案部署至 $(CONFIG_DIR_LINUX) 目錄下。$$(tput sgr0)\033[0m"; \
+	fi
 
-	@pkill -HUP -f vChewing || echo "// vChewing is not running"
-	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
+# MARK: - LibChewing (C-Based)
+
+libchewing-c-prepare-macos:
+	@echo "\033[0;32m//$$(tput bold) 已經準備設定 macOS 專用酷音編譯器……$$(tput sgr0)\033[0m"
+	@cp ./bin/libchewing-database-initializer/init_database_macos_universal ./bin/libchewing-database-initializer/init_database
+
+libchewing-c-prepare-linux-amd64:
+	@echo "\033[0;32m//$$(tput bold) 已經準備設定 Linux amd64 專用酷音編譯器……$$(tput sgr0)\033[0m"
+	@cp ./bin/libchewing-database-initializer/init_database_linux_amd64 ./bin/libchewing-database-initializer/init_database
+
+libchewing-all-c: libv-c-chs libv-c-cht
+
+libv-c-chs:
+	$(MAKE) libchewing-c LANG=chs
+
+libv-c-cht:
+	$(MAKE) libchewing-c LANG=cht
+
+libchewing-c:
+	@$(eval LANG := $(LANG))
+	@$(eval WORK_DIR := "$(INTERMEDIATE_DIR)/LibChewing-$(shell echo $(LANG) | tr 'a-z' 'A-Z')")
+	@$(eval BUILD_DIR_C := "$(RELEASE_DIR)/LibChewing-$(shell echo $(LANG) | tr 'a-z' 'A-Z')/C_Based")
+	@mkdir -p "$(BUILD_DIR_C)/"
+	@mkdir -p "$(WORK_DIR)/"
+	@swift ./bin/cook_libchewing.swift $(LANG)
+	@diff -u "$(WORK_DIR)/phone.cin" "$(WORK_DIR)/phone-CNS11643-complete.cin" --label phone.cin --label phone-CNS11643-complete.cin > "$(WORK_DIR)/phone.cin-CNS11643-complete.patch" || true
+	@"$(CHEWING_C_INITIALIZER)" "$(WORK_DIR)/phone.cin" "$(WORK_DIR)/tsi.src"
 
 # FOR INTERNAL USE
 
 _remoteinstall-vchewing: macv
-	@rsync -avx ./components/common/data-*.json $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application\ Support/vChewingFactoryData/"
+	@rsync -avx ./components/common/data-*.json $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
 	@test "$(RHOST)" && ssh $(RHOST) "pkill -HUP -f vChewing || echo Remote vChewing is not running" || true
 
 gc:

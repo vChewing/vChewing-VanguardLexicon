@@ -136,12 +136,14 @@ private let urlMiscNonKanji: String = "./components/common/char-misc-nonkanji.tx
 
 private let urlCINHeader: String = "./components/common/phone-header.txt"
 
-private let urlOutputCHSforTsi: String = "./Build/tsi-chs.src"
-private let urlOutputCHTforTsi: String = "./Build/tsi-cht.src"
-private let urlOutputCHSforCIN: String = "./Build/phone-chs.cin"
-private let urlOutputCHTforCIN: String = "./Build/phone-cht.cin"
-private let urlOutputCHSforCINEX: String = "./Build/phone-chs-ex.cin"
-private let urlOutputCHTforCINEX: String = "./Build/phone-cht-ex.cin"
+private let urlOutputCHSforTsi: String = "./Build/Intermediate/LibChewing-CHS/tsi.src"
+private let urlOutputCHTforTsi: String = "./Build/Intermediate/LibChewing-CHT/tsi.src"
+private let urlOutputCHSforWordSRC: String = "./Build/Intermediate/LibChewing-CHS/word.src"
+private let urlOutputCHTforWordSRC: String = "./Build/Intermediate/LibChewing-CHT/word.src"
+private let urlOutputCHSforCIN: String = "./Build/Intermediate/LibChewing-CHS/phone.cin"
+private let urlOutputCHTforCIN: String = "./Build/Intermediate/LibChewing-CHT/phone.cin"
+private let urlOutputCHSforCINEX: String = "./Build/Intermediate/LibChewing-CHS/phone-CNS11643-complete.cin"
+private let urlOutputCHTforCINEX: String = "./Build/Intermediate/LibChewing-CHT/phone-CNS11643-complete.cin"
 
 func ensureOutputFolder() {
   if !FileManager.default.fileExists(atPath: "./Build") {
@@ -527,7 +529,38 @@ func fileOutputTSI(isCHS: Bool) {
     print("-------------------")
     print(arrFoundedDuplications.joined(separator: "\n"))
   }
-  print("===================")
+}
+
+func fileOutputWordSRC(isCHS: Bool, isCNS: Bool = false) {
+  let i18n: String = isCHS ? "簡體中文" : "繁體中文"
+  let pathOutput = urlCurrentFolder.appendingPathComponent(
+    isCHS ? urlOutputCHSforWordSRC : urlOutputCHTforWordSRC
+  )
+  var strPrintLine = ""
+  // 統合辭典內容
+  var arrStructUnified: [Unigram] = []
+  arrStructUnified += rawDictForKanjis(isCHS: isCHS, isCNS: isCNS)
+  arrStructUnified += rawDictForNonKanjis(isCHS: isCHS)
+  // 計算權重且排序
+  arrStructUnified = sortUnigram(arrStructUnified, isCHS: isCHS)
+
+  for entry in arrStructUnified {
+    strPrintLine += entry.value + " \(entry.count) " + entry.key + "\n"
+  }
+
+  // Deduplication
+  let arrPrintLine = Array(
+    NSOrderedSet(array: strPrintLine.components(separatedBy: "\n")).array as! [String]
+  )
+  strPrintLine = arrPrintLine.joined(separator: "\n")
+  
+  NSLog(" - \(i18n): 要寫入 WORD_SRC 檔案的內容編譯完畢。")
+  do {
+    try strPrintLine.write(to: pathOutput, atomically: false, encoding: .utf8)
+  } catch {
+    NSLog(" - \(i18n): Error on writing strings to file: \(error)")
+  }
+  NSLog(" - \(i18n): 寫入完成。")
 }
 
 // MARK: - 主执行绪
@@ -541,6 +574,9 @@ if CommandLine.arguments.count > 1 {
     fileOutputCIN(isCHS: true, isCNS: true)
     NSLog("// 準備編譯簡體中文 TSI 檔案。")
     fileOutputTSI(isCHS: true)
+    NSLog("// 準備編譯簡體中文 WORD_SRC 檔案。")
+    fileOutputWordSRC(isCHS: true)
+    print("===================")
   }
   if CommandLine.arguments[1] == "cht" {
     NSLog("// 準備編譯繁體中文 CIN 檔案-標準集。")
@@ -549,5 +585,8 @@ if CommandLine.arguments.count > 1 {
     fileOutputCIN(isCHS: false, isCNS: true)
     NSLog("// 準備編譯繁體中文 TSI 檔案。")
     fileOutputTSI(isCHS: false)
+    NSLog("// 準備編譯繁體中文 WORD_SRC 檔案。")
+    fileOutputWordSRC(isCHS: false)
+    print("===================")
   }
 }

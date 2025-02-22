@@ -1,12 +1,8 @@
 #!/usr/bin/env swift
 
-// (c) 2021 and onwards The vChewing Project (MIT-NTL License).
+// (c) 2021 and onwards The vChewing Project (BSD-3-Clause).
 // ====================
-// This code is released under the MIT license (SPDX-License-Identifier: MIT)
-// ... with NTL restriction stating that:
-// No trademark license is granted to use the trade names, trademarks, service
-// marks, or product names of Contributor, except as required to fulfill notice
-// requirements defined in MIT License.
+// This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
 import Foundation
 
@@ -70,7 +66,7 @@ func ** (_ base: Double, _ exp: Double) -> Double {
 struct Unigram: CustomStringConvertible {
   // MARK: Lifecycle
 
-  init(key: String, value: String, score: Double, count: Int, category: Unigram.UnigramCategory) {
+  init(key: String, value: String, score: Double, count: Int, category: Self.UnigramCategory) {
     self.key = key
     self.value = value
     self.score = score
@@ -103,7 +99,7 @@ struct Unigram: CustomStringConvertible {
   }
 
   var isEmpty: Bool {
-    count == 0
+    isEmpty
   }
 }
 
@@ -746,27 +742,27 @@ func commonFileOutput() {
         rangeMapCNS[encryptedKey, default: []].append(theValue)
         json: if !theKey.contains("_"), !theKey.contains("-") {
           rangeMapReverseLookup[theValue, default: []].append(encryptedKey)
-          if mapReverseLookupCNS1.keys.count <= 16500 {
+          if mapReverseLookupCNS1.keys.count <= 16_500 {
             mapReverseLookupCNS1[theValue, default: []].append(encryptedKey)
             break json
           }
-          if mapReverseLookupCNS2.keys.count <= 16500 {
+          if mapReverseLookupCNS2.keys.count <= 16_500 {
             mapReverseLookupCNS2[theValue, default: []].append(encryptedKey)
             break json
           }
-          if mapReverseLookupCNS3.keys.count <= 16500 {
+          if mapReverseLookupCNS3.keys.count <= 16_500 {
             mapReverseLookupCNS3[theValue, default: []].append(encryptedKey)
             break json
           }
-          if mapReverseLookupCNS4.keys.count <= 16500 {
+          if mapReverseLookupCNS4.keys.count <= 16_500 {
             mapReverseLookupCNS4[theValue, default: []].append(encryptedKey)
             break json
           }
-          if mapReverseLookupCNS5.keys.count <= 16500 {
+          if mapReverseLookupCNS5.keys.count <= 16_500 {
             mapReverseLookupCNS5[theValue, default: []].append(encryptedKey)
             break json
           }
-          if mapReverseLookupCNS6.keys.count <= 16500 {
+          if mapReverseLookupCNS6.keys.count <= 16_500 {
             mapReverseLookupCNS6[theValue, default: []].append(encryptedKey)
             break json
           }
@@ -889,7 +885,7 @@ func healthCheck(_ data: [Unigram]) -> String {
     }
     if tscore >= neta.score {
       let instance = (neta.key, neta.value, neta.score, competants, neta.score - tscore)
-      let valueJoined = String(competants.map(\.value).joined(separator: ""))
+      let valueJoined = String(competants.map(\.value).joined())
       if neta.value == valueJoined {
         indifferents.append(instance)
       } else {
@@ -1112,19 +1108,11 @@ func healthCheck(_ data: [Unigram]) -> String {
 // MARK: - TaskFlags
 
 struct TaskFlags: OptionSet {
-  // MARK: Lifecycle
+  static let common = Self(rawValue: 1 << 0)
+  static let chs = Self(rawValue: 1 << 1)
+  static let cht = Self(rawValue: 1 << 2)
 
-  public init(rawValue: Int) {
-    self.rawValue = rawValue
-  }
-
-  // MARK: Public
-
-  public static let common = TaskFlags(rawValue: 1 << 0)
-  public static let chs = TaskFlags(rawValue: 1 << 1)
-  public static let cht = TaskFlags(rawValue: 1 << 2)
-
-  public let rawValue: Int
+  let rawValue: Int
 }
 
 // MARK: - 主執行緒

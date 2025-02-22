@@ -1,12 +1,8 @@
 #!/usr/bin/env swift
 
-// (c) 2021 and onwards The vChewing Project (MIT-NTL License).
+// (c) 2021 and onwards The vChewing Project (BSD-3-Clause).
 // ====================
-// This code is released under the MIT license (SPDX-License-Identifier: MIT)
-// ... with NTL restriction stating that:
-// No trademark license is granted to use the trade names, trademarks, service
-// marks, or product names of Contributor, except as required to fulfill notice
-// requirements defined in MIT License.
+// This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
 import Foundation
 
@@ -142,8 +138,10 @@ private let urlOutputCHSforWordSRC: String = "./Build/Intermediate/LibChewing-CH
 private let urlOutputCHTforWordSRC: String = "./Build/Intermediate/LibChewing-CHT/word.src"
 private let urlOutputCHSforCIN: String = "./Build/Intermediate/LibChewing-CHS/phone.cin"
 private let urlOutputCHTforCIN: String = "./Build/Intermediate/LibChewing-CHT/phone.cin"
-private let urlOutputCHSforCINEX: String = "./Build/Intermediate/LibChewing-CHS/phone-CNS11643-complete.cin"
-private let urlOutputCHTforCINEX: String = "./Build/Intermediate/LibChewing-CHT/phone-CNS11643-complete.cin"
+private let urlOutputCHSforCINEX: String =
+  "./Build/Intermediate/LibChewing-CHS/phone-CNS11643-complete.cin"
+private let urlOutputCHTforCINEX: String =
+  "./Build/Intermediate/LibChewing-CHT/phone-CNS11643-complete.cin"
 
 func ensureOutputFolder() {
   if !FileManager.default.fileExists(atPath: "./Build") {
@@ -553,7 +551,7 @@ func fileOutputWordSRC(isCHS: Bool, isCNS: Bool = false) {
     NSOrderedSet(array: strPrintLine.components(separatedBy: "\n")).array as! [String]
   )
   strPrintLine = arrPrintLine.joined(separator: "\n")
-  
+
   NSLog(" - \(i18n): 要寫入 WORD_SRC 檔案的內容編譯完畢。")
   do {
     try strPrintLine.write(to: pathOutput, atomically: false, encoding: .utf8)

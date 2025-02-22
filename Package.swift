@@ -4,21 +4,29 @@
 import PackageDescription
 
 let package = Package(
-    name: "LibVanguardChewingData",
-    products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(
-            name: "LibVanguardChewingData",
-            targets: ["LibVanguardChewingData"]),
-    ],
-    targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "LibVanguardChewingData"),
-        .testTarget(
-            name: "LibVanguardChewingDataTests",
-            dependencies: ["LibVanguardChewingData"]
-        ),
-    ]
+  name: "LibVanguardChewingData",
+  products: [
+    // Products define the executables and libraries a package produces, making them visible to other packages.
+    .library(
+      name: "LibVanguardChewingData",
+      targets: ["LibVanguardChewingData"]
+    ),
+  ],
+  targets: [
+    // Targets are the basic building blocks of a package, defining a module or a test suite.
+    // Targets can depend on other targets in this package and products from dependencies.
+    .target(
+      name: "LibVanguardChewingData",
+      resources: [
+        .process("./Resources/"),
+      ]
+    ),
+    .executableTarget(
+      name: "VCDataBuilder"
+    ),
+    .testTarget(
+      name: "LibVanguardChewingDataTests",
+      dependencies: ["LibVanguardChewingData"]
+    ),
+  ]
 )

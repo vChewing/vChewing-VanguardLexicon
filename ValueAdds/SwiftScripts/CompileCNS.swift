@@ -1,12 +1,8 @@
 #!/usr/bin/env swift
 
-// (c) 2021 and onwards The vChewing Project (MIT-NTL License).
+// (c) 2021 and onwards The vChewing Project (BSD-3-Clause).
 // ====================
-// This code is released under the MIT license (SPDX-License-Identifier: MIT)
-// ... with NTL restriction stating that:
-// No trademark license is granted to use the trade names, trademarks, service
-// marks, or product names of Contributor, except as required to fulfill notice
-// requirements defined in MIT License.
+// This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
 // 該檔案用來將全字庫 OpenData 當中的資料轉成可以交給 libvchewing-data 編譯的那種原始資料格式。
 // 原始資料得是「全字庫中文碼對照表」與「全字庫屬性資料集對照表」，兩個資料夾得在同一目錄下。

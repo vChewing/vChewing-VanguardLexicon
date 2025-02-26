@@ -97,10 +97,6 @@ struct Unigram: CustomStringConvertible {
   var description: String {
     "(\(key), \(value), \(score), \(category)"
   }
-
-  var isEmpty: Bool {
-    isEmpty
-  }
 }
 
 // MARK: - 注音加密，減少 JSON 體積
@@ -449,7 +445,7 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Unigram] {
     strRAW += "\n"
     strRAW += try String(contentsOfFile: urlMiscNonKanji, encoding: .utf8)
   } catch {
-    NSLog(" - Exception happened when reading raw core kanji data.")
+    NSLog(" - Exception happened when reading raw non-kanji data.")
     return []
   }
   // 預處理格式
@@ -542,8 +538,7 @@ func weightAndSort(_ arrStructUncalculated: [Unigram], isCHS: Bool) -> [Unigram]
       )
     default:
       weight = log10(
-        fscale ** (Double(unigram.value.count) / 3.0 - 1.0)
-          * Double(unigram.count) / norm
+        fscale ** (Double(unigram.value.count) / 3.0 - 1.0) * Double(unigram.count) / norm
       ) // Credit: MJHsieh.
     }
     let weightRounded: Double = weight.rounded(toPlaces: 3) // 為了節省生成的檔案體積，僅保留小數點後三位。

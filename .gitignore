@@ -167,9 +167,10 @@ bld/
 BPMFBase.txt
 BPMFMappings-tmp.txt
 BPMFMappings.txt
-build
+[Bb]uild
 BundleArtifacts/
 ClientBin/
+CompiledAssets
 config.make
 config.status
 Credits.rtf

@@ -28,10 +28,10 @@ lint:
 
 clean:
 	@rm -rf ./Build
-	@rm -rf tsi-cht.src tsi-chs.src data-cht.txt data-chs.txt data-*.plist data-*.json phone.cin phone.cin-CNS11643-complete.patch
+	@rm -rf ./.build
 
 # MARK: - macOS (vChewing)
-	
+
 install: install-vchewing clean
 
 macv: BuildDir

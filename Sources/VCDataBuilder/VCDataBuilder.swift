@@ -14,15 +14,15 @@ struct Main {
     VCDataBuilder - 先鋒語料庫辭典建置工具。
     版本：2024.02.27
 
-    建置前的用法（請在建置時注意當前目錄必須得是專案目錄）：
+    VCDataBuilder 建置前的用法（請在建置辭典時注意當前目錄必須得是專案目錄）：
       swift run VCDataBuilder <type> [type2] [type3] ...
       swift run VCDataBuilder all
 
-    建置後的用法（請在建置時注意當前目錄必須得是專案目錄）：
+    VCDataBuilder 建置後的用法（請在建置辭典時注意當前目錄必須得是專案目錄）：
       VCDataBuilder <type> [type2] [type3] ...
       VCDataBuilder all
 
-    可用的建置目標：
+    可用的辭典建置目標：
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文。
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文。
       chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文。

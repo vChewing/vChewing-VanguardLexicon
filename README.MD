@@ -6,44 +6,60 @@
 
 ## 组译方法
 
-针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.5。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
+针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.7。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
 
 Linux 系统的话，请注意两个先决条件：
 1. 洽 [swiftlygo.xyz](https://swiftlygo.xyz/) 网站提供的指引、来安装 Swift 语言。
-2. 安装最新 Rust 稳定版之后、通过 `cargo install chewing-cli` 命令安装 chewing-cli。
-
-- Ubuntu / Debian 的话，可以直接跑 `make deploy-swift-env-linux` 来完成 Swift 的安装。
-	- Deepin 20 也可以。之后 Deepin 要是脱离 Debian 的话就难讲了。
+    - 关于在 Linux / WinNT / macOS 系统下安装 Swift 语言的更通用的方法，请洽 [Swift 官方网站](https://www.swift.org/)。
+2. 如果要建置給（0.6.1 版开始的以 Rust 语言写就的）新酷音輸入法使用的話，你得在安裝最新 Rust 稳定版之后、通过 `cargo install chewing-cli` 命令安装 chewing-cli。
+    - 关于 Rust 语言的安装方法请洽 [Rust 官方网站](https://www.rust-lang.org/)。
 
 ------
 
-- 针对威注音 macOS 版组译核心语汇库：
-    - `make macv` 直接生成核心词库档案 data-chs.txt 与 data-cht.txt。
-    - `make install` 直接将生成的核心词库档案部署到当前系统安装的威注音输入法内（会破坏 app 签名，但会自动申请 gatekeeper 绕行）。
-- 针对 libchewing 新酷音引擎组译其原始语料档案：
-    - 系统内需要有最新稳定版的 Swift 语言与 Rust 语言。（后者乃 chewing-cli 所需。）
-    - 根据当前系统与 CPU 种类，事先执行 `make prepare-macos` 或者 `prepare-linux-amd64` 以部署工具链。
-    - 之后再：
-        - `make libv-chs` 直接生成简体中文版 tsi.src、phone.cin 及 phone.cin-CNS11643-complete.patch。
-            - 同时会在 ./Build/Release/LibChewing-CHS 目录下生成可以给任何平台的新酷音输入法使用的 dictionary.dat 与 index_tree.dat 这两个资料库档案。
-        - `make libv-cht` 直接生成繁体中文版 tsi.src、phone.cin 及 phone.cin-CNS11643-complete.patch。
-            - 同时会在 ./Build/Release/LibChewing-CHT 目录下生成可以给任何平台的新酷音输入法使用的 dictionary.dat 与 index_tree.dat 这两个资料库档案。
-    - 使用这些生成的档案来完成 libchewing 自身的组译工作。
-        - 如果您的 libchewing 本地克隆体存放在 `~/Repos/libchewing` 资料夹内的话，您还可以用 `make debug` 快速测试这些档案的合规性。
-            - 比如 `make libv-cht debug` 就一条龙组译＋单元测试。
-	- Windows 平台编译要求至少 Windows 10 且需要用 WSL (Debian 或 Ubuntu) 来按照上文的方法安装 Swift 支援（生成的档案倒是可以给 Windows 版新酷音使用）。不然的话，Windows 单独安装 Swift 编译起来会非常麻烦，你还得去安装硕大的 Visual Studio 和 Windows SDK。
-		- 其实也不是没考虑过 C#，但 C# 对 .net framework 的版本一致性、以及 Windows 不原生具备对 C# 脚本的支援，这些都是头痛点。
-- 针对 FCITX5 平台的小麦注音（fcitx5-mcbopomofo）编译其核心语汇库（不包含注音文与绘文字符号支援）：
-    - `make fcitx5-chs` 直接生成简体中文版 mcbopomofo-data.txt。
-    - `make fcitx5-cht` 直接生成繁体中文版 mcbopomofo-data.txt。
-    - 以上 `mcbopomofo-data.txt` 得直接放在 `/usr/share/fcitx5/data/` 内。
-        - 如果是要对输入法仓库开刀的话，要取代的档案会是 `./data/data.txt`。
-    - 虽然也能拿给 macOS 版小麦注音使用，但 [macOS 版威注音输入法更香](https://gitee.com/vchewing/vChewing-macOS)。
-    - 如果是针对此目标编译了威注音词库、却发现 FCITX5 小麦输入法变得无法使用的话，请考虑重新编译输入法、对输入法源码做个改动：
-        - `src/Engine/ParselessLM.cpp`：检索 `/*validate_pragme=*/` 这句所在的行，且将其下一行的 true 改成 false。
-- 针对 RIME 平台的编译，**暂时想不明白该怎么去支持**，因为下述原因：
-    - RIME 原厂的八股文资料库仅支援康熙繁体，而威注音的繁体中文词库是台湾繁体。
-    - RIME 哪怕是自订八股文词库、也无法针对同一个词的不同的词语读音设立不同的频次。
+目前整个仓库的建置代码已经全部重写。Makefile 目前的内容并未能反应该仓库的这次重写的变化，故只有下述三道命令可以正常使用：
+
+- `make clean`
+- `make lint`
+- `make format`
+
+本仓库的格式化往往是 `make lint; make format` 按照这个顺序一次性执行格式化操作。
+
+在使用本仓库时，请在仓库根目录下运行 `swift run`，会出现类似下述格式的使用说明：
+
+```
+    VCDataBuilder - 先鋒語料庫辭典建置工具。
+    版本：2024.02.27
+
+    建置前的用法（請在建置時注意當前目錄必須得是專案目錄）：
+      swift run VCDataBuilder <type> [type2] [type3] ...
+      swift run VCDataBuilder all
+
+    建置後的用法（請在建置時注意當前目錄必須得是專案目錄）：
+      VCDataBuilder <type> [type2] [type3] ...
+      VCDataBuilder all
+
+    可用的建置目標：
+      chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文。
+      chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文。
+      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文。
+      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文。
+      mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本。
+      mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本。
+      vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite格式）。
+
+    注意：
+      chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：
+        - macOS 10.15 以上（Intel 或 Apple Silicon）
+        - Linux（僅 x86_64）
+        - Windows NT 10.0 以上（僅 x86_64）
+      除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
+
+    範例：
+      // 給所有的建置目標全部建置一遍：
+         VCDataBuilder all
+      // 僅建置給新酷音輸入法引擎的 Rust 版（同時建置繁體中文與簡體中文）：
+         VCDataBuilder chewingRustCHS chewingRustCHT
+```
 
 ## 来由
 

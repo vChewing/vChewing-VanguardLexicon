@@ -127,7 +127,7 @@ extension String {
 
 extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   func assembleSQLFile(_ insertData: @escaping () async -> String) async -> String {
-    let strBuilder = NSMutableString(string: "")
+    var strBuilder = [String]()
     // theDataMISC 這個欄目其實並沒有被使用到。但為了相容性所以繼續保留。
     let sqlHeader = #"""
     PRAGMA synchronous=OFF;
@@ -156,13 +156,13 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
     strBuilder.append("\n")
     strBuilder.append(await insertData())
     strBuilder.append("\nCOMMIT;\n")
-    return String(strBuilder)
+    return strBuilder.joined()
   }
 }
 
 extension VCDataBuilder.Collector {
   fileprivate func prepareRevLookupMapToSQLLegacy() -> String {
-    let script = NSMutableString(string: "")
+    var script = [String]()
     var allKeys = Set<String>()
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
@@ -180,25 +180,25 @@ extension VCDataBuilder.Collector {
         "INSERT INTO DATA_REV (theChar, theReadings) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theChar) DO UPDATE SET theReadings='\(valueText)';"
       script.append("\(sqlStmt)\n")
     }
-    return String(script)
+    return script.joined()
   }
 
   fileprivate func prepareUnigramMapsToSQLLegacy() -> String {
-    let script = NSMutableString(string: "")
+    var script = [String]()
     // Punctuations -> theDataCHS and theDataCHT.
     var allPunctuationsMap = [String: VCDataBuilder.Unigram.GramSet]()
     getPunctuations().forEach {
       allPunctuationsMap[$0.key, default: []].insert($0)
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allPunctuationsMap,
       columnName: "theDataCHT"
     ) { unigram in
       unigram.value
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allPunctuationsMap,
       columnName: "theDataCHS"
     ) { unigram in
@@ -215,14 +215,14 @@ extension VCDataBuilder.Collector {
       allGramsMapCHS[$0.key, default: []].insert($0)
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allGramsMapCHS,
       columnName: "theDataCHS"
     ) { unigram in
       "\(unigram.score) \(unigram.value)"
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allGramsMapCHT,
       columnName: "theDataCHT"
     ) { unigram in
@@ -235,7 +235,7 @@ extension VCDataBuilder.Collector {
       allGramsMapZhuyinwen[$0.key, default: []].insert($0)
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allGramsMapZhuyinwen,
       columnName: "theDataCHEW"
     ) { unigram in
@@ -248,7 +248,7 @@ extension VCDataBuilder.Collector {
       allGramsMapSymbols[$0.key, default: []].insert($0)
     }
     handleUnigramTableToSQLLegacy(
-      script,
+      &script,
       allGramsMapSymbols,
       columnName: "theDataSYMB"
     ) { unigram in
@@ -257,15 +257,15 @@ extension VCDataBuilder.Collector {
 
     print("diagnose: \(tableKanjiCNS.count)")
     // CNS.
-    handleUnigramTableToSQLLegacy(script, tableKanjiCNS, columnName: "theDataCNS") { unigram in
+    handleUnigramTableToSQLLegacy(&script, tableKanjiCNS, columnName: "theDataCNS") { unigram in
       unigram.value
     }
 
-    return String(script)
+    return script.joined()
   }
 
   private func handleUnigramTableToSQLLegacy(
-    _ script: NSMutableString,
+    _ script: inout [String],
     _ table: [String: VCDataBuilder.Unigram.GramSet],
     columnName: String,
     unigramStringBuilder: (VCDataBuilder.Unigram) -> String

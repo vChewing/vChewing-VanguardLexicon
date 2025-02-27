@@ -42,8 +42,8 @@ extension VCDataBuilder.ChewingRustDataBuilder {
   }
 
   public func assemble() async throws -> [String: String] {
-    let tsiSRC = NSMutableString(string: "")
-    let wordSRC = NSMutableString(string: "")
+    var tsiSRC = [String]()
+    var wordSRC = [String]()
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams = grams.sorted { lhs, rhs -> Bool in
       (lhs.key, rhs.count, lhs.timestamp) < (rhs.key, lhs.count, rhs.timestamp)
@@ -57,8 +57,8 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       }
     }
     return [
-      "tsi.src": String(tsiSRC),
-      "word.src": String(wordSRC),
+      "tsi.src": tsiSRC.joined(),
+      "word.src": wordSRC.joined(),
     ]
   }
 

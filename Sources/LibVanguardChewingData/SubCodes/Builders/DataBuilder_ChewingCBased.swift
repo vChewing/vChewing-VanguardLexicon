@@ -42,8 +42,8 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
   }
 
   public func assemble() async throws -> [String: String] {
-    let tsiSRC = NSMutableString(string: "")
-    let charDef = NSMutableString(string: "")
+    var tsiSRC = [String]()
+    var charDef = [String]()
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams = grams.sorted { lhs, rhs -> Bool in
       (lhs.key, rhs.count, lhs.timestamp) < (rhs.key, lhs.count, rhs.timestamp)
@@ -61,8 +61,8 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     charDef.append("%chardef  end\n")
     charDef.insert(Self.getPhoneCINHeader(), at: 0)
     return [
-      "tsi.src": String(tsiSRC),
-      "phone.cin": String(charDef),
+      "tsi.src": tsiSRC.joined(),
+      "phone.cin": charDef.joined(),
     ]
   }
 

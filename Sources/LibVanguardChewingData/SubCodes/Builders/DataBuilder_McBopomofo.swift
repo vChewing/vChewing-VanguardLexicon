@@ -42,7 +42,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
   public func assemble() async throws -> [String: String] {
-    let resultString = NSMutableString(string: "# format org.openvanilla.mcbopomofo.sorted\n")
+    var resultString = ["# format org.openvanilla.mcbopomofo.sorted\n"]
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams.append(contentsOf: await data.getPunctuations())
     grams.append(contentsOf: await data.getSymbols())
@@ -54,7 +54,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
       resultString.append("\(gram.key) \(gram.value) \(gram.score)")
       resultString.append("\n")
     }
-    return ["data.txt": String(resultString)]
+    return ["data.txt": resultString.joined()]
   }
 
   /// This is a no-op for McBopomofo dict compilation process.

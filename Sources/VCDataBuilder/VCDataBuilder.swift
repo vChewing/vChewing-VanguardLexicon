@@ -37,6 +37,7 @@ struct Main {
         - Linux（僅 x86_64）
         - Windows NT 10.0 以上（僅 x86_64）
       除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
+      另外，chewingRustCHS 與 chewingRustCHT 在 Windows 系统下请使用 WSL 环境建置。
 
     範例：
       // 給所有的建置目標全部建置一遍：

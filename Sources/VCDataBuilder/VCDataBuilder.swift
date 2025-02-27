@@ -70,7 +70,7 @@ struct Main {
     // 移除這行，避免重複編譯
     // try await VCDataBuilder.BuilderType.vanguardSQLLegacy.compile()
     for builderType in cases {
-      print("正在編譯：\(builderType.rawValue)")
+      print("正在建置：\(builderType.rawValue)")
       try await builderType.compile()
     }
     print("建置完成。")

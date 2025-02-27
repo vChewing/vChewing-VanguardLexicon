@@ -41,13 +41,13 @@ Linux 系统的话，请注意两个先决条件：
       VCDataBuilder all
 
     可用的辭典建置目標：
-      chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文。
-      chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文。
-      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文。
-      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文。
-      mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本。
-      mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本。
-      vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite格式）。
+      chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
+      chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
+      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文）
+      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文）
+      mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
+      mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
+      vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite格式）
 
     注意：
       chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：

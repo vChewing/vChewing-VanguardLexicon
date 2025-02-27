@@ -55,7 +55,9 @@ extension VCDataBuilder.DataBuilderProtocol {
       try dataString.write(to: fileURL, atomically: true, encoding: .utf8)
     }
     // Aftermath.
+    NSLog(" - 準備執行追加建置過程。")
     try await performPostCompilation()
+    NSLog(" - 成功執行追加建置過程。")
   }
 }
 

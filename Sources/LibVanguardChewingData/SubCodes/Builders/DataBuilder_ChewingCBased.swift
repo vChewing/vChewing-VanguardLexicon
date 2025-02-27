@@ -67,28 +67,32 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
   }
 
   public func performPostCompilation() async throws {
-    guard let executablePath = Self.getExecutablePath() else {
+    guard let executablePathFetched = Self.getExecutablePath() else {
       throw VCDataBuilder.Exception.errMsg(
         "Unable to determine executable path for this operating system."
       )
     }
 
-    // Ensure the executable exists and is executable
-    let fileManager = FileManager.default
-    if !fileManager.fileExists(atPath: executablePath) {
-      throw VCDataBuilder.Exception.errMsg(
-        "Executable not found at path: \(executablePath)"
-      )
-    }
-
-    // Make sure the executable has the proper permissions
-    try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executablePath)
-
-    let pathStemTemp = "./Build/" + subFolderNameComponents.joined(separator: "/")
-    let pathStemFinal = "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
+    let executablePath = ShellHelper.normalizePathForCurrentOS(executablePathFetched)
+    let pathStemTemp = ShellHelper.normalizePathForCurrentOS(
+      "./Build/" + subFolderNameComponents.joined(separator: "/")
+    )
+    let pathStemFinal = ShellHelper.normalizePathForCurrentOS(
+      "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
+    )
 
     // Execute the command
-    let command = "\(executablePath) \"\(pathStemTemp)/phone.cin\" \"\(pathStemTemp)/tsi.src\""
+    #if os(Windows)
+      // 修正 PowerShell 命令格式
+      let phoneCinPath = pathStemTemp + "\\phone.cin"
+      let tsiSrcPath = pathStemTemp + "\\tsi.src"
+      let command = "Start-Process -FilePath '" + executablePath + "' -ArgumentList '" +
+        phoneCinPath + "','" + tsiSrcPath + "' -NoNewWindow -Wait"
+    #else
+      let command =
+        "\"\(executablePath)\" \"\(pathStemTemp)/phone.cin\" \"\(pathStemTemp)/tsi.src\""
+    #endif
+
     print("Executing: \(command)")
 
     let result = ShellHelper.shell(command)
@@ -99,7 +103,16 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     }
 
     // Move the generated files to the appropriate directory
-    let moveCommand = "mv \"./index_tree.dat\" \"./dictionary.dat\" \"\(pathStemFinal)/\""
+    #if os(Windows)
+      // 修正 PowerShell 移動文件命令
+      let moveCommand = "if (Test-Path '.\\index_tree.dat','.\\dictionary.dat') { " +
+        "New-Item -ItemType Directory -Force -Path '" + pathStemFinal + "'; " +
+        "Move-Item -Force -Path '.\\index_tree.dat','.\\dictionary.dat' -Destination '" +
+        pathStemFinal + "' }"
+    #else
+      let moveCommand = "mv -f \"./index_tree.dat\" \"./dictionary.dat\" \"\(pathStemFinal)/\""
+    #endif
+
     print("Executing: \(moveCommand)")
 
     let moveResult = ShellHelper.shell(moveCommand)

@@ -65,8 +65,32 @@ extension VCDataBuilder.ChewingRustDataBuilder {
   public func performPostCompilation() async throws {
     print("Locating Rust and Cargo executables...")
 
-    // Find the location of cargo using 'which'
-    let cargoLocationResult = ShellHelper.shell("which cargo")
+    // Find the location of cargo
+    #if os(Windows)
+      let cargoLocationResult = ShellHelper.shell("""
+      $cargoPath = $null
+      if (Get-Command cargo -ErrorAction SilentlyContinue) {
+        $cargoPath = (Get-Command cargo).Path
+        Write-Output $cargoPath
+        exit 0
+      } else {
+        $possiblePaths = @(
+          "$env:USERPROFILE\\.cargo\\bin\\cargo.exe",
+          "C:\\Program Files\\.cargo\\bin\\cargo.exe"
+        )
+        foreach ($path in $possiblePaths) {
+          if (Test-Path $path) {
+            Write-Output $path
+            exit 0
+          }
+        }
+        exit 1
+      }
+      """)
+    #else
+      let cargoLocationResult = ShellHelper.shell("which cargo")
+    #endif
+
     if cargoLocationResult.exitCode != 0 || cargoLocationResult.output
       .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       throw VCDataBuilder.Exception
@@ -74,18 +98,33 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     }
 
     // Extract cargo path and its directory
-    let cargoPath = cargoLocationResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
-    let cargoDir = URL(fileURLWithPath: cargoPath).deletingLastPathComponent().path
+    #if os(Windows)
+      let cargoPath = cargoLocationResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
+      let cargoDir = URL(fileURLWithPath: cargoPath).deletingLastPathComponent().path
+    #else
+      let cargoPath = cargoLocationResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
+      let cargoDir = URL(fileURLWithPath: cargoPath).deletingLastPathComponent().path
+    #endif
 
     // Add cargo directory to current PATH
-    let originalPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
-    let updatedPath = "\(cargoDir):\(originalPath)"
+    #if os(Windows)
+      let originalPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+      let updatedPath = "\(cargoDir);\(originalPath)"
+    #else
+      let originalPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+      let updatedPath = "\(cargoDir):\(originalPath)"
+    #endif
 
     print("Found Cargo at: \(cargoPath)")
     print("Added \(cargoDir) to PATH")
 
-    // Check if rustc is installed and version is at least 1.83.0
-    let rustVersionCheck = ShellHelper.shellWithPath("rustc --version", path: updatedPath)
+    // Check rustc version
+    #if os(Windows)
+      let rustVersionCheck = ShellHelper.shellWithPath("rustc --version", path: updatedPath)
+    #else
+      let rustVersionCheck = ShellHelper.shellWithPath("rustc --version", path: updatedPath)
+    #endif
+
     if rustVersionCheck.exitCode != 0 {
       throw VCDataBuilder.Exception.errMsg("Rust is not installed or not found in PATH.")
     }
@@ -118,54 +157,109 @@ extension VCDataBuilder.ChewingRustDataBuilder {
 
     // Check if chewing-cli is installed
     print("Checking if chewing-cli is installed...")
-    let chewingCliCheck = ShellHelper.shellWithPath("which chewing-cli", path: pathToUse)
-
-    if chewingCliCheck.exitCode != 0 || chewingCliCheck.output
-      .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      print("chewing-cli is not installed. Attempting to install...")
-
-      // Get the cargo bin directory (where binaries are installed)
-      let cargoBinDir = "\(ProcessInfo.processInfo.environment["HOME"] ?? ".")/cargo/bin"
-
-      // Get the cargo installation directory
-      let cargoInstallResult = ShellHelper.shellWithPath(
-        "cargo install --list",
-        path: pathToUse
-      )
-      print("Cargo install location check: \(cargoInstallResult.output)")
-
-      // Install chewing-cli
-      let installResult = ShellHelper.shellWithPath(
-        "cargo install chewing-cli",
-        path: pathToUse
-      )
-      if installResult.exitCode != 0 {
-        throw VCDataBuilder.Exception
-          .errMsg("Failed to install chewing-cli:\n\(installResult.output)")
+    #if os(Windows)
+      let chewingCliPath = "C:\\Program Files (x86)\\ChewingTextService\\chewing-cli.exe"
+      if !FileManager.default.fileExists(atPath: chewingCliPath) {
+        throw VCDataBuilder.Exception.errMsg("""
+        chewing-cli not found at \(chewingCliPath).
+        Please install TSF version of Chewing Input Method first.
+        Download from: https://github.com/chewing/windows-chewing-tsf/releases
+        """)
       }
+      print("Found chewing-cli at: \(chewingCliPath)")
+    #else
+      let chewingCliCheck = ShellHelper.shellWithPath("which chewing-cli", path: pathToUse)
+      if chewingCliCheck.exitCode != 0 || chewingCliCheck.output
+        .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        print("chewing-cli is not installed. Attempting to install...")
+        let cargoBinDir = "\(ProcessInfo.processInfo.environment["HOME"] ?? ".")/cargo/bin"
 
-      // Update PATH to include the cargo bin directory
-      pathToUse = "\(pathToUse):\(cargoBinDir)"
-      print("Added cargo bin directory to PATH: \(cargoBinDir)")
+        // Get the cargo installation directory
+        let cargoInstallResult = ShellHelper.shellWithPath(
+          "cargo install --list",
+          path: pathToUse
+        )
+        print("Cargo install location check: \(cargoInstallResult.output)")
 
-      print("chewing-cli has been successfully installed.")
-    } else {
-      print(
-        "chewing-cli is already installed at: \(chewingCliCheck.output.trimmingCharacters(in: .whitespacesAndNewlines))"
-      )
-    }
+        // Install chewing-cli
+        let installResult = ShellHelper.shellWithPath(
+          "cargo install chewing-cli",
+          path: pathToUse
+        )
+        if installResult.exitCode != 0 {
+          throw VCDataBuilder.Exception
+            .errMsg("Failed to install chewing-cli:\n\(installResult.output)")
+        }
+
+        pathToUse = "\(pathToUse):\(cargoBinDir)"
+
+        print("Added cargo bin directory to PATH: \(cargoBinDir)")
+
+        print("chewing-cli has been successfully installed.")
+      } else {
+        print(
+          "chewing-cli is already installed at: \(chewingCliCheck.output.trimmingCharacters(in: .whitespacesAndNewlines))"
+        )
+      }
+    #endif
 
     // Run the chewing-cli commands
     print("Running chewing-cli commands...")
 
-    let pathStemTemp = "./Build/" + subFolderNameComponents.joined(separator: "/")
-    let pathStemFinal = "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
+    let pathStemTemp = ShellHelper.normalizePathForCurrentOS(
+      "./Build/" + subFolderNameComponents.joined(separator: "/")
+    )
+    let pathStemFinal = ShellHelper.normalizePathForCurrentOS(
+      "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
+    )
 
-    // First command
-    let firstCommand =
-      "chewing-cli init-database -t trie \(pathStemTemp)/tsi.src \(pathStemFinal)/tsi.dat"
+    // 修正跨平台命令
+    #if os(Windows)
+      // 新增輔助函式用於生成命令
+      func generateChewingCommand(
+        chewingCliPath: String,
+        srcPath: String,
+        dstPath: String
+      )
+        -> String {
+        """
+        $ErrorActionPreference = 'Stop';
+        $chewingCliPath = '\(chewingCliPath.replacingOccurrences(of: "\\", with: "\\\\"))';
+        Write-Host "Converting \(srcPath) to \(dstPath)";
+        & $chewingCliPath init-database -t trie \(srcPath) \(dstPath)
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if (-not (Test-Path \(dstPath))) {
+          Write-Error "Target file was not created!"
+          exit 1
+        }
+        """
+      }
+
+      // 修正 PowerShell 的命令格式，使用抽象函式
+      let firstCommand = """
+      New-Item -ItemType Directory -Force -Path '\(pathStemFinal)' | Out-Null;
+      Write-Host "Using chewing-cli at: \(chewingCliPath)";
+      \(generateChewingCommand(
+        chewingCliPath: chewingCliPath,
+        srcPath: "\(pathStemTemp)\\tsi.src",
+        dstPath: "\(pathStemFinal)\\tsi.dat"
+      ))
+      """
+
+      let secondCommand = generateChewingCommand(
+        chewingCliPath: chewingCliPath,
+        srcPath: "\(pathStemTemp)\\word.src",
+        dstPath: "\(pathStemFinal)\\word.dat"
+      )
+    #else
+      let firstCommand =
+        "chewing-cli init-database -t trie \"\(pathStemTemp)/tsi.src\" \"\(pathStemFinal)/tsi.dat\""
+      let secondCommand =
+        "chewing-cli init-database -t trie \"\(pathStemTemp)/word.src\" \"\(pathStemFinal)/word.dat\""
+    #endif
+
     print("Executing: \(firstCommand)")
-    let firstResult = ShellHelper.shellWithPath(firstCommand, path: pathToUse)
+    let firstResult = ShellHelper.shell(firstCommand) // 改用 shell 而不是 shellWithPath
     if firstResult.exitCode != 0 {
       print("Command failed with error:")
       print(firstResult.output)
@@ -174,11 +268,8 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       print("First command executed successfully.")
     }
 
-    // Second command
-    let secondCommand =
-      "chewing-cli init-database -t trie \(pathStemTemp)/word.src \(pathStemFinal)/word.dat"
     print("Executing: \(secondCommand)")
-    let secondResult = ShellHelper.shellWithPath(secondCommand, path: pathToUse)
+    let secondResult = ShellHelper.shell(secondCommand) // 改用 shell 而不是 shellWithPath
     if secondResult.exitCode != 0 {
       print("Command failed with error:")
       print(secondResult.output)

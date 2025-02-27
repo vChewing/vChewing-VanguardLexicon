@@ -8,8 +8,6 @@
 
 针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.7。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
 
-Windows 用户给新酷音 Rust 版建置辞典的话，请使用 WSL 来安装运行 Linux 版的 Swift 与需要的相依套件。
-
 Linux 系统的话，请注意两个先决条件：
 1. 洽 [swiftlygo.xyz](https://swiftlygo.xyz/) 网站提供的指引、来安装 Swift 语言。
     - 关于在 Linux / WinNT / macOS 系统下安装 Swift 语言的更通用的方法，请洽 [Swift 官方网站](https://www.swift.org/)。
@@ -50,12 +48,19 @@ Linux 系统的话，请注意两个先决条件：
       vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite格式）
 
     注意：
-      chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：
-        - macOS 10.15 以上（Intel 或 Apple Silicon）
-        - Linux（僅 x86_64）
-        - Windows NT 10.0 以上（僅 x86_64）
-      除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
-      另外，chewingRustCHS 與 chewingRustCHT 在 Windows 系统下请使用 WSL 环境建置。
+      1. chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：
+           - macOS 10.15 以上（Intel 或 Apple Silicon）
+           - Linux（僅 x86_64）
+           - Windows NT 10.0 以上（僅 x86_64）
+         除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
+      2. chewingRustCHS 與 chewingRustCHT 在 Windows 系统下建置的話，
+         需要事先安裝「TSF 版」新酷音輸入法、且版本至少 2024.10.1。
+         已知該版 TSF 新酷音有同綑 chewing-cli 工具，該工具可以用來建置辭典。
+         而敝倉庫會生成用以建置辭典的所有原始檔案格式（tsi.src 與 word.src）。
+      3. Windows 系統下建置時需要注意：
+           - 需要 PowerShell 5.1 或更高版本
+           - 執行策略（Execution Policy）需要允許執行本地腳本
+           - 建議使用管理員權限執行，以避免檔案權限問題。
 
     範例：
       // 給所有的建置目標全部建置一遍：

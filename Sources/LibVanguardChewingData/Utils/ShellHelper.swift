@@ -5,6 +5,14 @@
 import Foundation
 
 enum ShellHelper {
+  static func normalizePathForCurrentOS(_ path: String) -> String {
+    #if os(Windows)
+      return path.replacingOccurrences(of: "/", with: "\\")
+    #else
+      return path
+    #endif
+  }
+
   /// Executes a shell command and returns the output and exit code
   static func shell(_ command: String) -> (output: String, exitCode: Int32) {
     let task = Process()
@@ -12,8 +20,17 @@ enum ShellHelper {
 
     task.standardOutput = pipe
     task.standardError = pipe
-    task.arguments = ["-c", command]
-    task.executableURL = URL(fileURLWithPath: "/bin/bash")
+
+    #if os(Windows)
+      task
+        .executableURL =
+        URL(fileURLWithPath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
+      // 使用 -NoProfile 來加速啟動，使用 -Command 來執行命令
+      task.arguments = ["-NoProfile", "-Command", command]
+    #else
+      task.executableURL = URL(fileURLWithPath: "/bin/bash")
+      task.arguments = ["-c", command]
+    #endif
 
     do {
       try task.run()
@@ -36,13 +53,22 @@ enum ShellHelper {
 
     task.standardOutput = pipe
     task.standardError = pipe
-    task.arguments = ["-c", command]
-    task.executableURL = URL(fileURLWithPath: "/bin/bash")
 
-    // Set the environment with the specified PATH
-    var environment = ProcessInfo.processInfo.environment
-    environment["PATH"] = path
-    task.environment = environment
+    #if os(Windows)
+      task
+        .executableURL =
+        URL(fileURLWithPath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
+      // 設置 PATH 環境變數並執行命令
+      let pathCmd = "$env:PATH = '" + normalizePathForCurrentOS(path) + "'; " + command
+      task.arguments = ["-NoProfile", "-Command", pathCmd]
+    #else
+      task.executableURL = URL(fileURLWithPath: "/bin/bash")
+      task.arguments = ["-c", command]
+
+      var environment = ProcessInfo.processInfo.environment
+      environment["PATH"] = path
+      task.environment = environment
+    #endif
 
     do {
       try task.run()

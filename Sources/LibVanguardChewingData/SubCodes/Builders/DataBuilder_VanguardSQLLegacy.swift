@@ -51,44 +51,97 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   public func performPostCompilation() async throws {
     // Check if sqlite3 is installed
     print("Checking for SQLite3 installation...")
-    let sqliteCheck = ShellHelper.shell("which sqlite3")
+    #if os(Windows)
+      // Windows 的 SQLite3 檢查命令改用更可靠的方式
+      let sqliteCheck = ShellHelper.shell("""
+      $sqlitePath = $null
+      if (Test-Path 'C:\\Program Files\\SQLite') {
+        $sqlitePath = Get-ChildItem 'C:\\Program Files\\SQLite' -Recurse -Filter 'sqlite3.exe' | Select-Object -First 1 -ExpandProperty FullName
+      }
+      if (-not $sqlitePath) {
+        if (Test-Path 'C:\\sqlite') {
+          $sqlitePath = Get-ChildItem 'C:\\sqlite' -Recurse -Filter 'sqlite3.exe' | Select-Object -First 1 -ExpandProperty FullName
+        }
+      }
+      if (-not $sqlitePath) {
+        $sqlitePath = (Get-Command sqlite3 -ErrorAction SilentlyContinue).Path
+      }
+      if ($sqlitePath) {
+        Write-Output $sqlitePath
+        exit 0
+      } else {
+        exit 1
+      }
+      """)
+    #else
+      let sqliteCheck = ShellHelper.shell("which sqlite3")
+    #endif
+
     if sqliteCheck.exitCode != 0 || sqliteCheck.output
       .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       throw VCDataBuilder.Exception
-        .errMsg("SQLite3 is not installed or not found in PATH. Please install SQLite3.")
+        .errMsg("""
+        SQLite3 is not installed or not found in PATH.
+        Please install SQLite3 and ensure it's in one of these locations:
+        - C:\\Program Files\\SQLite
+        - C:\\sqlite
+        - Or add it to your system PATH
+        """)
     }
 
     // Get the path to sqlite3 executable
-    let sqlite3Path = sqliteCheck.output.trimmingCharacters(in: .whitespacesAndNewlines)
+    #if os(Windows)
+      let sqlite3Path = sqliteCheck.output.trimmingCharacters(in: .whitespacesAndNewlines)
+    #else
+      let sqlite3Path = sqliteCheck.output.trimmingCharacters(in: .whitespacesAndNewlines)
+    #endif
+
     print("Found SQLite3 at: \(sqlite3Path)")
 
-    // Check if source files exist
-    let fileManager = FileManager.default
-    let sqlFilePath = "./Build/Intermediate/vanguardSQL-Legacy/vanguardLegacy.sql"
-    let dbFilePath = "./Build/Release/vanguardSQL-Legacy/vChewingFactoryDatabase.sqlite"
-
-    if !fileManager.fileExists(atPath: sqlFilePath) {
-      throw VCDataBuilder.Exception.errMsg("SQL source file not found at path: \(sqlFilePath)")
-    }
-
-    // Make sure the directory for the database file exists
+    // 處理檔案路徑
+    let sqlFilePath = ShellHelper.normalizePathForCurrentOS(
+      "./Build/Intermediate/vanguardSQL-Legacy/vanguardLegacy.sql"
+    )
+    let dbFilePath = ShellHelper.normalizePathForCurrentOS(
+      "./Build/Release/vanguardSQL-Legacy/vChewingFactoryDatabase.sqlite"
+    )
     let dbDirectory = URL(fileURLWithPath: dbFilePath).deletingLastPathComponent().path
-    if !fileManager.fileExists(atPath: dbDirectory) {
-      do {
-        try fileManager.createDirectory(
-          atPath: dbDirectory,
-          withIntermediateDirectories: true,
-          attributes: nil
-        )
-        print("Created directory for the database file: \(dbDirectory)")
-      } catch {
-        throw VCDataBuilder.Exception
-          .errMsg("Failed to create directory for the database file: \(error.localizedDescription)")
-      }
-    }
 
-    // Execute the SQLite command
-    let command = "\(sqlite3Path) \"\(dbFilePath)\" < \"\(sqlFilePath)\""
+    // 建立目錄（Windows 專用命令）
+    #if os(Windows)
+      let createDirCommand = "New-Item -ItemType Directory -Force -Path '" + dbDirectory + "'"
+      let createDirResult = ShellHelper.shell(createDirCommand)
+      if createDirResult.exitCode != 0 {
+        throw VCDataBuilder.Exception
+          .errMsg("Failed to create directory: \(createDirResult.output)")
+      }
+
+      // Windows 的 SQLite 命令，改用 UTF-8 編碼處理
+      let command = """
+      $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8;
+      $sqlContent = Get-Content -Raw -Encoding UTF8 '\(sqlFilePath)';
+      [System.IO.File]::WriteAllText('temp.sql', $sqlContent, [System.Text.Encoding]::UTF8);
+      New-Item -ItemType Directory -Force -Path '\(dbDirectory)' | Out-Null;
+      & '\(sqlite3Path)' '\(dbFilePath)' '.read temp.sql';
+      if (Test-Path '\(dbFilePath)') {
+          Remove-Item 'temp.sql' -Force;
+          exit 0;
+      } else {
+          Remove-Item 'temp.sql' -Force;
+          exit 1;
+      }
+      """
+    #else
+      try FileManager.default.createDirectory(
+        atPath: dbDirectory,
+        withIntermediateDirectories: true,
+        attributes: nil
+      )
+
+      // Unix 的 SQLite 命令
+      let command = "\(sqlite3Path) \"\(dbFilePath)\" < \"\(sqlFilePath)\""
+    #endif
+
     print("Executing: \(command)")
 
     let result = ShellHelper.shell(command)
@@ -98,7 +151,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
     }
 
     // Verify the database was created
-    if !fileManager.fileExists(atPath: dbFilePath) {
+    if !FileManager.default.fileExists(atPath: dbFilePath) {
       throw VCDataBuilder.Exception.errMsg("Database file was not created at path: \(dbFilePath)")
     }
 

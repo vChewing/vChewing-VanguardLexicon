@@ -56,7 +56,11 @@ extension VCDataBuilder.DataBuilderProtocol {
     }
     // Aftermath.
     NSLog(" - 準備執行追加建置過程。")
+    print("===============================")
+    print("-------------------------------")
     try await performPostCompilation()
+    print("-------------------------------")
+    print("===============================")
     NSLog(" - 成功執行追加建置過程。")
   }
 }

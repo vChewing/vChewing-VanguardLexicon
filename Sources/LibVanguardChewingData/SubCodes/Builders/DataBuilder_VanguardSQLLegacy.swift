@@ -127,7 +127,7 @@ extension String {
 
 extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   func assembleSQLFile(_ insertData: @escaping () async -> String) async -> String {
-    let strBuilder = NSMutableString()
+    let strBuilder = NSMutableString(string: "")
     // theDataMISC 這個欄目其實並沒有被使用到。但為了相容性所以繼續保留。
     let sqlHeader = #"""
     PRAGMA synchronous=OFF;
@@ -162,7 +162,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
 
 extension VCDataBuilder.Collector {
   fileprivate func prepareRevLookupMapToSQLLegacy() -> String {
-    let script = NSMutableString()
+    let script = NSMutableString(string: "")
     var allKeys = Set<String>()
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
@@ -184,7 +184,7 @@ extension VCDataBuilder.Collector {
   }
 
   fileprivate func prepareUnigramMapsToSQLLegacy() -> String {
-    let script = NSMutableString()
+    let script = NSMutableString(string: "")
     // Punctuations -> theDataCHS and theDataCHT.
     var allPunctuationsMap = [String: VCDataBuilder.Unigram.GramSet]()
     getPunctuations().forEach {

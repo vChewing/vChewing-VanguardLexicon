@@ -9,7 +9,6 @@ extension VCDataBuilder.Collector {
     NSLog("開始籌集資料、準備執行健康度測試。")
     let data = getAllUnigrams(isCHS: isCHS)
     NSLog("開始執行健康度測試。")
-    while reverseLookupTable.isEmpty { sleep(1) }
     var result = ""
     var unigramMonoChar = [String: VCDataBuilder.Unigram]()
     var valueToScore = [String: Double]()

@@ -59,7 +59,7 @@ enum LangTag: String, CaseIterable {
 }
 
 func trimSingleFile(lang: LangTag, target: inout String) {
-  let tempTarget = NSMutableString()
+  let tempTarget = NSMutableString(string: "")
   target.enumerateLines { currentLine, _ in
     var matched = false
     for (prefix, suffix) in lang.filter {

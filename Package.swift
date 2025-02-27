@@ -32,13 +32,13 @@ let package = Package(
     ]
 
     #if compiler(>=6.0)
-    // Swift Testing is only available in Swift 6.0 and later.
-    targets.append(
-      .testTarget(
-        name: "LibVanguardChewingDataTests",
-        dependencies: ["LibVanguardChewingData"]
+      // Swift Testing is only available in Swift 6.0 and later.
+      targets.append(
+        .testTarget(
+          name: "LibVanguardChewingDataTests",
+          dependencies: ["LibVanguardChewingData"]
+        )
       )
-    )
     #endif
 
     return targets

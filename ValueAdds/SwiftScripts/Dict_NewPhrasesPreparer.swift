@@ -86,7 +86,7 @@ let chtFilter: [Phrase] = makeFilter(from: chtFilterRaw)
 
 extension Array where Element == Phrase {
   func makeReport(bare: Bool = false) -> String {
-    let result = NSMutableString()
+    let result = NSMutableString(string: "")
     result
       .append(
         bare ? Phrase.bareCellTitlesForReport.joined(separator: "\t") : Phrase

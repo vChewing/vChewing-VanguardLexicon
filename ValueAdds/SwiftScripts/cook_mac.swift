@@ -183,7 +183,7 @@ var rangeMapReverseLookup: [String: [String]] = [:]
 // MARK: - 準備資料庫
 
 func dumpSQL(_ insertData: @escaping () -> String) throws {
-  let strBuilder = NSMutableString()
+  let strBuilder = NSMutableString(string: "")
   let sqlHeader = #"""
   PRAGMA synchronous=OFF;
   PRAGMA journal_mode=OFF;
@@ -220,7 +220,7 @@ func writeMainMapToSQL(
   column columnName: String
 )
   -> String {
-  let script = NSMutableString()
+  let script = NSMutableString(string: "")
   for (encryptedKey, arrValues) in theMap {
     // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
     let safeKey = encryptedKey.replacingOccurrences(of: "'", with: "''")
@@ -234,7 +234,7 @@ func writeMainMapToSQL(
 
 @discardableResult
 func writeRevLookupMapToSQL(_ theMap: [String: [String]]) -> String {
-  let script = NSMutableString()
+  let script = NSMutableString(string: "")
   for (encryptedKey, arrValues) in theMap {
     // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
     let safeKey = encryptedKey.replacingOccurrences(of: "'", with: "''")

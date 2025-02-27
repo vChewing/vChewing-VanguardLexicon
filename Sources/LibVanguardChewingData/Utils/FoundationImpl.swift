@@ -109,17 +109,18 @@ extension Bundle {
     }
 
     // Get resources with optional extension filter
-    guard let urls = urls(forResourcesWithExtension: `extension`, subdirectory: nil) else {
+    guard let nsURLs = urls(forResourcesWithExtension: `extension`, subdirectory: nil) else {
       throw BundleSearchError.bundleResourcesNotFound
     }
-
+    let urls = nsURLs.compactMap { URL(string: $0.absoluteString) }
     return urls.compactMap { url in
-      let filename = url.lastPathComponent
-      let range = NSRange(location: 0, length: filename.utf16.count)
+      if let filename = url.pathComponents.last {
+        let range = NSRange(location: 0, length: filename.utf16.count)
 
-      // Check if filename matches the pattern
-      if regex.firstMatch(in: filename, options: [], range: range) != nil {
-        return url
+        // Check if filename matches the pattern
+        if regex.firstMatch(in: filename, options: [], range: range) != nil {
+          return url
+        }
       }
       return nil
     }
@@ -144,27 +145,30 @@ extension Bundle {
       }
     }
 
-    guard let resources = urls(forResourcesWithExtension: nil, subdirectory: nil) else {
+    guard let resourcesNSURLs = urls(forResourcesWithExtension: nil, subdirectory: nil) else {
       throw BundleSearchError.bundleResourcesNotFound
     }
+    let resources = resourcesNSURLs.compactMap { URL(string: $0.absoluteString) }
 
     return resources.compactMap { url in
-      let filename = url.lastPathComponent
-      let range = NSRange(location: 0, length: filename.utf16.count)
+      if let filename = url.pathComponents.last {
+        let range = NSRange(location: 0, length: filename.utf16.count)
 
-      if matchAll {
-        // Must match all patterns
-        let matchesAll = regexPatterns.allSatisfy { regex in
-          regex.firstMatch(in: filename, options: [], range: range) != nil
+        if matchAll {
+          // Must match all patterns
+          let matchesAll = regexPatterns.allSatisfy { regex in
+            regex.firstMatch(in: filename, options: [], range: range) != nil
+          }
+          return matchesAll ? url : nil
+        } else {
+          // Match any pattern
+          let matchesAny = regexPatterns.contains { regex in
+            regex.firstMatch(in: filename, options: [], range: range) != nil
+          }
+          return matchesAny ? url : nil
         }
-        return matchesAll ? url : nil
-      } else {
-        // Match any pattern
-        let matchesAny = regexPatterns.contains { regex in
-          regex.firstMatch(in: filename, options: [], range: range) != nil
-        }
-        return matchesAny ? url : nil
       }
+      return nil
     }
   }
 }

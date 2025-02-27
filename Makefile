@@ -13,7 +13,7 @@ CONFIG_DIR_WIN := "C:/Users/$(USERNAME)/ChewingTextService"
         libchewing-all libchewing-chs libchewing-cht libchewing-rust \
         libchewing-c-prepare-macos libchewing-c-prepare-linux-amd64 \
         libchewing-all-c libv-c-chs libv-c-cht libchewing-c \
-        _remoteinstall-vchewing gc gitcfg
+        _remoteinstall-vchewing gc gitcfg dockertest dockerrun
 
 # MARK: - General
 
@@ -29,6 +29,12 @@ lint:
 clean:
 	@rm -rf ./Build
 	@rm -rf ./.build
+
+dockertest:
+	docker run --rm -v "$(shell pwd)":/workspace -w /workspace swift:latest swift test
+
+dockerrun:
+	docker run --rm -v "$(shell pwd)":/workspace -w /workspace swift:latest swift run
 
 # MARK: - macOS (vChewing)
 

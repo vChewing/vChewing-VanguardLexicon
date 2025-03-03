@@ -308,7 +308,6 @@ extension VCDataBuilder.Collector {
       unigram.value
     }
 
-    print("diagnose: \(tableKanjiCNS.count)")
     // CNS.
     handleUnigramTableToSQLLegacy(&script, tableKanjiCNS, columnName: "theDataCNS") { unigram in
       unigram.value

@@ -51,7 +51,7 @@ extension VCDataBuilder {
       var description: String { rawValue }
     }
 
-    public static let naturalE: Double = 2.71828
+    public static let naturalE: Double = exp(1.0)
 
     public let key: String
     public let value: String
@@ -74,6 +74,7 @@ extension VCDataBuilder {
       case .misc: return nil
       case .cns: return nil
       }
+      guard (1 ... 6).contains(keyCells.count) else { return nil }
       return Self.naturalE ** (Double(value.count) / 3.0 - 1.0) * Double(count)
     }
 

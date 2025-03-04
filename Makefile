@@ -120,12 +120,15 @@ libchewing-rust:
 libchewing-install: libchewing-rust
 	@$(eval DEPLOY_DIR_CHEWINGR_LINUX := "$(HOME)/.config/chewing")
 	@$(eval DEPLOY_DIR_CHEWINGR_WIN := "C:$(PATHSEP)Users$(PATHSEP)$(USERNAME)$(PATHSEP)AppData$(PATHSEP)Roaming$(PATHSEP)chewing$(PATHSEP)Chewing$(PATHSEP)data")
+	@$(eval DEPLOY_DIR_CHEWINGR_WIN_LEGACY := "C:$(PATHSEP)Users$(PATHSEP)$(USERNAME)$(PATHSEP)ChewingTextService")
 	@$(eval LANG := $(shell echo $(LANG) | tr 'A-Z' 'a-z'))
 	@$(eval BUILD_DIR_CHEWINGR := "$(RELEASE_DIR)$(PATHSEP)chewing-rust-$(shell echo $(LANG) | tr 'A-Z' 'a-z')")
 ifeq ($(OS),Windows_NT)
 	@$(MKDIR) "$(DEPLOY_DIR_CHEWINGR_WIN)"
 	@$(CP) "$(BUILD_DIR_CHEWINGR)$(PATHSEP)tsi.dat","$(BUILD_DIR_CHEWINGR)$(PATHSEP)word.dat" "$(DEPLOY_DIR_CHEWINGR_WIN)"
-	@echo "已將 $(LANG) 詞庫檔案部署至 $(DEPLOY_DIR_CHEWINGR_WIN) 目錄下。"
+	@$(MKDIR) "$(DEPLOY_DIR_CHEWINGR_WIN_LEGACY)"
+	@$(CP) "$(BUILD_DIR_CHEWINGR)$(PATHSEP)tsi.dat","$(BUILD_DIR_CHEWINGR)$(PATHSEP)word.dat" "$(DEPLOY_DIR_CHEWINGR_WIN_LEGACY)"
+	@echo "已將 $(LANG) 詞庫檔案部署至 $(DEPLOY_DIR_CHEWINGR_WIN) 和 $(DEPLOY_DIR_CHEWINGR_WIN_LEGACY) 目錄下。"
 else
 	@$(MKDIR) "$(DEPLOY_DIR_CHEWINGR_LINUX)"
 	@$(CP) "$(BUILD_DIR_CHEWINGR)$(PATHSEP)tsi.dat" "$(BUILD_DIR_CHEWINGR)$(PATHSEP)word.dat" "$(DEPLOY_DIR_CHEWINGR_LINUX)"

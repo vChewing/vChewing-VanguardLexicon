@@ -148,6 +148,12 @@ extension VCDataBuilder.Collector {
   public func propagateWeights() async {
     await withTaskGroup(of: Void.self) { group in
       group.addTask { [self] in
+        unigramsKanjiCHS.propagateWeights(norm: norm)
+      }
+      group.addTask { [self] in
+        unigramsKanjiCHT.propagateWeights(norm: norm)
+      }
+      group.addTask { [self] in
         unigramsCHS.propagateWeights(norm: norm)
       }
       group.addTask { [self] in

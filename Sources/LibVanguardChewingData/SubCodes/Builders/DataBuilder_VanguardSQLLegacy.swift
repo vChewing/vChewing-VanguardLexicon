@@ -21,9 +21,7 @@ extension VCDataBuilder {
 
     nonisolated public let isCHS: Bool?
 
-    // MARK: Internal
-
-    let data: Collector
+    public let data: Collector
   }
 }
 
@@ -39,6 +37,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   }
 
   public func assemble() async throws -> [String: String] {
+    await printHealthCheckReports()
     let assembled = await assembleSQLFile { [self] in
       let unigramLines = await data.prepareUnigramMapsToSQLLegacy()
       let revLookupLines = await data.prepareRevLookupMapToSQLLegacy()

@@ -24,9 +24,7 @@ extension VCDataBuilder {
 
     nonisolated public let isCHS: Bool?
 
-    // MARK: Internal
-
-    let data: Collector
+    public let data: Collector
   }
 }
 
@@ -42,6 +40,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
   public func assemble() async throws -> [String: String] {
+    await printHealthCheckReports()
     var resultString = ["# format org.openvanilla.mcbopomofo.sorted\n"]
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams.append(contentsOf: await data.getPunctuations())

@@ -22,9 +22,7 @@ extension VCDataBuilder {
 
     nonisolated public let isCHS: Bool?
 
-    // MARK: Internal
-
-    let data: Collector
+    public let data: Collector
   }
 }
 
@@ -42,6 +40,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
   }
 
   public func assemble() async throws -> [String: String] {
+    /// 新酷音輸入法在建置 dat 時會自行健檢，所以這裡略過健檢步驟。
     var tsiSRC = [String]()
     var wordSRC = [String]()
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)

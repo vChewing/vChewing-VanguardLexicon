@@ -12,6 +12,7 @@ extension VCDataBuilder {
     var subFolderNameComponents: [String] { get }
     var subFolderNameComponentsAftermath: [String] { get }
     var isCHS: Bool? { get }
+    var data: Collector { get }
     func assemble() async throws -> [String: String]
     func performPostCompilation() async throws
   }
@@ -20,6 +21,39 @@ extension VCDataBuilder {
 extension VCDataBuilder.DataBuilderProtocol {
   public init?(isCHS: Bool? = nil) async throws {
     try await self.init(isCHS: isCHS)
+  }
+
+  public func runInTextBlock(_ task: () async -> ()) async {
+    print("===============================")
+    print("-------------------------------")
+    defer {
+      print("-------------------------------")
+      print("===============================")
+    }
+    await task()
+  }
+
+  public func runInTextBlockThrowable(_ task: () async throws -> ()) async throws {
+    print("===============================")
+    print("-------------------------------")
+    defer {
+      print("-------------------------------")
+      print("===============================")
+    }
+    try await task()
+  }
+
+  public func printHealthCheckReports() async {
+    let langs: [Bool] = if let isCHS {
+      [isCHS]
+    } else {
+      [true, false]
+    }
+    for lang in langs {
+      await runInTextBlock {
+        print(await data.healthCheckPerMode(isCHS: lang))
+      }
+    }
   }
 
   public func writeAssembledAssets() async throws {
@@ -56,11 +90,9 @@ extension VCDataBuilder.DataBuilderProtocol {
     }
     // Aftermath.
     NSLog(" - 準備執行追加建置過程。")
-    print("===============================")
-    print("-------------------------------")
-    try await performPostCompilation()
-    print("-------------------------------")
-    print("===============================")
+    try await runInTextBlockThrowable {
+      try await performPostCompilation()
+    }
     NSLog(" - 成功執行追加建置過程。")
   }
 }

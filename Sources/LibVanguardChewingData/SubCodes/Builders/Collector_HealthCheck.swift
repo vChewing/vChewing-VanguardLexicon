@@ -5,10 +5,12 @@
 import Foundation
 
 extension VCDataBuilder.Collector {
-  func healthCheck(isCHS: Bool) -> String {
-    NSLog("開始籌集資料、準備執行健康度測試。")
+  /// 健檢函式。
+  func healthCheckPerMode(isCHS: Bool) -> String {
+    let i18nTag = isCHS ? "簡體中文" : "繁體中文"
+    NSLog(" - \(i18nTag): 開始籌集資料、準備執行健康度測試。")
     let data = getAllUnigrams(isCHS: isCHS)
-    NSLog("開始執行健康度測試。")
+    NSLog(" - \(i18nTag): 開始執行健康度測試。")
     var result = ""
     var unigramMonoChar = [String: VCDataBuilder.Unigram]()
     var valueToScore = [String: Double]()

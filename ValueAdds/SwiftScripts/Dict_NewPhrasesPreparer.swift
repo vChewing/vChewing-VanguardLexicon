@@ -52,8 +52,8 @@ let chtFilterRaw =
     contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt",
     encoding: .utf8
   )
-let urlCHS = URL(fileURLWithPath: "../components/chs/")
-let urlCHT = URL(fileURLWithPath: "../components/cht/")
+let urlCHS = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/chs/")
+let urlCHT = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/cht/")
 
 guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else { exit(0) }
 

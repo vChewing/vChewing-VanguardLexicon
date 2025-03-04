@@ -6,7 +6,7 @@
 
 import Foundation
 
-let strDataPath = "../components"
+let strDataPath = "./Sources/LibVanguardChewingData/Resources/components"
 
 func handleFiles(_ handler: @escaping ((url: URL, fileName: String)) -> ()) {
   let rawURLs = FileManager.default.enumerator(

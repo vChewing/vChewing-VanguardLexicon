@@ -20,8 +20,8 @@ let chtFilterRaw =
     contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt",
     encoding: .utf8
   )
-let urlCHS = URL(fileURLWithPath: "../components/chs/")
-let urlCHT = URL(fileURLWithPath: "../components/cht/")
+let urlCHS = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/chs/")
+let urlCHT = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/cht/")
 
 guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else { exit(0) }
 
@@ -48,7 +48,7 @@ enum LangTag: String, CaseIterable {
 
   // MARK: Internal
 
-  var folderURL: URL { URL(fileURLWithPath: "../components/\(rawValue)/") }
+  var folderURL: URL { URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/\(rawValue)/") }
 
   var filter: [(String, String)] {
     switch self {

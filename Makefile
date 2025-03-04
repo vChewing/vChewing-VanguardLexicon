@@ -39,7 +39,8 @@ endif
         libchewing-rust libchewing-install \
         libchewing-all-c libchewing-c-chs libchewing-c-cht \
         libchewing-c libchewing-install-c \
-        _remoteinstall-vchewing gc gitcfg
+        _remoteinstall-vchewing gc gitcfg \
+        sort bleach prepare
 
 # MARK: - General
 
@@ -181,3 +182,12 @@ gc:
 
 gitcfg:
 	@$(CP) ".config_backup" ".git$(PATHSEP)config"
+
+sort:
+	swift .$(PATHSEP)ValueAdds$(PATHSEP)SwiftScripts$(PATHSEP)RawPhraseFileContentSorter.swift
+
+bleach:
+	swift .$(PATHSEP)ValueAdds$(PATHSEP)SwiftScripts$(PATHSEP)Dict_MatchedContentRemover.swift
+
+prepare:
+	swift .$(PATHSEP)ValueAdds$(PATHSEP)SwiftScripts$(PATHSEP)Dict_NewPhrasesPreparer.swift

@@ -74,10 +74,18 @@ struct Main {
     }
 
     print("開始建置資料……")
-    // 移除這行，避免重複編譯
-    // try await VCDataBuilder.BuilderType.vanguardSQLLegacy.compile()
-    for builderType in cases {
-      try await builderType.compile()
+    do {
+      for builderType in cases {
+        try await builderType.compile()
+      }
+    } catch {
+      if case let .errMsg(msg) = error as? VCDataBuilder.Exception {
+        NSLog("建置失敗，被迫中斷。")
+        print(msg)
+      } else {
+        print(error)
+      }
+      exit(1)
     }
     print("建置完成。")
   }

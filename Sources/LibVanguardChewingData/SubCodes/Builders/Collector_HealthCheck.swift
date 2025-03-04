@@ -5,49 +5,62 @@
 import Foundation
 
 extension VCDataBuilder.Collector {
+  private static let lineSeparator4HealthCheck: String = {
+    var result = ""
+    for _ in 0 ..< 72 { result += "-" }
+    return result
+  }()
+
   /// 健檢函式。
-  func healthCheckPerMode(isCHS: Bool) -> String {
+  func healthCheckPerMode(isCHS: Bool) throws -> String {
     let i18nTag = isCHS ? "簡體中文" : "繁體中文"
     NSLog(" - \(i18nTag): 開始籌集資料、準備執行健康度測試。")
     let data = getAllUnigrams(isCHS: isCHS)
     NSLog(" - \(i18nTag): 開始執行健康度測試。")
     var result = ""
-    var unigramMonoChar = [String: VCDataBuilder.Unigram]()
+    var unigramMonoCharPromotedMap = [String: VCDataBuilder.Unigram]()
     var valueToScore = [String: Double]()
-    let unigramMonoCharCounter = data
-      .filter { $0.score > -14 && $0.key.split(separator: "-").count == 1 }.count
-    let unigramPolyCharCounter = data
-      .filter { $0.score > -14 && $0.key.split(separator: "-").count > 1 }.count
-
-    // 核心字詞庫的內容頻率一般大於 -10，但也得考慮某些包含假名的合成詞。
-    for neta in data.filter({ $0.score > -14 }) {
+    var unigramMonoChars = [VCDataBuilder.Unigram]()
+    var unigramPolyChars = [VCDataBuilder.Unigram]()
+    data.forEach { neta in
+      // 核心字詞庫的內容頻率一般大於 -10，但也得考慮某些包含假名的合成詞。
+      guard neta.score > -14 else { return }
       valueToScore[neta.value] = max(neta.score, valueToScore[neta.value] ?? -14)
-      let theKeySliceArr = neta.key.split(separator: "-")
-      guard let theKey = theKeySliceArr.first, theKeySliceArr.count == 1 else { continue }
-      if unigramMonoChar.keys.contains(String(theKey)),
-         let theRecord = unigramMonoChar[String(theKey)] {
-        if neta.score > theRecord.score { unigramMonoChar[String(theKey)] = neta }
-      } else {
-        unigramMonoChar[String(theKey)] = neta
+      let phoneCells = neta.keyCells
+      guard let firstPhone = phoneCells.first else { return }
+      switch neta.spanLength {
+      case ...0: return
+      case 1:
+        unigramMonoChars.append(neta)
+        if let theRecord = unigramMonoCharPromotedMap[firstPhone] {
+          if neta.score > theRecord.score {
+            unigramMonoCharPromotedMap[firstPhone] = neta
+          }
+        } else {
+          unigramMonoCharPromotedMap[firstPhone] = neta
+        }
+      default: unigramPolyChars.append(neta)
       }
     }
+    let unigramMonoCharCounter = unigramMonoChars.count
+    let unigramPolyCharCounter = unigramPolyChars.count
 
     var faulty = [[String]: [VCDataBuilder.Unigram]]()
     var indifferents: [(String, String, Double, [VCDataBuilder.Unigram], Double)] = []
     var insufficients: [(String, String, Double, [VCDataBuilder.Unigram], Double)] = []
     var competingUnigrams = [(String, Double, String, Double)]()
 
-    for neta in data.filter({ $0.key.split(separator: "-").count >= 2 && $0.score > -14 }) {
+    for neta in unigramPolyChars {
       var competants = [VCDataBuilder.Unigram]()
       var tscore: Double = 0
       var bad = false
-      let checkPerCharMachingStatus: Bool = neta.key.split(separator: "-").count == neta.value.count
+      let checkPerCharMachingStatus: Bool = neta.spanLength == neta.value.count
 
       var mispronouncedKanji: [String] = []
 
       let arrNetaKeys = neta.key.split(separator: "-")
       outerMatchCheck: for (i, x) in arrNetaKeys.enumerated() {
-        if !unigramMonoChar.keys.contains(String(x)) {
+        if !unigramMonoCharPromotedMap.keys.contains(String(x)) {
           if neta.value.count == 1 {
             mispronouncedKanji.append("\(neta.type)@\(neta.value)@\(neta.key)")
           } else if neta.value.count == arrNetaKeys.count {
@@ -75,7 +88,7 @@ extension VCDataBuilder.Collector {
           bad = true
           break outerMatchCheck
         }
-        guard let u = unigramMonoChar[String(x)] else { continue }
+        guard let u = unigramMonoCharPromotedMap[String(x)] else { continue }
         tscore += u.score
         competants.append(u)
       }
@@ -100,6 +113,10 @@ extension VCDataBuilder.Collector {
       }
     }
 
+    func printl(_ input: String) {
+      result += input + "\n"
+    }
+
     insufficients = insufficients.sorted(by: { lhs, rhs -> Bool in
       (lhs.2) > (rhs.2)
     })
@@ -107,203 +124,74 @@ extension VCDataBuilder.Collector {
       (lhs.1 - lhs.3) > (rhs.1 - rhs.3)
     })
 
-    let separator: String = {
-      var result = ""
-      for _ in 0 ..< 72 { result += "-" }
-      return result
-    }()
-
-    func printl(_ input: String) {
-      result += input + "\n"
-    }
-
-    printl(separator)
+    printl(Self.lineSeparator4HealthCheck)
     printl("持單個字符的有效單元圖數量：\(unigramMonoCharCounter)")
     printl("持多個字符的有效單元圖數量：\(unigramPolyCharCounter)")
-
-    printl(separator)
-    printl("總結一下那些容易被單個漢字的字頻干擾輸入的詞組單元圖：")
-    printl("因干擾組件和字詞本身完全重疊、而不需要處理的單元圖的數量：\(indifferents.count)")
+    printl(Self.lineSeparator4HealthCheck)
     let countPercentage = Double(insufficients.count) / Double(unigramPolyCharCounter) * 100.0
-    printl(
-      "有 \(insufficients.count) 個複字單元圖被自身成分讀音對應的其它單字單元圖奪權，約佔全部有效單元圖的 \(countPercentage.rounded(toPlaces: 3))%，"
-    )
-    printl("\n其中有：")
 
     var insufficientsMap = [Int: [(String, String, Double, [VCDataBuilder.Unigram], Double)]]()
-    for x in 2 ... 10 {
-      insufficientsMap[x] = insufficients.filter { $0.0.split(separator: "-").count == x }
+    var countedInsufficientsMap = [Int: Int]()
+    var insufficientsCounter = 0
+
+    (2 ... 10).forEach { currentSpanLength in
+      let foundInsufficientsOfThisSpanLength = insufficients
+        .filter { $0.0.split(separator: "-").count == currentSpanLength }
+      let countedInsufficientsAmountForThisSpanLength = foundInsufficientsOfThisSpanLength.count
+      countedInsufficientsMap[currentSpanLength] = countedInsufficientsAmountForThisSpanLength
+      insufficientsCounter += countedInsufficientsAmountForThisSpanLength
+      insufficientsMap[currentSpanLength] = foundInsufficientsOfThisSpanLength
     }
 
-    printl("  \(insufficientsMap[2]?.count ?? 0) 個有效雙字單元圖")
-    printl("  \(insufficientsMap[3]?.count ?? 0) 個有效三字單元圖")
-    printl("  \(insufficientsMap[4]?.count ?? 0) 個有效四字單元圖")
-    printl("  \(insufficientsMap[5]?.count ?? 0) 個有效五字單元圖")
-    printl("  \(insufficientsMap[6]?.count ?? 0) 個有效六字單元圖")
-    printl("  \(insufficientsMap[7]?.count ?? 0) 個有效七字單元圖")
-    printl("  \(insufficientsMap[8]?.count ?? 0) 個有效八字單元圖")
-    printl("  \(insufficientsMap[9]?.count ?? 0) 個有效九字單元圖")
-    printl("  \(insufficientsMap[10]?.count ?? 0) 個有效十字單元圖")
-
-    if let insufficientsMap2 = insufficientsMap[2], !insufficientsMap2.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效雙字單元圖")
-      for (i, content) in insufficientsMap2.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
+    if insufficientsCounter <= 0, indifferents.isEmpty {
+      printl("尚未發現有複字單元圖被自身成分讀音對應的其它單字單元圖奪權的問題。")
+    } else {
+      printl("總結一下那些容易被單個漢字的字頻干擾輸入的詞組單元圖：")
+      printl("因干擾組件和字詞本身完全重疊、而不需要處理的單元圖的數量：\(indifferents.count)")
+      printl(
+        "有 \(insufficients.count) 個複字單元圖被自身成分讀音對應的其它單字單元圖奪權，約佔全部有效單元圖的 \(countPercentage.rounded(toPlaces: 3))%，"
+      )
+      printl("\n其中有：")
+      countedInsufficientsMap.sorted(by: { $0.key < $1.key }).forEach { keyValue in
+        printl("  \(keyValue.value) 個有效 \(keyValue.key) 字單元圖")
       }
     }
 
-    if let insufficientsMap3 = insufficientsMap[3], !insufficientsMap3.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效三字單元圖")
-      for (i, content) in insufficientsMap3.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap4 = insufficientsMap[4], !insufficientsMap4.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效四字單元圖")
-      for (i, content) in insufficientsMap4.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap5 = insufficientsMap[5], !insufficientsMap5.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效五字單元圖")
-      for (i, content) in insufficientsMap5.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap6 = insufficientsMap[6], !insufficientsMap6.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效六字單元圖")
-      for (i, content) in insufficientsMap6.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap7 = insufficientsMap[7], !insufficientsMap7.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效七字單元圖")
-      for (i, content) in insufficientsMap7.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap8 = insufficientsMap[8], !insufficientsMap8.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效八字單元圖")
-      for (i, content) in insufficientsMap8.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap9 = insufficientsMap[9], !insufficientsMap9.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效九字單元圖")
-      for (i, content) in insufficientsMap9.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
-      }
-    }
-
-    if let insufficientsMap10 = insufficientsMap[10], !insufficientsMap10.isEmpty {
-      printl(separator)
-      printl("前二十五個被奪權的有效十字單元圖")
-      for (i, content) in insufficientsMap10.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += content.1 + ","
-        contentToPrint += String(content.2) + ","
-        contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
-        contentToPrint += String(content.4) + "}"
-        printl(contentToPrint)
+    (2 ... 10).forEach { currentSpanLength in
+      let insufficientsOfThisSpanLength = insufficientsMap[currentSpanLength]
+      if let insufficientsOfThisSpanLength, !insufficientsOfThisSpanLength.isEmpty {
+        printl(Self.lineSeparator4HealthCheck)
+        printl("前二十五個被奪權的有效 \(currentSpanLength) 字單元圖")
+        for content in insufficientsOfThisSpanLength.prefix(25) {
+          var contentToPrint = "{"
+          contentToPrint += "\(content.0),\(content.1),\(content.2),"
+          contentToPrint += "[" + content.3.map(\.description).joined(separator: ",") + "]" + ","
+          contentToPrint += String(content.4) + "}"
+          printl(contentToPrint)
+        }
       }
     }
 
     if !competingUnigrams.isEmpty {
-      printl(separator)
+      printl(Self.lineSeparator4HealthCheck)
       printl("也發現有 \(competingUnigrams.count) 個複字單元圖被某些由高頻單字組成的複字單元圖奪權的情況，")
       printl("例如（前二十五例）：")
-      for (i, content) in competingUnigrams.enumerated() {
-        if i == 25 { break }
-        var contentToPrint = "{"
-        contentToPrint += content.0 + ","
-        contentToPrint += String(content.1) + ","
-        contentToPrint += content.2 + ","
-        contentToPrint += String(content.3) + "}"
+      for content in competingUnigrams.prefix(25) {
+        let contentToPrint = "{\(content.0),\(content.1),\(content.2),\(content.3)}"
         printl(contentToPrint)
       }
     }
 
-    if !faulty.isEmpty {
-      printl(separator)
+    guard faulty.isEmpty else {
+      printl(Self.lineSeparator4HealthCheck)
+      printl("健檢測試失敗：")
       printl("下述單元圖用到了漢字核心表當中尚未收錄的讀音，可能無法正常輸入：")
       for content in faulty {
         printl("\(content.key): \(content.value)")
       }
+      throw VCDataBuilder.Exception.errMsg(result)
     }
 
-    result += "\n"
     return result
   }
 }

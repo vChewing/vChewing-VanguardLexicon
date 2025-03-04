@@ -87,6 +87,10 @@ extension VCDataBuilder {
       return key.split(separator: "-").map(\.description)
     }
 
+    public var spanLength: Int {
+      keyCells.count
+    }
+
     public static func == (lhs: Unigram, rhs: Unigram) -> Bool {
       lhs.hashValue == rhs.hashValue
     }

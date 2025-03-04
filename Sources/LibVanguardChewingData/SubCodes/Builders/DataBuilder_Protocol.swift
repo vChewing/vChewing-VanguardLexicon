@@ -43,15 +43,15 @@ extension VCDataBuilder.DataBuilderProtocol {
     try await task()
   }
 
-  public func printHealthCheckReports() async {
+  public func printHealthCheckReports() async throws {
     let langs: [Bool] = if let isCHS {
       [isCHS]
     } else {
       [true, false]
     }
-    for lang in langs {
-      await runInTextBlock {
-        print(await data.healthCheckPerMode(isCHS: lang))
+    try await runInTextBlockThrowable {
+      for lang in langs {
+        print(try await data.healthCheckPerMode(isCHS: lang))
       }
     }
   }

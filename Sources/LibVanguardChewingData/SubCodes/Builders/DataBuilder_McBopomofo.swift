@@ -40,7 +40,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
   public func assemble() async throws -> [String: String] {
-    await printHealthCheckReports()
+    try await printHealthCheckReports()
     var resultString = ["# format org.openvanilla.mcbopomofo.sorted\n"]
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams.append(contentsOf: await data.getPunctuations())

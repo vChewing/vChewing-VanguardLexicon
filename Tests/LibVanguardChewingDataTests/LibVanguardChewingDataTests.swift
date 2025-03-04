@@ -35,7 +35,7 @@ func testCollectorSanityCheckCHS() async throws {
   let secondsDelta = Date.now.timeIntervalSince1970 - startDate.timeIntervalSince1970
   NSLog("Weight propagation complete. Time costed as seconds: \(secondsDelta)")
   print(await actorTested.unigramsCHS.values.map(\.values.count).reduce(0, +))
-  print(await actorTested.healthCheckPerMode(isCHS: true))
+  print(try await actorTested.healthCheckPerMode(isCHS: true))
 }
 
 @Test
@@ -49,5 +49,5 @@ func testCollectorSanityCheckCHT() async throws {
   let secondsDelta = Date.now.timeIntervalSince1970 - startDate.timeIntervalSince1970
   NSLog("Weight propagation complete. Time costed as seconds: \(secondsDelta)")
   print(await actorTested.unigramsCHT.values.map(\.values.count).reduce(0, +))
-  print(await actorTested.healthCheckPerMode(isCHS: false))
+  print(try await actorTested.healthCheckPerMode(isCHS: false))
 }

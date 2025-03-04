@@ -37,7 +37,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   }
 
   public func assemble() async throws -> [String: String] {
-    await printHealthCheckReports()
+    try await printHealthCheckReports()
     let assembled = await assembleSQLFile { [self] in
       let unigramLines = await data.prepareUnigramMapsToSQLLegacy()
       let revLookupLines = await data.prepareRevLookupMapToSQLLegacy()

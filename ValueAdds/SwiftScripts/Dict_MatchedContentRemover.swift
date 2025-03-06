@@ -48,7 +48,9 @@ enum LangTag: String, CaseIterable {
 
   // MARK: Internal
 
-  var folderURL: URL { URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/\(rawValue)/") }
+  var folderURL: URL {
+    URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/\(rawValue)/")
+  }
 
   var filter: [(String, String)] {
     switch self {

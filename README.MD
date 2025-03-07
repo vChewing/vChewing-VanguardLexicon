@@ -116,4 +116,6 @@ Linux 系统的话，请注意两个先决条件：
 
 注二：该仓库随赠一套 LibChewing 酷音输入法引擎的辞典编译程式「init_database」的修改版本（可以辨识高于 65535 的词频资料），方便大陆使用者「哪怕无法存取 GitHub、也能编译出用于新酷音的词库档案」。这套档案继承酷音输入法引擎的授权「LGPL 2.1」。另外，这个 binary 仅针对以 C 语言写就的新酷音引擎。至于以 Rust 写就的新酷音引擎所需要的档案，敝仓库也会同时正常建置、且建置过程不依赖这个 binary。
 
+注三：VanguardTrieKit 以 LGPLv3 释出。本仓库内的 VanguardTrieKit 是从 LibVanguard 复制出来的个别档案的副本、且不包含对 SQLite API 的直接交互之部分。
+
 $ EOF.

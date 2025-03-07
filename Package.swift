@@ -20,7 +20,14 @@ let package = Package(
   targets: {
     var targets: [Target] = [
       .target(
+        name: "VanguardTrieKit",
+        resources: [
+          .process("Licenses/"),
+        ]
+      ),
+      .target(
         name: "LibVanguardChewingData",
+        dependencies: ["VanguardTrieKit"],
         resources: [
           .process("./Resources/"),
         ]

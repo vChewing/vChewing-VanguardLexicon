@@ -39,7 +39,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     ["Release", "chewing-rust-\(langSuffix)"]
   }
 
-  public func assemble() async throws -> [String: String] {
+  public func assemble() async throws -> [String: Data] {
     /// 新酷音輸入法在建置 dat 時會自行健檢，所以這裡略過健檢步驟。
     var tsiSRC = [String]()
     var wordSRC = [String]()
@@ -55,9 +55,14 @@ extension VCDataBuilder.ChewingRustDataBuilder {
         wordSRC.append("\(gram.value) \(gram.count) \(gram.key)\n")
       }
     }
+    let dataTsiSRC = tsiSRC.joined().data(using: .utf8)
+    let dataWordSRC = wordSRC.joined().data(using: .utf8)
+    guard let dataTsiSRC, let dataWordSRC else {
+      throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for ChewingRust.")
+    }
     return [
-      "tsi.src": tsiSRC.joined(),
-      "word.src": wordSRC.joined(),
+      "tsi.src": dataTsiSRC,
+      "word.src": dataWordSRC,
     ]
   }
 

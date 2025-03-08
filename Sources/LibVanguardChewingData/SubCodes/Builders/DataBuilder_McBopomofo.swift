@@ -18,6 +18,7 @@ extension VCDataBuilder {
       // 綜上所述，不需要相容模式。
       self.data = try Collector(isCHS: isCHS, compatibleMode: false)
       await data.propagateWeights()
+      try await printHealthCheckReports()
     }
 
     // MARK: Public
@@ -39,8 +40,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
 
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
-  public func assemble() async throws -> [String: String] {
-    try await printHealthCheckReports()
+  public func assemble() async throws -> [String: Data] {
     var resultString = ["# format org.openvanilla.mcbopomofo.sorted\n"]
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams.append(contentsOf: await data.getPunctuations())
@@ -53,9 +53,14 @@ extension VCDataBuilder.McBopomofoDataBuilder {
       resultString.append("\(gram.key) \(gram.value) \(gram.score)")
       resultString.append("\n")
     }
-    return ["data.txt": resultString.joined()]
+    guard let data = resultString.joined().data(using: .utf8) else {
+      throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for McBopomofo.")
+    }
+    return ["data.txt": data]
   }
 
   /// This is a no-op for McBopomofo dict compilation process.
-  public func performPostCompilation() async throws {}
+  public func performPostCompilation() async throws {
+    print("Data compilation succeeded for McBopomofo.")
+  }
 }

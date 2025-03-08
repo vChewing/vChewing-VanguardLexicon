@@ -39,7 +39,7 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     ["Release", "chewing-cbased-\(langSuffix)"]
   }
 
-  public func assemble() async throws -> [String: String] {
+  public func assemble() async throws -> [String: Data] {
     /// 新酷音輸入法在建置 dat 時會自行健檢，所以這裡略過健檢步驟。
     var tsiSRC = [String]()
     var charDef = [String]()
@@ -59,9 +59,14 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     }
     charDef.append("%chardef  end\n")
     charDef.insert(Self.getPhoneCINHeader(), at: 0)
+    let dataTsiSRC = tsiSRC.joined().data(using: .utf8)
+    let dataCharDef = charDef.joined().data(using: .utf8)
+    guard let dataTsiSRC, let dataCharDef else {
+      throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for ChewingCBased.")
+    }
     return [
-      "tsi.src": tsiSRC.joined(),
-      "phone.cin": charDef.joined(),
+      "tsi.src": dataTsiSRC,
+      "phone.cin": dataCharDef,
     ]
   }
 

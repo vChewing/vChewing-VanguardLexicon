@@ -146,6 +146,7 @@ extension VCDataBuilder.Collector {
   }
 
   public func propagateWeights() async {
+    NSLog(" - 通用: 正在計算權重。")
     await withTaskGroup(of: Void.self) { group in
       group.addTask { [self] in
         unigramsKanjiCHS.propagateWeights(norm: norm)
@@ -163,6 +164,7 @@ extension VCDataBuilder.Collector {
         unigrams4NonKanji.propagateWeights(norm: norm)
       }
       await group.waitForAll()
+      NSLog(" - 通用: 成功計算權重。")
     }
   }
 }

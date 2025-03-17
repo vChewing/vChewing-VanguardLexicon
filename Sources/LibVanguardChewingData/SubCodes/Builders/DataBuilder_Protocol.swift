@@ -6,14 +6,15 @@ import Foundation
 import VanguardTrieKit
 
 extension VanguardTrie.Trie.EntryType {
-  public static let revLookup = Self(rawValue: 2 << 0)
-  public static let letterPunctuations = Self(rawValue: 3 << 0)
-  public static let chs = Self(rawValue: 4 << 0) // 0x0804
-  public static let cht = Self(rawValue: 5 << 0) // 0x0404
-  public static let cns = Self(rawValue: 6 << 0)
-  public static let nonKanji = Self(rawValue: 7 << 0)
-  public static let symbolPhrases = Self(rawValue: 8 << 0)
-  public static let zhuyinwen = Self(rawValue: 9 << 0)
+  public static let meta = Self(rawValue: 2 << 0)
+  public static let revLookup = Self(rawValue: 3 << 0)
+  public static let letterPunctuations = Self(rawValue: 4 << 0)
+  public static let chs = Self(rawValue: 5 << 0) // 0x0804
+  public static let cht = Self(rawValue: 6 << 0) // 0x0404
+  public static let cns = Self(rawValue: 7 << 0)
+  public static let nonKanji = Self(rawValue: 8 << 0)
+  public static let symbolPhrases = Self(rawValue: 9 << 0)
+  public static let zhuyinwen = Self(rawValue: 10 << 0)
 }
 
 extension VanguardTrie.Trie {
@@ -57,6 +58,30 @@ extension VCDataBuilder.TriePreparatorProtocol {
     trie4TypingCNS.clearAllContents()
     trie4TypingMisc.clearAllContents()
     trie4Rev.clearAllContents()
+
+    let normEntryKey = "_NORM"
+    let normEntry = VanguardTrie.Trie.Entry(
+      value: normEntryKey,
+      typeID: .meta,
+      probability: data.norm,
+      previous: nil
+    )
+    trie4TypingBasic.insert(entry: normEntry, readings: [normEntryKey])
+    trie4TypingCNS.insert(entry: normEntry, readings: [normEntryKey])
+    trie4TypingMisc.insert(entry: normEntry, readings: [normEntryKey])
+
+    let dateEntryKey = "_BUILD_TIMESTAMP"
+    let dateEntry = VanguardTrie.Trie.Entry(
+      value: dateEntryKey,
+      typeID: .meta,
+      probability: Date().timeIntervalSince1970,
+      previous: nil
+    )
+    trie4TypingBasic.insert(entry: dateEntry, readings: [dateEntryKey])
+    trie4TypingCNS.insert(entry: normEntry, readings: [dateEntryKey])
+    trie4TypingMisc.insert(entry: dateEntry, readings: [dateEntryKey])
+    trie4Rev.insert(entry: dateEntry, readings: [dateEntryKey])
+
     await withTaskGroup(of: Void.self) { group in
       group.addTask { [self] in
         // revLookup

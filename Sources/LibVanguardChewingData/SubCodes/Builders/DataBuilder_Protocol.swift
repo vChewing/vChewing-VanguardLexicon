@@ -27,7 +27,8 @@ extension VCDataBuilder.Unigram {
     type: VanguardTrie.Trie.EntryType,
     previous: String? = nil
   )
-    -> (VanguardTrie.Trie.Entry, readingArray: [String]) {
+    -> (VanguardTrie.Trie.Entry, readingArray: [String])? {
+    guard !keyShouldGetFiltered(key) else { return nil }
     let entry = VanguardTrie.Trie.Entry(
       value: value,
       typeID: type,
@@ -63,7 +64,11 @@ extension VCDataBuilder.TriePreparatorProtocol {
         data.reverseLookupTable.keys.forEach { allKeys.insert($0) }
         data.reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
         data.reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
-        for key in allKeys.sorted() {
+        var allKeysToHandle = allKeys.sorted()
+        if isTestSampleMode {
+          allKeysToHandle = Array(allKeysToHandle.prefix(10))
+        }
+        allKeysToHandle.forEach { key in
           var arrValues = [String]()
           arrValues.append(contentsOf: data.reverseLookupTable[key] ?? [])
           arrValues.append(contentsOf: data.reverseLookupTable4NonKanji[key] ?? [])
@@ -85,23 +90,23 @@ extension VCDataBuilder.TriePreparatorProtocol {
             // chs
             self.data.unigramsKanjiCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.map { $0.asEntry(type: .chs) }
+            }.compactMap { $0.asEntry(type: .chs) }
           }
           subGroup.addTask {
             self.data.unigramsCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.map { $0.asEntry(type: .chs) }
+            }.compactMap { $0.asEntry(type: .chs) }
           }
           subGroup.addTask {
             // cht
             self.data.unigramsKanjiCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.map { $0.asEntry(type: .cht) }
+            }.compactMap { $0.asEntry(type: .cht) }
           }
           subGroup.addTask {
             self.data.unigramsCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.map { $0.asEntry(type: .cht) }
+            }.compactMap { $0.asEntry(type: .cht) }
           }
           for await result in subGroup {
             result.forEach {
@@ -117,19 +122,19 @@ extension VCDataBuilder.TriePreparatorProtocol {
             // nonKanji
             self.data.unigrams4NonKanji.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.map { $0.asEntry(type: .nonKanji) }
+            }.compactMap { $0.asEntry(type: .nonKanji) }
           }
           subGroup.addTask {
             // symbolPhrases
-            await self.data.getSymbols().map { $0.asEntry(type: .symbolPhrases) }
+            await self.data.getSymbols().compactMap { $0.asEntry(type: .symbolPhrases) }
           }
           subGroup.addTask {
             // zhuyinwen
-            await self.data.getZhuyinwen().map { $0.asEntry(type: .zhuyinwen) }
+            await self.data.getZhuyinwen().compactMap { $0.asEntry(type: .zhuyinwen) }
           }
           subGroup.addTask {
             // letters and punctuations
-            await self.data.getPunctuations().map { $0.asEntry(type: .letterPunctuations) }
+            await self.data.getPunctuations().compactMap { $0.asEntry(type: .letterPunctuations) }
           }
           for await result in subGroup {
             result.forEach {
@@ -142,7 +147,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
         await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
           subGroup.addTask {
             // cns
-            self.data.tableKanjiCNS.values.flatMap { $0 }.map { $0.asEntry(type: .cns) }
+            self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
           }
           for await result in subGroup {
             result.forEach {
@@ -424,3 +429,55 @@ extension VCDataBuilder.BuilderType {
     }
   }
 }
+
+// MARK: - Key filters for making small testable samples.
+
+private func keyShouldGetFiltered(_ target: String) -> Bool {
+  guard isTestSampleMode else { return false }
+  return if target.hasPrefix("_") {
+    target.hasPrefix("_punctuation_list")
+  } else {
+    !whitelistedReadingsForUnitTests.contains(target)
+  }
+}
+
+private var isTestSampleMode: Bool {
+  ProcessInfo.processInfo.environment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"
+}
+
+private let whitelistedReadingsForUnitTests: Set<String> = [
+  "ㄇㄧˋ",
+  "ㄇㄧˋ-ㄈㄥ",
+  "ㄈㄤ",
+  "ㄈㄥ",
+  "ㄉㄚˋ-ㄕㄨˋ",
+  "ㄉㄜ˙",
+  "ㄉㄧㄝˊ",
+  "ㄋㄥˊ",
+  "ㄋㄥˊ-ㄌㄧㄡˊ",
+  "ㄌㄧㄡˊ",
+  "ㄌㄧㄡˊ-ㄧˋ",
+  "ㄌㄩˇ",
+  "ㄌㄩˇ-ㄈㄤ",
+  "ㄍㄨㄛˇ",
+  "ㄍㄨㄛˇ-ㄓ",
+  "ㄍㄨㄥ",
+  "ㄍㄨㄥ-ㄩㄢˊ",
+  "ㄎㄜ",
+  "ㄎㄜ-ㄐㄧˋ",
+  "ㄐㄧˋ",
+  "ㄐㄧˋ-ㄍㄨㄥ",
+  "ㄒㄧㄣ",
+  "ㄒㄧㄣ-ㄉㄜ˙",
+  "ㄓ",
+  "ㄕㄨㄟˇ",
+  "ㄕㄨㄟˇ-ㄍㄨㄛˇ",
+  "ㄕㄨㄟˇ-ㄍㄨㄛˇ-ㄓ",
+  "ㄕㄨˋ",
+  "ㄕㄨˋ-ㄒㄧㄣ",
+  "ㄧㄡ",
+  "ㄧㄡ-ㄉㄧㄝˊ",
+  "ㄧˋ",
+  "ㄧˋ-ㄌㄩˇ",
+  "ㄩㄢˊ",
+]

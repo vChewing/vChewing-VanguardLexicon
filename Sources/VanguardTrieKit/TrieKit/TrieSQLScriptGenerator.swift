@@ -103,7 +103,7 @@ extension VanguardTrie {
 
     /// 生成批量插入節點的 SQL 語句
     /// - Parameters:
-    ///   - nodes: 節點字典
+    ///   - nodes: 節點辭典
     ///   - sqlCommands: SQL 命令數組，結果會添加到此數組
     private static func generateBatchNodeInserts(
       _ nodes: [Int: VanguardTrie.Trie.TNode],
@@ -115,12 +115,13 @@ extension VanguardTrie {
 
       // 處理所有節點（包括根節點）
       for (id, node) in nodes {
-        let escapedChar = node.character.replacingOccurrences(of: "'", with: "''")
-        let escapedReadingKey = node.readingKey.replacingOccurrences(of: "'", with: "''")
+        // 正確處理所有字串以避免 SQL 注入和引號問題
+        let escapedChar = escapeSQLString(node.character)
+        let escapedReadingKey = escapeSQLString(node.readingKey)
 
         // 將條目編碼為 base64 字串
         let entriesBlob = encodeEntriesToBase64(node.entries)
-        let escapedEntriesBlob = entriesBlob.replacingOccurrences(of: "'", with: "''")
+        let escapedEntriesBlob = escapeSQLString(entriesBlob)
 
         let parentIDPart = node.parentID != nil ? String(node.parentID!) : "NULL"
 
@@ -149,6 +150,12 @@ extension VanguardTrie {
       }
     }
 
+    /// 為 SQL 字串轉義，確保包含特殊字符（如分號）的字串能正確處理
+    private static func escapeSQLString(_ input: String) -> String {
+      // SQL 字串中單引號需要用兩個單引號表示
+      input.replacingOccurrences(of: "'", with: "''")
+    }
+
     /// 將條目陣列編碼為 base64 字串
     private static func encodeEntriesToBase64(_ entries: [VanguardTrie.Trie.Entry]) -> String {
       if entries.isEmpty { return "" }
@@ -166,7 +173,7 @@ extension VanguardTrie {
 
     /// 生成批量插入 keychain_id_map 的 SQL 語句
     /// - Parameters:
-    ///   - keychainMap: keyChainIDMap 字典
+    ///   - keychainMap: keyChainIDMap 辭典
     ///   - sqlCommands: SQL 命令數組，結果會添加到此數組
     private static func generateBatchKeychainIdMapInserts(
       _ keychainMap: [String: Set<Int>],
@@ -177,7 +184,7 @@ extension VanguardTrie {
 
       // 遍歷所有 keychain 和對應的節點 ID
       for (keychain, nodeIDs) in keychainMap {
-        let escapedKeychain = keychain.replacingOccurrences(of: "'", with: "''")
+        let escapedKeychain = escapeSQLString(keychain)
 
         // 對每個 keychain，插入與所有對應節點 ID 的映射關係
         for nodeID in nodeIDs {

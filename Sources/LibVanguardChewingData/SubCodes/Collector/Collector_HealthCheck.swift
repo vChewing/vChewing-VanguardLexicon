@@ -12,12 +12,12 @@ extension VCDataBuilder.Collector {
   }()
 
   /// 健檢函式。
-  func healthCheckPerMode(isCHS: Bool) throws -> String {
+  func healthCheckPerMode(isCHS: Bool) throws -> [String] {
     let i18nTag = isCHS ? "簡體中文" : "繁體中文"
     NSLog(" - \(i18nTag): 開始籌集資料、準備執行健康度測試。")
     let data = getAllUnigrams(isCHS: isCHS)
     NSLog(" - \(i18nTag): 開始執行健康度測試。")
-    var result = ""
+    var result = [String]()
     var unigramMonoCharPromotedMap = [String: VCDataBuilder.Unigram]()
     var valueToScore = [String: Double]()
     var unigramMonoChars = [VCDataBuilder.Unigram]()
@@ -114,7 +114,7 @@ extension VCDataBuilder.Collector {
     }
 
     func printl(_ input: String) {
-      result += input + "\n"
+      result.append(input)
     }
 
     insufficients = insufficients.sorted(by: { lhs, rhs -> Bool in
@@ -189,7 +189,7 @@ extension VCDataBuilder.Collector {
       for content in faulty {
         printl("\(content.key): \(content.value)")
       }
-      throw VCDataBuilder.Exception.errMsg(result)
+      throw VCDataBuilder.Exception.healthCheckException(result)
     }
 
     return result

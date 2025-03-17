@@ -9,6 +9,7 @@ import Foundation
 extension VCDataBuilder {
   public enum Exception: Error {
     case errMsg(String)
+    case healthCheckException([String])
   }
 }
 

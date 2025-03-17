@@ -204,7 +204,7 @@ extension VCDataBuilder.DataBuilderProtocol {
     }
     try await runInTextBlockThrowable {
       for lang in langs {
-        print(try await data.healthCheckPerMode(isCHS: lang))
+        try await data.healthCheckPerMode(isCHS: lang).forEach { print($0) }
       }
     }
   }
@@ -420,7 +420,7 @@ extension VCDataBuilder.BuilderType {
       NSLog(" ~ 成功建置： \(rawValue) ...")
     } catch {
       NSLog("!! 建置失敗： \(rawValue) ...")
-      NSLog(" - 錯誤內容： \(error) ...")
+      throw error
     }
   }
 }

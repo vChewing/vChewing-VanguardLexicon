@@ -81,10 +81,13 @@ struct Main {
         try await builderType.compile()
       }
     } catch {
-      if case let .errMsg(msg) = error as? VCDataBuilder.Exception {
-        NSLog("建置失敗，被迫中斷。")
+      NSLog("!! 建置失敗，被迫中斷。")
+      switch error {
+      case let VCDataBuilder.Exception.errMsg(msg):
         print(msg)
-      } else {
+      case let VCDataBuilder.Exception.healthCheckException(msgArray):
+        msgArray.forEach { print($0) }
+      default:
         print(error)
       }
       exit(1)

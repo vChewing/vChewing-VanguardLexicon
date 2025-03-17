@@ -222,7 +222,7 @@ func rawDictForPhrases(isCHS: Bool) -> [Unigram] {
         default: break
         }
       }
-      if phrase != "", occurrence >= 0 { // 廢掉空數據；之後無須再這樣處理。
+      if phrase != "", occurrence >= 0 { // 廢掉空資料；之後無須再這樣處理。
         arrUnigramRAW += [
           Unigram(
             key: phone, value: phrase, score: 0.0,
@@ -310,7 +310,7 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
       default: break
       }
     }
-    if phrase.count == 1 { // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的資料
       arrUnigramRAW += [
         Unigram(
           key: phone, value: phrase, score: 0.0,
@@ -319,7 +319,7 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
       ]
     }
   }
-  // - 處理 CNS 等其他單字數據
+  // - 處理 CNS 等其他單字資料
   strRAWOther.regReplace(pattern: #"^(#.*)$"#, replaceWith: "") // 以#開頭的行都淨空
   arrData = Array(
     NSOrderedSet(array: strRAWOther.components(separatedBy: "\n")).array as! [String]
@@ -338,7 +338,7 @@ func rawDictForKanjis(isCHS: Bool, isCNS: Bool = false) -> [Unigram] {
       default: break
       }
     }
-    if phrase.count == 1 { // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的資料
       arrUnigramRAW += [
         Unigram(
           key: phone, value: phrase, score: 0.0,
@@ -416,7 +416,7 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Unigram] {
       default: break
       }
     }
-    if phrase.count == 1 { // 只要單個字符的數據
+    if phrase.count == 1 { // 只要單個字符的資料
       arrUnigramRAW += [
         Unigram(
           key: phone, value: phrase, score: 0.0,

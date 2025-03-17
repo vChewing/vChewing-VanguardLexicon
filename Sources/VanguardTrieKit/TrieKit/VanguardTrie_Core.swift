@@ -308,7 +308,7 @@ extension VanguardTrie.Trie {
       currentNodeID = newNodeID
     }
 
-    // 在最終節點設置讀音鍵並添加詞條
+    // 在最終節點設定讀音鍵並添加詞條
     currentNode.readingKey = key
     currentNode.entries.append(entry)
 

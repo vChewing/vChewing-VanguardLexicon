@@ -289,7 +289,7 @@ extension VCDataBuilder.Unigram {
       let phone = arrCells[2].description
       let phrase = arrCells[0].description
       let occurrence = Int(arrCells[1]) ?? 0
-      // 廢掉空數據；之後無須再這樣處理。
+      // 廢掉空資料；之後無須再這樣處理。
       guard phrase.count * phone.count != 0 else { return }
       // 開始插入資料值。
       reverseLookupTable[phrase, default: []].insert(phone) // RevLookup
@@ -445,7 +445,7 @@ extension VCDataBuilder.Unigram {
       guard arrCells.count >= 4 else { return }
       let phone = arrCells[3].description
       let phrase = arrCells[0].description
-      // 廢掉空數據；之後無須再這樣處理。
+      // 廢掉空資料；之後無須再這樣處理。
       guard phrase.count * phone.count != 0 else { return }
       languages.forEach { isCHS in
         // 開始插入資料值。
@@ -510,7 +510,7 @@ extension VCDataBuilder.Unigram {
       guard arrCells.count == 2 else { return }
       let phone = arrCells[1].description
       let phrase = arrCells[0].description
-      // 廢掉空數據；之後無須再這樣處理。
+      // 廢掉空資料；之後無須再這樣處理。
       guard phrase.count * phone.count != 0 else { return }
       // 開始插入資料值。
       reverseLookupTable[phrase, default: []].insert(phone) // RevLookup

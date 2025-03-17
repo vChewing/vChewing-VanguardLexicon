@@ -58,7 +58,7 @@ enum ShellHelper {
       task
         .executableURL =
         URL(fileURLWithPath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
-      // 設置 PATH 環境變數並執行命令
+      // 設定 PATH 環境變數並執行命令
       let pathCmd = "$env:PATH = '" + normalizePathForCurrentOS(path) + "'; " + command
       task.arguments = ["-NoProfile", "-Command", pathCmd]
     #else

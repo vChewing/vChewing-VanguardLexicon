@@ -17,9 +17,9 @@ extension VanguardTrie {
     public static func generate(_ trie: VanguardTrie.Trie) -> String {
       var sqlCommands = [String]()
 
-      // 設置優化參數，提高大量數據導入速度
+      // 設定優化參數，提高大量資料匯入速度
       sqlCommands.append("""
-      -- 設置性能優化參數
+      -- 設定性能優化參數
       PRAGMA cache_size=10000;
       PRAGMA page_size=8192;
       PRAGMA temp_store=MEMORY;
@@ -68,12 +68,12 @@ extension VanguardTrie {
       sqlCommands
         .append("INSERT INTO config (key, value) VALUES ('separator', '\(escapedSeparator)');")
 
-      // 使用批量插入優化節點數據
+      // 使用批量插入優化節點資料
       sqlCommands.append("-- 插入所有節點（包括根節點）")
       generateBatchNodeInserts(trie.nodes, into: &sqlCommands)
 
-      // 批量插入 keychain_id_map 數據
-      sqlCommands.append("-- 插入 keychain_id_map 數據")
+      // 批量插入 keychain_id_map 資料
+      sqlCommands.append("-- 插入 keychain_id_map 資料")
       generateBatchKeychainIdMapInserts(trie.keyChainIDMap, into: &sqlCommands)
 
       // 提交事務，啟用外鍵約束
@@ -193,7 +193,7 @@ extension VanguardTrie {
         }
       }
 
-      // 處理剩餘數據
+      // 處理剩餘資料
       if !keychainValues.isEmpty {
         sqlCommands.append(
           "INSERT INTO keychain_id_map (keychain, node_id) VALUES \(keychainValues.joined(separator: ","));"

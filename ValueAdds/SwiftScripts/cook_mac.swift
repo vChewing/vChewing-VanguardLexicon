@@ -318,7 +318,7 @@ func rawDictForPhrases(isCHS: Bool) -> [Unigram] {
         default: break
         }
       }
-      if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
+      if phrase != "" { // 廢掉空資料；之後無須再這樣處理。
         arrUnigramRAW += [
           Unigram(
             key: phone, value: phrase, score: 0.0,
@@ -402,7 +402,7 @@ func rawDictForKanjis(isCHS: Bool) -> [Unigram] {
       default: break
       }
     }
-    if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
+    if phrase != "" { // 廢掉空資料；之後無須再這樣處理。
       if !isReverseLookupDictionaryProcessed {
         mapReverseLookupUnencrypted[phrase, default: []].append(phone)
         mapReverseLookupJSON[phrase, default: []].append(cnvPhonabetToASCII(phone))
@@ -496,7 +496,7 @@ func rawDictForNonKanjis(isCHS: Bool) -> [Unigram] {
       default: break
       }
     }
-    if phrase != "" { // 廢掉空數據；之後無須再這樣處理。
+    if phrase != "" { // 廢掉空資料；之後無須再這樣處理。
       exceptedChars.insert(phrase)
       arrUnigramRAW += [
         Unigram(
@@ -523,7 +523,7 @@ func weightAndSort(_ arrStructUncalculated: [Unigram], isCHS: Bool) -> [Unigram]
   }
   NSLog(" - \(i18n): NORM 計算值為 \(norm)。")
   // norm 計算完畢，開始將 norm 作為新的固定常數來為每個詞條記錄計算權重。
-  // 將新酷音的詞語出現次數數據轉換成小麥引擎可讀的數據形式。
+  // 將新酷音的詞語出現次數資料轉換成小麥引擎可讀的資料形式。
   // 對出現次數小於 1 的詞條，將 0 當成 0.5 來處理、以防止除零。
   for unigram in arrStructUncalculated {
     var weight: Double = 0
@@ -594,7 +594,7 @@ func fileOutput(isCHS: Bool) {
   } catch {
     NSLog(" - \(i18n): Exception happened when reading raw punctuation data.")
   }
-  NSLog(" - \(i18n): 成功插入標點符號與西文字母數據（txt）。")
+  NSLog(" - \(i18n): 成功插入標點符號與西文字母資料（txt）。")
   // 統合辭典內容
   strPunctuation.ranges(splitBy: "\n").forEach {
     let neta = strPunctuation[$0].split(separator: " ")

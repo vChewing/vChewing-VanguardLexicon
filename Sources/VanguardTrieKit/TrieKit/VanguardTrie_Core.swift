@@ -278,11 +278,17 @@ extension VanguardTrie.Trie {
     var currentNodeID = 0
 
     let key = readings.joined(separator: readingSeparator.description)
+    var keyCells = [String]()
+
+    if key.hasPrefix("_") {
+      keyCells = [key]
+    } else {
+      keyCells = key.map(\.description)
+    }
 
     // 遍歷關鍵字的每個字符
-    key.forEach { char in
-      let charStr = char.description
-      if let childNodeID = currentNode.children[charStr],
+    keyCells.forEach { nodeUnitStr in
+      if let childNodeID = currentNode.children[nodeUnitStr],
          let matchedNode = nodes[childNodeID] {
         // 有效的子節點已存在，繼續遍歷
         currentNodeID = childNodeID
@@ -291,10 +297,10 @@ extension VanguardTrie.Trie {
       }
       // 創建新的子節點
       let newNodeID = nodes.count
-      let newNode = TNode(id: newNodeID, parentID: currentNodeID, character: charStr)
+      let newNode = TNode(id: newNodeID, parentID: currentNodeID, character: nodeUnitStr)
 
       // 更新關係
-      currentNode.children[charStr] = newNodeID
+      currentNode.children[nodeUnitStr] = newNodeID
       nodes[newNodeID] = newNode
 
       // 更新當前節點

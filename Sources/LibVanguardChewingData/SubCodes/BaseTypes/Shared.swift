@@ -14,7 +14,7 @@ extension VCDataBuilder {
 }
 
 extension String {
-  fileprivate static let bpmfReplacements4Encryption: [Character: Character] = [
+  fileprivate static let bpmfReplacements4Encryption: [Unicode.Scalar: Unicode.Scalar] = [
     "ㄅ": "b", "ㄆ": "p", "ㄇ": "m", "ㄈ": "f", "ㄉ": "d",
     "ㄊ": "t", "ㄋ": "n", "ㄌ": "l", "ㄍ": "g", "ㄎ": "k",
     "ㄏ": "h", "ㄐ": "j", "ㄑ": "q", "ㄒ": "x", "ㄓ": "Z",
@@ -26,7 +26,7 @@ extension String {
     "˙": "5",
   ]
 
-  fileprivate static let bpmfReplacements4Decryption: [Character: Character] = [
+  fileprivate static let bpmfReplacements4Decryption: [Unicode.Scalar: Unicode.Scalar] = [
     "b": "ㄅ", "p": "ㄆ", "m": "ㄇ", "f": "ㄈ", "d": "ㄉ",
     "t": "ㄊ", "n": "ㄋ", "l": "ㄌ", "g": "ㄍ", "k": "ㄎ",
     "h": "ㄏ", "j": "ㄐ", "q": "ㄑ", "x": "ㄒ", "Z": "ㄓ",
@@ -40,11 +40,21 @@ extension String {
 
   var asEncryptedBopomofoKeyChain: String {
     guard first != "_" else { return self }
-    return String(map { Self.bpmfReplacements4Encryption[$0] ?? $0 })
+    var result = String()
+    result.unicodeScalars.reserveCapacity(unicodeScalars.count)
+    for scalar in unicodeScalars {
+      result.unicodeScalars.append(Self.bpmfReplacements4Encryption[scalar] ?? scalar)
+    }
+    return result
   }
 
   var asDecryptedBopomofoKeyChain: String {
     guard first != "_" else { return self }
-    return String(map { Self.bpmfReplacements4Decryption[$0] ?? $0 })
+    var result = String()
+    result.unicodeScalars.reserveCapacity(unicodeScalars.count)
+    for scalar in unicodeScalars {
+      result.unicodeScalars.append(Self.bpmfReplacements4Decryption[scalar] ?? scalar)
+    }
+    return result
   }
 }

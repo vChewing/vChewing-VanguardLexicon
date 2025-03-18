@@ -505,4 +505,6 @@ private let whitelistedReadingsForUnitTests: Set<String> = [
   "ㄧˋ",
   "ㄧˋ-ㄌㄩˇ",
   "ㄩㄢˊ",
+  "ㄋㄟ-ㄋㄟ",
+  "ㄊㄝ",
 ]

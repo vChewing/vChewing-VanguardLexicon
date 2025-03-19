@@ -44,6 +44,7 @@ extension VCDataBuilder {
       case custom = "CUST"
       case misc = "MISC"
       case kanji = "KANJ"
+      case bpmf = "BPMF"
       case cns = "CNS"
 
       // MARK: Internal
@@ -70,6 +71,7 @@ extension VCDataBuilder {
       case .tabe: break
       case .moe: break
       case .kanji: break
+      case .bpmf: break
       case .custom: return nil
       case .misc: return nil
       case .cns: return nil

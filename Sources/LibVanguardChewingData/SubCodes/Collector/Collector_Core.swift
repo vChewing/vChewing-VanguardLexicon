@@ -45,6 +45,13 @@ extension VCDataBuilder {
         reverseLookupTable: &reverseLookupTable,
         compatibleMode: compatibleMode
       )
+      try Unigram.prepareRawUnigramsForBPMFSymbols(
+        isCHS: isCHS,
+        unigramTableCHS: &unigramsKanjiCHS,
+        unigramTableCHT: &unigramsKanjiCHT,
+        reverseLookupTable: &reverseLookupTable4NonKanji,
+        compatibleMode: compatibleMode
+      )
       for isCHSLanguage in languages {
         var temporaryNorm: Double = 0
         var unigrams: [Unigram.Category: [String: Unigram.GramSet]] = [:]
@@ -255,7 +262,7 @@ extension VCDataBuilder.Unigram {
     var strRAW = ""
     // 讀取內容
     do {
-      let regexStrings = ["char-misc-bpmf", "char-misc-nonkanji"]
+      let regexStrings = ["char-misc-nonkanji"]
       try regexStrings.forEach { regexStr in
         let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
         guard let fileURL else {
@@ -300,6 +307,77 @@ extension VCDataBuilder.Unigram {
       unigramTable[.misc, default: [:]][phone, default: []].insert(newUnigram)
     }
     NSLog(" - 通用: 成功生成非漢字語料辭典（權重待計算）。")
+  }
+
+  static func prepareRawUnigramsForBPMFSymbols(
+    isCHS isCHSLanguage: Bool?,
+    unigramTableCHS: inout [Category: [String: GramSet]],
+    unigramTableCHT: inout [Category: [String: GramSet]],
+    reverseLookupTable: inout [String: Set<String>],
+    compatibleMode: Bool = false
+  ) throws {
+    var strRAW = ""
+    // 讀取內容
+    do {
+      let regexStrings = ["char-misc-bpmf"]
+      try regexStrings.forEach { regexStr in
+        let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
+        guard let fileURL else {
+          assertionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
+          return
+        }
+        strRAW += try String(contentsOf: fileURL, encoding: .utf8)
+      }
+    } catch {
+      NSLog(" - Exception happened when reading raw core kanji data.")
+      throw error
+    }
+    let i18n: String = {
+      if let isCHSLanguage {
+        return isCHSLanguage ? "簡體中文" : "繁體中文"
+      }
+      return "通用"
+    }()
+    // 批次處理所有正規表達式
+    for (regex, replacement) in Self.preparedRegexPatterns(compatibleMode: compatibleMode) {
+      strRAW = regex.stringByReplacingMatches(
+        in: strRAW,
+        options: [],
+        range: NSRange(location: 0, length: strRAW.utf16.count),
+        withTemplate: replacement
+      )
+    }
+    // 正式整理格式：
+    var handledHashes = Set<Int>()
+    strRAW.components(separatedBy: .newlines).forEach { lineData in
+      guard !handledHashes.contains(lineData.hashValue) else { return }
+      handledHashes.insert(lineData.hashValue)
+      guard !lineData.isEmpty else { return }
+      // 先完成某兩步需要分行處理才能完成的格式整理。
+      let arrCells = lineData.components(separatedBy: " ").prefix(3)
+      guard arrCells.count == 3 else { return }
+      let phone = arrCells[2].description
+      let phrase = arrCells[0].description
+      let occurrence = Int(arrCells[1]) ?? 0
+      // 廢掉空資料；之後無須再這樣處理。
+      guard phrase.count * phone.count != 0 else { return }
+      // 開始插入資料值。
+      let newUnigram = Self(
+        key: phone, value: phrase, score: 0.0,
+        count: occurrence, category: .bpmf
+      )
+      reverseLookupTable[phrase, default: []].insert(phone) // RevLookup
+      switch isCHSLanguage {
+      case false:
+        unigramTableCHT[.bpmf, default: [:]][phone, default: []].insert(newUnigram)
+      case true:
+        unigramTableCHS[.bpmf, default: [:]][phone, default: []].insert(newUnigram)
+      default:
+        unigramTableCHT[.bpmf, default: [:]][phone, default: []].insert(newUnigram)
+        unigramTableCHS[.bpmf, default: [:]][phone, default: []].insert(newUnigram)
+      }
+    }
+    NSLog(" - \(i18n): 成功生成注音符號語料辭典（權重待計算）。")
   }
 
   static func prepareRawUnweightedUnigramsForPhrases(

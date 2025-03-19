@@ -25,9 +25,7 @@ extension VCDataBuilder {
     nonisolated public let isCHS: Bool?
 
     public let data: Collector
-    nonisolated public let trie4TypingBasic: VanguardTrie.Trie = .init(separator: "-")
-    nonisolated public let trie4TypingCNS: VanguardTrie.Trie = .init(separator: "-")
-    nonisolated public let trie4TypingMisc: VanguardTrie.Trie = .init(separator: "-")
+    nonisolated public let trie4Typing: VanguardTrie.Trie = .init(separator: "-")
     nonisolated public let trie4Rev: VanguardTrie.Trie = .init(separator: "-")
   }
 }
@@ -43,9 +41,7 @@ extension VCDataBuilder.VanguardTriePlistDataBuilder {
 
   public func assemble() async throws -> [String: Data] {
     let table: [String: VanguardTrie.Trie] = [
-      "VanguardFactoryDict4TypingBasic.plist": trie4TypingBasic,
-      "VanguardFactoryDict4TypingCNS.plist": trie4TypingCNS,
-      "VanguardFactoryDict4TypingMisc.plist": trie4TypingMisc,
+      "VanguardFactoryDict4Typing.plist": trie4Typing,
       "VanguardFactoryDict4RevLookup.plist": trie4Rev,
     ]
     var output = [String: Data]()

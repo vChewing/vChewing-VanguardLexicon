@@ -44,9 +44,7 @@ extension VCDataBuilder.Unigram {
 
 extension VCDataBuilder {
   public protocol TriePreparatorProtocol: AnyObject, DataBuilderProtocol {
-    var trie4TypingBasic: VanguardTrie.Trie { get }
-    var trie4TypingCNS: VanguardTrie.Trie { get }
-    var trie4TypingMisc: VanguardTrie.Trie { get }
+    var trie4Typing: VanguardTrie.Trie { get }
     var trie4Rev: VanguardTrie.Trie { get }
   }
 }
@@ -54,9 +52,7 @@ extension VCDataBuilder {
 extension VCDataBuilder.TriePreparatorProtocol {
   public func prepareTrie() async {
     NSLog(" - 通用: 正在構築字典樹。")
-    trie4TypingBasic.clearAllContents()
-    trie4TypingCNS.clearAllContents()
-    trie4TypingMisc.clearAllContents()
+    trie4Typing.clearAllContents()
     trie4Rev.clearAllContents()
 
     let normEntryKey = "_NORM"
@@ -66,9 +62,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
       probability: data.norm,
       previous: nil
     )
-    trie4TypingBasic.insert(entry: normEntry, readings: [normEntryKey])
-    trie4TypingCNS.insert(entry: normEntry, readings: [normEntryKey])
-    trie4TypingMisc.insert(entry: normEntry, readings: [normEntryKey])
+    trie4Typing.insert(entry: normEntry, readings: [normEntryKey])
 
     let dateEntryKey = "_BUILD_TIMESTAMP"
     let dateEntry = VanguardTrie.Trie.Entry(
@@ -77,9 +71,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
       probability: Date().timeIntervalSince1970,
       previous: nil
     )
-    trie4TypingBasic.insert(entry: dateEntry, readings: [dateEntryKey])
-    trie4TypingCNS.insert(entry: normEntry, readings: [dateEntryKey])
-    trie4TypingMisc.insert(entry: dateEntry, readings: [dateEntryKey])
+    trie4Typing.insert(entry: dateEntry, readings: [dateEntryKey])
     trie4Rev.insert(entry: dateEntry, readings: [dateEntryKey])
 
     await withTaskGroup(of: Void.self) { group in
@@ -133,16 +125,6 @@ extension VCDataBuilder.TriePreparatorProtocol {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .cht) }
           }
-          for await result in subGroup {
-            result.forEach {
-              trie4TypingBasic.insert(entry: $0.0, readingsEncrypted: $0.1)
-            }
-          }
-        }
-        NSLog(" - 通用: 成功構築字典樹（通用表）。")
-      }
-      group.addTask { [self] in
-        await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
           subGroup.addTask {
             // nonKanji
             self.data.unigrams4NonKanji.values.flatMap {
@@ -161,22 +143,13 @@ extension VCDataBuilder.TriePreparatorProtocol {
             // letters and punctuations
             await self.data.getPunctuations().compactMap { $0.asEntry(type: .letterPunctuations) }
           }
-          for await result in subGroup {
-            result.forEach {
-              trie4TypingMisc.insert(entry: $0.0, readingsEncrypted: $0.1)
-            }
-          }
-        }
-      }
-      group.addTask { [self] in
-        await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
           subGroup.addTask {
             // cns
             self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
           }
           for await result in subGroup {
             result.forEach {
-              trie4TypingCNS.insert(entry: $0.0, readingsEncrypted: $0.1)
+              trie4Typing.insert(entry: $0.0, readingsEncrypted: $0.1)
             }
           }
         }

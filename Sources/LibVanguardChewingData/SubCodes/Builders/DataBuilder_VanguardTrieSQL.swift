@@ -25,9 +25,7 @@ extension VCDataBuilder {
     nonisolated public let isCHS: Bool?
 
     public let data: Collector
-    nonisolated public let trie4TypingBasic: VanguardTrie.Trie = .init(separator: "-")
-    nonisolated public let trie4TypingCNS: VanguardTrie.Trie = .init(separator: "-")
-    nonisolated public let trie4TypingMisc: VanguardTrie.Trie = .init(separator: "-")
+    nonisolated public let trie4Typing: VanguardTrie.Trie = .init(separator: "-")
     nonisolated public let trie4Rev: VanguardTrie.Trie = .init(separator: "-")
   }
 }
@@ -45,9 +43,7 @@ extension VCDataBuilder.VanguardTrieSQLDataBuilder {
 
   public func assemble() async throws -> [String: Data] {
     let table: [String: VanguardTrie.Trie] = [
-      "VanguardFactoryDict4TypingBasic.sql": trie4TypingBasic,
-      "VanguardFactoryDict4TypingCNS.sql": trie4TypingCNS,
-      "VanguardFactoryDict4TypingMisc.sql": trie4TypingMisc,
+      "VanguardFactoryDict4Typing.sql": trie4Typing,
       "VanguardFactoryDict4RevLookup.sql": trie4Rev,
     ]
     var output = [String: Data]()
@@ -65,9 +61,7 @@ extension VCDataBuilder.VanguardTrieSQLDataBuilder {
   public func performPostCompilation() async throws {
     try await runInTextBlockThrowable {
       print("Vanguard Trie SQLite database compilation started.")
-      try await compileSQLite(fileNameStem: "VanguardFactoryDict4TypingBasic")
-      try await compileSQLite(fileNameStem: "VanguardFactoryDict4TypingCNS")
-      try await compileSQLite(fileNameStem: "VanguardFactoryDict4TypingMisc")
+      try await compileSQLite(fileNameStem: "VanguardFactoryDict4Typing")
       try await compileSQLite(fileNameStem: "VanguardFactoryDict4RevLookup")
       print("Vanguard Trie SQLite database compilation completed successfully.")
     }

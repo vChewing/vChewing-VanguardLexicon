@@ -112,16 +112,16 @@ extension VanguardTrie {
         errors.append("根節點 ID 不正確：期望為 1，實際為 \(String(describing: trie.root.id))")
       }
 
-      // 檢查節點字典中的根節點
+      // 檢查節點辭典中的根節點
       if trie.nodes[1] == nil {
-        errors.append("節點字典中缺少根節點")
+        errors.append("節點辭典中缺少根節點")
       }
 
       // 檢查節點關係的一致性
       for (id, node) in trie.nodes {
         // 檢查 ID 一致性
         if node.id != id {
-          errors.append("節點 ID 不一致：字典鍵為 \(id)，節點 ID 為 \(String(describing: node.id))")
+          errors.append("節點 ID 不一致：辭典鍵為 \(id)，節點 ID 為 \(String(describing: node.id))")
         }
 
         // 檢查父節點關係

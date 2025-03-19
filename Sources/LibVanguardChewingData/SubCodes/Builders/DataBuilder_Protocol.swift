@@ -51,7 +51,7 @@ extension VCDataBuilder {
 
 extension VCDataBuilder.TriePreparatorProtocol {
   public func prepareTrie() async {
-    NSLog(" - 通用: 正在構築字典樹。")
+    NSLog(" - 通用: 正在構築辭典樹。")
     trie4Typing.clearAllContents()
     trie4Rev.clearAllContents()
 
@@ -99,7 +99,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
           )
           trie4Rev.insert(entry: newEntry, readings: [key])
         }
-        NSLog(" - 通用: 成功構築字典樹（反查表）。")
+        NSLog(" - 通用: 成功構築辭典樹（反查表）。")
       }
       group.addTask { [self] in
         await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
@@ -155,7 +155,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
         }
       }
       await group.waitForAll()
-      NSLog(" - 通用: 成功構築所有的字典樹。")
+      NSLog(" - 通用: 成功構築所有的辭典樹。")
     }
   }
 }

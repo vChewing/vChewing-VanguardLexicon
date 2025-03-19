@@ -13,7 +13,7 @@ public enum VanguardTrie {
       self.root = .init(id: 0)
       self.nodes = [:]
 
-      // 初始化時，將根節點加入到節點字典中
+      // 初始化時，將根節點加入到節點辭典中
       root.id = 0
       root.parentID = nil
       root.character = ""
@@ -48,7 +48,7 @@ public enum VanguardTrie {
       }
       self.nodes = nodesMap
 
-      // 從節點字典中獲取根節點
+      // 從節點辭典中獲取根節點
       guard let rootNode = nodes[0] else { throw decodingErrorRoot0 }
       self.root = rootNode
       self.keyChainIDMap = [:]
@@ -251,7 +251,7 @@ public enum VanguardTrie {
 
     public let readingSeparator: Character
     public let root: TNode
-    public internal(set) var nodes: [Int: TNode] // 新增：節點字典，以id為索引
+    public internal(set) var nodes: [Int: TNode] // 新增：節點辭典，以id為索引
     public internal(set) var keyChainIDMap: [String: Set<Int>]
 
     public func encode(to encoder: any Encoder) throws {

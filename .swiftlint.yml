@@ -22,7 +22,6 @@ opt_in_rules:
   - contains_over_filter_is_empty
   - contains_over_first_not_nil
   - discouraged_direct_init
-  - empty_count
   - empty_string
   - explicit_init
   - explicit_top_level_acl

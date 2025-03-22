@@ -124,11 +124,6 @@ extension VanguardTrie {
           errors.append("節點 ID 不一致：辭典鍵為 \(id)，節點 ID 為 \(String(describing: node.id))")
         }
 
-        // 檢查父節點關係
-        if let parentID = node.parentID, trie.nodes[parentID] == nil {
-          errors.append("節點 \(id) 引用了不存在的父節點 \(parentID)")
-        }
-
         // 檢查子節點關係
         for (_, childID) in node.children {
           if trie.nodes[childID] == nil {

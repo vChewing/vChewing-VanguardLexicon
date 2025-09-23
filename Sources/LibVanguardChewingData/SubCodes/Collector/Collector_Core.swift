@@ -266,8 +266,7 @@ extension VCDataBuilder.Unigram {
       try regexStrings.forEach { regexStr in
         let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
         guard let fileURL else {
-          assertionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
-          return
+          preconditionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
         }
         strRAW += try String(contentsOf: fileURL, encoding: .utf8)
       }
@@ -323,8 +322,7 @@ extension VCDataBuilder.Unigram {
       try regexStrings.forEach { regexStr in
         let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
         guard let fileURL else {
-          assertionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
-          return
+          preconditionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
         }
         strRAW += try String(contentsOf: fileURL, encoding: .utf8)
       }
@@ -481,8 +479,7 @@ extension VCDataBuilder.Unigram {
       let regexStr = "char-kanji-core"
       let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
       guard let fileURL else {
-        assertionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
-        return
+        preconditionFailure(" - Exception happened when getting raw core kanji data \(regexStr).")
       }
       strRAW += try String(contentsOf: fileURL, encoding: .utf8)
     } catch {
@@ -559,8 +556,7 @@ extension VCDataBuilder.Unigram {
       let regexStr = "char-kanji-cns"
       let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
       guard let fileURL else {
-        assertionFailure(" - Exception happened when getting cns data \(regexStr).")
-        return
+        preconditionFailure(" - Exception happened when getting cns data \(regexStr).")
       }
       strRAW += try String(contentsOf: fileURL, encoding: .utf8)
     } catch {

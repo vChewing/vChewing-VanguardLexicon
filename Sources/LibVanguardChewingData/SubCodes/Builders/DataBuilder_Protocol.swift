@@ -29,7 +29,7 @@ extension VCDataBuilder.Unigram {
     previous: String? = nil
   )
     -> (VanguardTrie.Trie.Entry, readingArray: [String])? {
-    guard !keyShouldGetFiltered(key) else { return nil }
+    guard !VCDataBuilder.TestSampleFilter.shouldFilter(key) else { return nil }
     let entry = VanguardTrie.Trie.Entry(
       value: value,
       typeID: type,
@@ -82,7 +82,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
         data.reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
         data.reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
         var allKeysToHandle = allKeys.sorted()
-        if isTestSampleMode {
+        if VCDataBuilder.TestSampleFilter.isEnabled {
           allKeysToHandle = Array(allKeysToHandle.prefix(10))
         }
         allKeysToHandle.forEach { key in
@@ -428,70 +428,88 @@ extension VCDataBuilder.BuilderType {
   }
 }
 
-// MARK: - Key filters for making small testable samples.
+// MARK: - VCDataBuilder.TestSampleFilter
 
-private func keyShouldGetFiltered(_ target: String) -> Bool {
-  guard isTestSampleMode else { return false }
-  return if target.hasPrefix("_") {
-    target.hasPrefix("_punctuation_list")
-  } else {
-    !whitelistedReadingsForUnitTests.contains(target)
+extension VCDataBuilder {
+  enum TestSampleFilter {
+    // MARK: Internal
+
+    static var isEnabled: Bool {
+      ProcessInfo.processInfo.environment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"
+    }
+
+    static func shouldFilter(_ target: String) -> Bool {
+      guard isEnabled else { return false }
+      if target.hasPrefix("_") {
+        return target.hasPrefix("_punctuation_list")
+      }
+      return !whitelist.contains(target)
+    }
+
+    static func filterReadings<S: Sequence>(_ readings: S) -> [String] where S.Element == String {
+      guard isEnabled else { return Array(readings) }
+      return Array(readings).filter { !shouldFilter($0) }
+    }
+
+    static func filterUnigrams<S: Sequence>(_ grams: S) -> [VCDataBuilder.Unigram]
+      where S.Element == VCDataBuilder.Unigram {
+      guard isEnabled else { return Array(grams) }
+      return Array(grams).filter { !shouldFilter($0.key) }
+    }
+
+    // MARK: Private
+
+    private static let whitelist: Set<String> = [
+      "ㄇㄧˋ",
+      "ㄇㄧˋ-ㄈㄥ",
+      "ㄈㄤ",
+      "ㄈㄥ",
+      "ㄉㄚˋ-ㄕㄨˋ",
+      "ㄉㄜ˙",
+      "ㄉㄧㄝˊ",
+      "ㄋㄥˊ",
+      "ㄋㄥˊ-ㄌㄧㄡˊ",
+      "ㄌㄧㄡˊ",
+      "ㄌㄧㄡˊ-ㄧˋ",
+      "ㄌㄩˇ",
+      "ㄌㄩˇ-ㄈㄤ",
+      "ㄍㄨㄛˇ",
+      "ㄍㄨㄛˇ-ㄓ",
+      "ㄍㄨㄥ",
+      "ㄍㄨㄥ-ㄩㄢˊ",
+      "ㄎㄜ",
+      "ㄎㄜ-ㄐㄧˋ",
+      "ㄐㄧˋ",
+      "ㄐㄧˋ-ㄍㄨㄥ",
+      "ㄒㄧㄣ",
+      "ㄒㄧㄣ-ㄉㄜ˙",
+      "ㄓ",
+      "ㄕㄨㄟˇ",
+      "ㄕㄨㄟˇ-ㄍㄨㄛˇ",
+      "ㄕㄨㄟˇ-ㄍㄨㄛˇ-ㄓ",
+      "ㄕㄨˋ",
+      "ㄕㄨˋ-ㄒㄧㄣ",
+      "ㄧㄡ",
+      "ㄧㄡ-ㄉㄧㄝˊ",
+      "ㄧˋ",
+      "ㄧˋ-ㄌㄩˇ",
+      "ㄩㄢˊ",
+      "ㄋㄟ-ㄋㄟ",
+      "ㄊㄝ",
+      "ㄋㄧㄢˊ",
+      "ㄋㄧㄢˊ-ㄓㄨㄥ",
+      "ㄓㄨㄥ",
+      "ㄎㄜ-ㄎㄜ",
+      "ㄏㄨㄛˊ",
+      "ㄏㄜ˙",
+      "ㄏㄨㄛ",
+      "ㄉㄨㄥ",
+      "ㄏㄜˊ",
+      "ㄏㄜˋ",
+      "ㄏㄢˋ",
+      "ㄏㄨˊ",
+      "ㄏㄨㄛ˙",
+      "ㄏㄨㄛˋ",
+    ]
   }
 }
-
-private var isTestSampleMode: Bool {
-  ProcessInfo.processInfo.environment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"
-}
-
-private let whitelistedReadingsForUnitTests: Set<String> = [
-  "ㄇㄧˋ",
-  "ㄇㄧˋ-ㄈㄥ",
-  "ㄈㄤ",
-  "ㄈㄥ",
-  "ㄉㄚˋ-ㄕㄨˋ",
-  "ㄉㄜ˙",
-  "ㄉㄧㄝˊ",
-  "ㄋㄥˊ",
-  "ㄋㄥˊ-ㄌㄧㄡˊ",
-  "ㄌㄧㄡˊ",
-  "ㄌㄧㄡˊ-ㄧˋ",
-  "ㄌㄩˇ",
-  "ㄌㄩˇ-ㄈㄤ",
-  "ㄍㄨㄛˇ",
-  "ㄍㄨㄛˇ-ㄓ",
-  "ㄍㄨㄥ",
-  "ㄍㄨㄥ-ㄩㄢˊ",
-  "ㄎㄜ",
-  "ㄎㄜ-ㄐㄧˋ",
-  "ㄐㄧˋ",
-  "ㄐㄧˋ-ㄍㄨㄥ",
-  "ㄒㄧㄣ",
-  "ㄒㄧㄣ-ㄉㄜ˙",
-  "ㄓ",
-  "ㄕㄨㄟˇ",
-  "ㄕㄨㄟˇ-ㄍㄨㄛˇ",
-  "ㄕㄨㄟˇ-ㄍㄨㄛˇ-ㄓ",
-  "ㄕㄨˋ",
-  "ㄕㄨˋ-ㄒㄧㄣ",
-  "ㄧㄡ",
-  "ㄧㄡ-ㄉㄧㄝˊ",
-  "ㄧˋ",
-  "ㄧˋ-ㄌㄩˇ",
-  "ㄩㄢˊ",
-  "ㄋㄟ-ㄋㄟ",
-  "ㄊㄝ",
-  "ㄋㄧㄢˊ",
-  "ㄋㄧㄢˊ-ㄓㄨㄥ",
-  "ㄓㄨㄥ",
-  "ㄎㄜ-ㄎㄜ",
-  "ㄏㄨㄛˊ",
-  "ㄏㄜ˙",
-  "ㄏㄨㄛ",
-  "ㄉㄨㄥ",
-  "ㄏㄜˊ",
-  "ㄏㄜˋ",
-  "ㄏㄢˋ",
-  "ㄏㄨˊ",
-  "ㄏㄨㄛ˙",
-  "ㄏㄨㄛˋ"
-]

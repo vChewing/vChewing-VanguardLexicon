@@ -111,6 +111,8 @@ extension VCDataBuilder.Collector {
       arrValues.append(contentsOf: reverseLookupTable4NonKanji[key] ?? [])
       arrValues.append(contentsOf: reverseLookupTable4CNS[key] ?? [])
       arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
+      arrValues = VCDataBuilder.TestSampleFilter.filterReadings(arrValues)
+      guard !arrValues.isEmpty else { continue }
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
       let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
@@ -208,9 +210,14 @@ extension VCDataBuilder.Collector {
     unigramStringBuilder: (VCDataBuilder.Unigram) -> String
   ) {
     for (key, unigrams) in table {
+      if VCDataBuilder.TestSampleFilter.shouldFilter(key) {
+        continue
+      }
+      let filteredUnigrams = VCDataBuilder.TestSampleFilter.filterUnigrams(unigrams)
+      guard !filteredUnigrams.isEmpty else { continue }
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
-      let sortedUnigrams = unigrams.sorted { lhs, rhs -> Bool in
+      let sortedUnigrams = filteredUnigrams.sorted { lhs, rhs -> Bool in
         (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
       }
       let arrValues = sortedUnigrams.map(unigramStringBuilder)

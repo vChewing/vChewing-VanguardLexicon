@@ -677,6 +677,18 @@ extension VCDataBuilder.Collector {
           )
         )
       }
+      if VCDataBuilder.TestSampleFilter.isEnabled {
+        var filtered = [VCDataBuilder.Unigram]()
+        var punctuationListCount = 0
+        for unigram in newUnigrams {
+          if unigram.key == "_punctuation_list" {
+            guard punctuationListCount < 11 else { continue }
+            punctuationListCount += 1
+          }
+          filtered.append(unigram)
+        }
+        return filtered
+      }
       return newUnigrams
     } catch {
       return []

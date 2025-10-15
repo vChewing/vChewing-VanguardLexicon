@@ -449,7 +449,7 @@ extension VCDataBuilder {
     static func shouldFilter(_ target: String) -> Bool {
       guard isEnabled else { return false }
       if target.hasPrefix("_") {
-        return target.hasPrefix("_punctuation_list")
+        return false
       }
       return !whitelist.contains(target)
     }

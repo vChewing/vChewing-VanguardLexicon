@@ -105,7 +105,11 @@ extension VCDataBuilder.Collector {
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
-    for key in allKeys.sorted() {
+    var keys = allKeys.sorted()
+    if VCDataBuilder.TestSampleFilter.isEnabled {
+      keys = Array(keys.prefix(10))
+    }
+    for key in keys {
       var arrValues = [String]()
       arrValues.append(contentsOf: reverseLookupTable[key] ?? [])
       arrValues.append(contentsOf: reverseLookupTable4NonKanji[key] ?? [])

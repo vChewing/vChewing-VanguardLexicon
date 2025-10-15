@@ -217,8 +217,11 @@ extension VCDataBuilder.Collector {
       guard !filteredUnigrams.isEmpty else { continue }
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
-      let sortedUnigrams = filteredUnigrams.sorted { lhs, rhs -> Bool in
+      var sortedUnigrams = filteredUnigrams.sorted { lhs, rhs -> Bool in
         (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
+      }
+      if columnName == "theDataCNS", VCDataBuilder.TestSampleFilter.isEnabled {
+        sortedUnigrams = Array(sortedUnigrams.prefix(5))
       }
       let arrValues = sortedUnigrams.map(unigramStringBuilder)
       let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")

@@ -105,22 +105,34 @@ extension VCDataBuilder.Collector {
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
-    var keys = allKeys.sorted()
+    var keysToHandle = allKeys.sorted()
     if VCDataBuilder.TestSampleFilter.isEnabled {
-      keys = Array(keys.prefix(10))
+      let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
+      var limitedKeys = Array(keysToHandle.prefix(limit))
+      if allKeys.contains("和"), !limitedKeys.contains("和") {
+        limitedKeys.append("和")
+      }
+      keysToHandle = limitedKeys.sorted()
     }
-    for key in keys {
+    for key in keysToHandle {
       var arrValues = [String]()
       arrValues.append(contentsOf: reverseLookupTable[key] ?? [])
       arrValues.append(contentsOf: reverseLookupTable4NonKanji[key] ?? [])
       arrValues.append(contentsOf: reverseLookupTable4CNS[key] ?? [])
       arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
-      arrValues = VCDataBuilder.TestSampleFilter.filterReadings(arrValues)
-      arrValues = arrValues.map { $0.asEncryptedBopomofoKeyChain }
-      guard !arrValues.isEmpty else { continue }
+      let filteredArrValues = VCDataBuilder.TestSampleFilter.filterReadings(arrValues)
+      let readingsToUse: [String]
+      if VCDataBuilder.TestSampleFilter.isEnabled {
+        readingsToUse = filteredArrValues.isEmpty ? Array(arrValues.prefix(1)) : filteredArrValues
+      } else {
+        readingsToUse = arrValues
+      }
+      guard !readingsToUse.isEmpty else { continue }
+      let encryptedValues = readingsToUse.map { $0.asEncryptedBopomofoKeyChain }
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
-      let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
+      let valueText = encryptedValues.joined(separator: "\t")
+        .replacingOccurrences(of: "'", with: "''")
       let sqlStmt =
         "INSERT INTO DATA_REV (theChar, theReadings) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theChar) DO UPDATE SET theReadings='\(valueText)';"
       script.append("\(sqlStmt)\n")

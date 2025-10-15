@@ -83,7 +83,13 @@ extension VCDataBuilder.TriePreparatorProtocol {
         data.reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
         var allKeysToHandle = allKeys.sorted()
         if VCDataBuilder.TestSampleFilter.isEnabled {
-          allKeysToHandle = Array(allKeysToHandle.prefix(10))
+          let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
+          var limitedKeys = Array(allKeysToHandle.prefix(limit))
+          if allKeys.contains("和"), !limitedKeys.contains("和") {
+            limitedKeys.append("和")
+            limitedKeys.sort()
+          }
+          allKeysToHandle = limitedKeys
         }
         allKeysToHandle.forEach { key in
           var arrValues = [String]()
@@ -433,6 +439,8 @@ extension VCDataBuilder.BuilderType {
 extension VCDataBuilder {
   enum TestSampleFilter {
     // MARK: Internal
+
+    static var revLookupSampleLimit: Int { 10 }
 
     static var isEnabled: Bool {
       ProcessInfo.processInfo.environment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"

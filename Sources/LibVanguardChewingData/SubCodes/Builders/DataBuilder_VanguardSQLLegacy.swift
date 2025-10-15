@@ -112,6 +112,7 @@ extension VCDataBuilder.Collector {
       arrValues.append(contentsOf: reverseLookupTable4CNS[key] ?? [])
       arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
       arrValues = VCDataBuilder.TestSampleFilter.filterReadings(arrValues)
+      arrValues = arrValues.map { $0.asEncryptedBopomofoKeyChain }
       guard !arrValues.isEmpty else { continue }
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")

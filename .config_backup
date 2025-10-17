@@ -8,33 +8,28 @@
 [submodule]
         active = .
 [remote "origin"]
-        url = https://gitee.com/vChewing/libvchewing-data.git/
-        fetch = +refs/heads/*:refs/remotes/origin/*
+        url = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git
+        fetch = +refs/heads/*:refs/remotes/gitlink/*
 [branch "main"]
         remote = origin
         merge = refs/heads/main
-[submodule "Source/Data"]
-        url = https://gitee.com/vChewing/libvchewing-data
-[branch "upd/dev"]
-        remote = origin
-        merge = refs/heads/upd/dev
-[remote "gitlink"]
-        url = https://gitlink.org.cn/vChewing/libvchewing-data.git
+[remote "gitee"]
+        url = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git
         fetch = +refs/heads/*:refs/remotes/gitlink/*
 [remote "gitcode"]
-        url = https://gitcode.net/vChewing/libvchewing-data.git/
+        url = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
         fetch = +refs/heads/*:refs/remotes/gitcode/*
 [remote "gitlab"]
-        url = https://gitlab.com/vChewing/libvchewing-data.git/
+        url = https://gitlab.com/vChewing/vChewing-VanguardLexicon.git/
         fetch = +refs/heads/*:refs/remotes/gitlab/*
 [remote "github"]
-        url = https://github.com/vChewing/libvchewing-data/
+        url = https://github.com/vChewing/vChewing-VanguardLexicon/
         fetch = +refs/heads/*:refs/remotes/github/*
 [remote "all"]
-        url = https://gitee.com/vChewing/libvchewing-data.git/
+        url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git/
         fetch = +refs/heads/*:refs/remotes/all/*
-        pushurl = https://gitee.com/vchewing/libvchewing-data.git/
-        pushurl = https://gitlink.org.cn/vChewing/libvchewing-data.git/
-        pushurl = https://gitcode.net/vChewing/libvchewing-data.git/
-        pushurl = https://gitlab.com/vChewing/libvchewing-data.git/
-        pushurl = https://github.com/vChewing/libvchewing-data/
+        pushurl = https://gitee.com/vchewing/vChewing-VanguardLexicon.git/
+        pushurl = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git/
+        pushurl = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
+        pushurl = https://gitlab.com/vChewing/vChewing-VanguardLexicon.git/
+        pushurl = https://github.com/vChewing/vChewing-VanguardLexicon/

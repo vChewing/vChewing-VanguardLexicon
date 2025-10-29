@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -18,7 +18,7 @@ let package = Package(
     ),
   ],
   targets: {
-    var targets: [Target] = [
+    let targets: [Target] = [
       .target(
         name: "VanguardTrieKit",
         resources: [
@@ -40,14 +40,14 @@ let package = Package(
 
     #if compiler(>=6.0)
       // Swift Testing is only available in Swift 6.0 and later.
-      targets.append(
+      return targets + [
         .testTarget(
           name: "LibVanguardChewingDataTests",
           dependencies: ["LibVanguardChewingData"]
         )
-      )
-    #endif
-
+      ]
+    #else
     return targets
+    #endif
   }()
 )

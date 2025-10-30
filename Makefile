@@ -83,10 +83,10 @@ endif
 mcbpmf-all: mcbpmf-chs mcbpmf-cht
 
 mcbpmf-chs:
-	$(MAKE) mcbpmf LANG=chs
+	$(MAKE) mcbpmf LANG=CHS
 
 mcbpmf-cht:
-	$(MAKE) mcbpmf LANG=cht
+	$(MAKE) mcbpmf LANG=CHT
 
 mcbpmf:
 	@$(eval LANG := $(shell echo $(LANG) | tr 'a-z' 'A-Z'))
@@ -109,10 +109,10 @@ endif
 libchewing-all: libchewing-chs libchewing-cht
 
 libchewing-chs:
-	$(MAKE) libchewing-rust LANG=chs
+	$(MAKE) libchewing-rust LANG=CHS
 
 libchewing-cht:
-	$(MAKE) libchewing-rust LANG=cht
+	$(MAKE) libchewing-rust LANG=CHT
 
 libchewing-rust:
 	@$(eval LANG := $(shell echo $(LANG) | tr 'a-z' 'A-Z'))
@@ -142,11 +142,11 @@ libchewing-all-c: libchewing-c-chs libchewing-c-cht
 
 libchewing-c-chs:
 	swift run VCDataBuilder chewingCBasedCHS
-	$(MAKE) libchewing-c LANG=chs
+	$(MAKE) libchewing-c LANG=CHS
 
 libchewing-c-cht:
 	swift run VCDataBuilder chewingCBasedCHT
-	$(MAKE) libchewing-c LANG=cht
+	$(MAKE) libchewing-c LANG=CHT
 
 libchewing-c:
 	@$(eval LANG := $(shell echo $(LANG) | tr 'a-z' 'A-Z'))

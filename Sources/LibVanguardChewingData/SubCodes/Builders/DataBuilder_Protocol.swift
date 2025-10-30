@@ -467,7 +467,7 @@ extension VCDataBuilder {
     static var revLookupSampleLimit: Int { 10 }
 
     static var isEnabled: Bool {
-      ProcessInfo.processInfo.environment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"
+      cachedEnvironment["VANGUARD_CORPUS_BUILD_MODE"] == "SMALL_TESTABLE_SAMPLE"
     }
 
     static func shouldFilter(_ target: String) -> Bool {
@@ -490,6 +490,8 @@ extension VCDataBuilder {
     }
 
     // MARK: Private
+
+    private static let cachedEnvironment: [String: String] = ProcessInfo.processInfo.environment
 
     private static let whitelist: Set<String> = [
       "ㄇㄧˋ",

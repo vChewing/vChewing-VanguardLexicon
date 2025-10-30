@@ -7,14 +7,8 @@
         precomposeunicode = true
 [submodule]
         active = .
-[remote "origin"]
-        url = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git
-        fetch = +refs/heads/*:refs/remotes/gitlink/*
-[branch "main"]
-        remote = origin
-        merge = refs/heads/main
 [remote "gitee"]
-        url = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git
+        url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git
         fetch = +refs/heads/*:refs/remotes/gitlink/*
 [remote "gitcode"]
         url = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
@@ -33,3 +27,9 @@
         pushurl = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitlab.com/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://github.com/vChewing/vChewing-VanguardLexicon/
+[lfs]
+	repositoryformatversion = 0
+[branch "main"]
+	vscode-merge-base = origin/main
+	remote = all
+	merge = refs/heads/main

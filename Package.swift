@@ -44,10 +44,10 @@ let package = Package(
         .testTarget(
           name: "LibVanguardChewingDataTests",
           dependencies: ["LibVanguardChewingData"]
-        )
+        ),
       ]
     #else
-    return targets
+      return targets
     #endif
   }()
 )

@@ -2,6 +2,7 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
+import CSQLite3
 import Foundation
 import VanguardTrieKit
 
@@ -260,164 +261,181 @@ extension VCDataBuilder.DataBuilderProtocol {
 
   func compileSQLite(fileNameStem: String, outputFileNameStem: String? = nil) async throws {
     let outputFileNameStem = outputFileNameStem ?? fileNameStem
-    // Check if sqlite3 is installed
-    print("Checking for SQLite3 installation...")
-    #if os(Windows)
-      // Windows 的 SQLite3 檢查命令改用更可靠的方式
-      let sqliteCheck = ShellHelper.shell("""
-      $sqlitePath = $null
-      if (Test-Path 'C:\\Program Files\\SQLite') {
-        $sqlitePath = Get-ChildItem 'C:\\Program Files\\SQLite' -Recurse -Filter 'sqlite3.exe' | Select-Object -First 1 -ExpandProperty FullName
-      }
-      if (-not $sqlitePath) {
-        if (Test-Path 'C:\\sqlite') {
-          $sqlitePath = Get-ChildItem 'C:\\sqlite' -Recurse -Filter 'sqlite3.exe' | Select-Object -First 1 -ExpandProperty FullName
-        }
-      }
-      if (-not $sqlitePath) {
-        $sqlitePath = (Get-Command sqlite3 -ErrorAction SilentlyContinue).Path
-      }
-      if ($sqlitePath) {
-        Write-Output $sqlitePath
-        exit 0
-      } else {
-        exit 1
-      }
-      """)
-    #else
-      let sqliteCheck = ShellHelper.shell("which sqlite3")
-    #endif
+    print("Preparing SQLite database assembly via SQLite C API...")
 
-    if sqliteCheck.exitCode != 0 || sqliteCheck.output
-      .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+    let buildRoot = FileManager.urlCurrentFolder.appendingPathComponent("Build")
+    let sqlFolderURL = subFolderNameComponents.reduce(buildRoot) { partial, component in
+      partial.appendingPathComponent(component)
+    }
+    let sqlFileURL = sqlFolderURL.appendingPathComponent("\(fileNameStem).sql")
+
+    let dbFolderURL = subFolderNameComponentsAftermath.reduce(buildRoot) { partial, component in
+      partial.appendingPathComponent(component)
+    }
+    let dbFileURL = dbFolderURL.appendingPathComponent("\(outputFileNameStem).sqlite")
+
+    guard FileManager.default.fileExists(atPath: sqlFileURL.path) else {
       throw VCDataBuilder.Exception
-        .errMsg("""
-        SQLite3 is not installed or not found in PATH.
-        Please install SQLite3 and ensure it's in one of these locations:
-        - C:\\Program Files\\SQLite
-        - C:\\sqlite
-        - Or add it to your system PATH
-        """)
+        .errMsg("SQL file not found at expected path: \(sqlFileURL.path)")
     }
 
-    // Get the path to sqlite3 executable
-    let sqlite3Path = sqliteCheck.output.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    print("Found SQLite3 at: \(sqlite3Path)")
-
-    // 處理檔案路徑
-    let sqlFilePath = ShellHelper.normalizePathForCurrentOS(
-      "./Build/\(subFolderNameComponents.joined(separator: "/"))/\(fileNameStem).sql"
+    try FileManager.default.createDirectory(
+      at: dbFolderURL,
+      withIntermediateDirectories: true,
+      attributes: nil
     )
-    let dbFilePath = ShellHelper.normalizePathForCurrentOS(
-      "./Build/\(subFolderNameComponentsAftermath.joined(separator: "/"))/\(outputFileNameStem).sqlite"
-    )
-    let sqlFileURL = URL(fileURLWithPath: sqlFilePath, relativeTo: FileManager.urlCurrentFolder)
-      .standardizedFileURL
-    let dbFileURL = URL(fileURLWithPath: dbFilePath, relativeTo: FileManager.urlCurrentFolder)
-      .standardizedFileURL
-    let dbDirectory = dbFileURL.deletingLastPathComponent().path
 
-    // 先刪除現有的資料庫檔案以確保適當重建
-    print("Removing any existing database file...")
-    #if os(Windows)
-      let removeCommand = "if (Test-Path '\(dbFilePath)') { Remove-Item -Force '\(dbFilePath)' }"
-      let removeResult = ShellHelper.shell(removeCommand)
-      if removeResult.exitCode != 0 {
-        print("Warning: Failed to remove existing database file: \(removeResult.output)")
+    if FileManager.default.fileExists(atPath: dbFileURL.path) {
+      do {
+        try FileManager.default.removeItem(at: dbFileURL)
+        print("Removed existing database file.")
+      } catch {
+        print("Warning: Failed to remove existing database file: \(error)")
       }
-    #else
-      if FileManager.default.fileExists(atPath: dbFileURL.path) {
-        do {
-          try FileManager.default.removeItem(atPath: dbFileURL.path)
-          print("Existing database file removed.")
-        } catch {
-          print("Warning: Failed to remove existing database file: \(error)")
+    }
+
+    var sqlData = try Data(contentsOf: sqlFileURL)
+    if sqlData.starts(with: [0xEF, 0xBB, 0xBF]) {
+      sqlData.removeFirst(3)
+    }
+
+    print("Opening SQLite database at: \(dbFileURL.path)")
+
+    var database: OpaquePointer?
+    let openFlags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
+    let openResult = sqlite3_open_v2(dbFileURL.path, &database, openFlags, nil)
+    guard openResult == SQLITE_OK, let db = database else {
+      let message = database.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "Unknown error"
+      if let database {
+        sqlite3_close(database)
+      }
+      throw VCDataBuilder.Exception.errMsg("Unable to open SQLite database: \(message)")
+    }
+
+    defer {
+      if sqlite3_close(db) != SQLITE_OK {
+        let closeMessage = String(cString: sqlite3_errmsg(db))
+        print("Warning: sqlite3_close returned an error: \(closeMessage)")
+      }
+    }
+
+    var executedStatements = 0
+
+    print("Executing SQL script using SQLite C API...")
+    try sqlData.withUnsafeBytes { rawBuffer in
+      let buffer = rawBuffer.bindMemory(to: CChar.self)
+      guard let baseAddress = buffer.baseAddress else { return }
+      var current = baseAddress
+      let endPointer = baseAddress + buffer.count
+
+      func skipSeparators(_ pointer: inout UnsafePointer<CChar>) {
+        while pointer < endPointer {
+          let char = pointer.pointee
+          switch char {
+          case 0:
+            pointer = endPointer
+            return
+          case 9, 10, 13, 32, 59: // tab, lf, cr, space, semicolon
+            pointer = pointer.advanced(by: 1)
+          case 45: // '-'
+            let next = pointer.advanced(by: 1)
+            if next < endPointer, next.pointee == 45 {
+              pointer = next.advanced(by: 1)
+              while pointer < endPointer {
+                let c = pointer.pointee
+                if c == 10 || c == 13 {
+                  pointer = pointer.advanced(by: 1)
+                  break
+                }
+                pointer = pointer.advanced(by: 1)
+              }
+            } else {
+              return
+            }
+          case 47: // '/'
+            let next = pointer.advanced(by: 1)
+            if next < endPointer, next.pointee == 42 { // '/*'
+              pointer = next.advanced(by: 1)
+              while pointer < endPointer {
+                if pointer.pointee == 42 {
+                  let lookAhead = pointer.advanced(by: 1)
+                  if lookAhead < endPointer, lookAhead.pointee == 47 {
+                    pointer = lookAhead.advanced(by: 1)
+                    break
+                  }
+                }
+                pointer = pointer.advanced(by: 1)
+              }
+            } else {
+              return
+            }
+          default:
+            return
+          }
         }
       }
-    #endif
 
-    // 建立目錄（Windows 專用命令）
-    #if os(Windows)
-      let createDirCommand = "New-Item -ItemType Directory -Force -Path '" + dbDirectory + "'"
-      let createDirResult = ShellHelper.shell(createDirCommand)
-      if createDirResult.exitCode != 0 {
-        throw VCDataBuilder.Exception
-          .errMsg("Failed to create directory: \(createDirResult.output)")
+      skipSeparators(&current)
+
+      while current < endPointer {
+        let remaining = current.distance(to: endPointer)
+        if remaining <= 0 {
+          break
+        }
+        guard remaining <= Int(Int32.max) else {
+          throw VCDataBuilder.Exception
+            .errMsg("SQL script is too large to process with the current allocator.")
+        }
+
+        var statement: OpaquePointer?
+        var tail: UnsafePointer<CChar>?
+        let prepareResult = sqlite3_prepare_v2(
+          db,
+          current,
+          Int32(remaining),
+          &statement,
+          &tail
+        )
+
+        if prepareResult != SQLITE_OK {
+          let message = String(cString: sqlite3_errmsg(db))
+          throw VCDataBuilder.Exception
+            .errMsg("SQLite prepare failed (code \(prepareResult)): \(message)")
+        }
+
+        guard let tail else { break }
+
+        guard let statement else {
+          current = tail
+          skipSeparators(&current)
+          continue
+        }
+
+        var stepResult = sqlite3_step(statement)
+        while stepResult == SQLITE_ROW {
+          stepResult = sqlite3_step(statement)
+        }
+
+        if stepResult != SQLITE_DONE {
+          let message = String(cString: sqlite3_errmsg(db))
+          sqlite3_finalize(statement)
+          throw VCDataBuilder.Exception
+            .errMsg("SQLite step failed (code \(stepResult)): \(message)")
+        }
+
+        sqlite3_finalize(statement)
+        executedStatements += 1
+        current = tail
+        skipSeparators(&current)
       }
+    }
 
-      // Windows 的 SQLite 命令，改用 UTF-8 編碼處理
-      let command = """
-      $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8;
-      $sqlContent = Get-Content -Raw -Encoding UTF8 '\(sqlFilePath)';
-      [System.IO.File]::WriteAllText('temp.sql', $sqlContent, [System.Text.Encoding]::UTF8);
-      New-Item -ItemType Directory -Force -Path '\(dbDirectory)' | Out-Null;
-      & '\(sqlite3Path)' '\(dbFilePath)' '.read temp.sql';
-      if (Test-Path '\(dbFilePath)') {
-          Remove-Item 'temp.sql' -Force;
-          exit 0;
-      } else {
-          Remove-Item 'temp.sql' -Force;
-          exit 1;
-      }
-      """
-    #else
-      try FileManager.default.createDirectory(
-        at: dbFileURL.deletingLastPathComponent(),
-        withIntermediateDirectories: true,
-        attributes: nil
-      )
+    if executedStatements == 0 {
+      print("Warning: SQL script executed zero statements.")
+    } else {
+      print("Executed \(executedStatements) SQL statement(s).")
+    }
 
-      let commandDescription = "\(sqlite3Path) \"\(dbFileURL.path)\" < \"\(sqlFileURL.path)\""
-    #endif
-
-    #if os(Windows)
-      print("Executing: \(command)")
-
-      let result = ShellHelper.shell(command)
-      if result.exitCode != 0 {
-        throw VCDataBuilder.Exception
-          .errMsg("Failed to initialize Vanguard database:\n\(result.output)")
-      }
-    #else
-      print("Executing: \(commandDescription)")
-
-      let sqliteExecutableURL = URL(fileURLWithPath: sqlite3Path)
-      let inputHandle = try FileHandle(forReadingFrom: sqlFileURL)
-      defer { try? inputHandle.close() }
-
-      let outputPipe = Pipe()
-      let task = Process()
-      task.executableURL = sqliteExecutableURL
-      task.arguments = ["-batch", dbFileURL.path]
-      task.currentDirectoryURL = FileManager.urlCurrentFolder
-      task.standardInput = inputHandle
-      task.standardOutput = outputPipe
-      task.standardError = outputPipe
-
-      do {
-        try task.run()
-      } catch {
-        throw VCDataBuilder.Exception
-          .errMsg("Unable to invoke sqlite3 (\(error.localizedDescription))")
-      }
-
-      task.waitUntilExit()
-      let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-      let outputString = String(data: outputData, encoding: .utf8) ?? ""
-
-      if task.terminationStatus != 0 {
-        throw VCDataBuilder.Exception
-          .errMsg("Failed to initialize Vanguard database:\n\(outputString)")
-      }
-
-      let trimmedOutput = outputString.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !trimmedOutput.isEmpty {
-        print(trimmedOutput)
-      }
-    #endif
-
-    // Verify the database was created
     if !FileManager.default.fileExists(atPath: dbFileURL.path) {
       throw VCDataBuilder.Exception.errMsg("Database file was not created at path: \(dbFileURL.path)")
     }

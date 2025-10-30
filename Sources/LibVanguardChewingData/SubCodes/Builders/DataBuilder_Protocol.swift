@@ -298,6 +298,10 @@ extension VCDataBuilder.DataBuilderProtocol {
     if sqlData.starts(with: [0xEF, 0xBB, 0xBF]) {
       sqlData.removeFirst(3)
     }
+    // sqlite3_exec expects a null-terminated buffer.
+    if sqlData.last != 0 {
+      sqlData.append(0)
+    }
 
     print("Opening SQLite database at: \(dbFileURL.path)")
 
@@ -319,122 +323,30 @@ extension VCDataBuilder.DataBuilderProtocol {
       }
     }
 
-    var executedStatements = 0
-
     print("Executing SQL script using SQLite C API...")
-    try sqlData.withUnsafeBytes { rawBuffer in
+
+    var errorMessagePointer: UnsafeMutablePointer<CChar>?
+    let execResult = sqlData.withUnsafeBytes { rawBuffer -> Int32 in
       let buffer = rawBuffer.bindMemory(to: CChar.self)
-      guard let baseAddress = buffer.baseAddress else { return }
-      var current = baseAddress
-      let endPointer = baseAddress + buffer.count
-
-      func skipSeparators(_ pointer: inout UnsafePointer<CChar>) {
-        while pointer < endPointer {
-          let char = pointer.pointee
-          switch char {
-          case 0:
-            pointer = endPointer
-            return
-          case 9, 10, 13, 32, 59: // tab, lf, cr, space, semicolon
-            pointer = pointer.advanced(by: 1)
-          case 45: // '-'
-            let next = pointer.advanced(by: 1)
-            if next < endPointer, next.pointee == 45 {
-              pointer = next.advanced(by: 1)
-              while pointer < endPointer {
-                let c = pointer.pointee
-                if c == 10 || c == 13 {
-                  pointer = pointer.advanced(by: 1)
-                  break
-                }
-                pointer = pointer.advanced(by: 1)
-              }
-            } else {
-              return
-            }
-          case 47: // '/'
-            let next = pointer.advanced(by: 1)
-            if next < endPointer, next.pointee == 42 { // '/*'
-              pointer = next.advanced(by: 1)
-              while pointer < endPointer {
-                if pointer.pointee == 42 {
-                  let lookAhead = pointer.advanced(by: 1)
-                  if lookAhead < endPointer, lookAhead.pointee == 47 {
-                    pointer = lookAhead.advanced(by: 1)
-                    break
-                  }
-                }
-                pointer = pointer.advanced(by: 1)
-              }
-            } else {
-              return
-            }
-          default:
-            return
-          }
-        }
-      }
-
-      skipSeparators(&current)
-
-      while current < endPointer {
-        let remaining = current.distance(to: endPointer)
-        if remaining <= 0 {
-          break
-        }
-        guard remaining <= Int(Int32.max) else {
-          throw VCDataBuilder.Exception
-            .errMsg("SQL script is too large to process with the current allocator.")
-        }
-
-        var statement: OpaquePointer?
-        var tail: UnsafePointer<CChar>?
-        let prepareResult = sqlite3_prepare_v2(
-          db,
-          current,
-          Int32(remaining),
-          &statement,
-          &tail
-        )
-
-        if prepareResult != SQLITE_OK {
-          let message = String(cString: sqlite3_errmsg(db))
-          throw VCDataBuilder.Exception
-            .errMsg("SQLite prepare failed (code \(prepareResult)): \(message)")
-        }
-
-        guard let tail else { break }
-
-        guard let statement else {
-          current = tail
-          skipSeparators(&current)
-          continue
-        }
-
-        var stepResult = sqlite3_step(statement)
-        while stepResult == SQLITE_ROW {
-          stepResult = sqlite3_step(statement)
-        }
-
-        if stepResult != SQLITE_DONE {
-          let message = String(cString: sqlite3_errmsg(db))
-          sqlite3_finalize(statement)
-          throw VCDataBuilder.Exception
-            .errMsg("SQLite step failed (code \(stepResult)): \(message)")
-        }
-
-        sqlite3_finalize(statement)
-        executedStatements += 1
-        current = tail
-        skipSeparators(&current)
-      }
+      guard let baseAddress = buffer.baseAddress else { return SQLITE_OK }
+      return sqlite3_exec(db, baseAddress, nil, nil, &errorMessagePointer)
     }
 
-    if executedStatements == 0 {
-      print("Warning: SQL script executed zero statements.")
-    } else {
-      print("Executed \(executedStatements) SQL statement(s).")
+    if execResult != SQLITE_OK {
+      let message = errorMessagePointer.map { String(cString: $0) }
+        ?? String(cString: sqlite3_errmsg(db))
+      if let errorMessagePointer {
+        sqlite3_free(errorMessagePointer)
+      }
+      throw VCDataBuilder.Exception
+        .errMsg("SQLite execution failed (code \(execResult)): \(message)")
     }
+
+    if let errorMessagePointer {
+      sqlite3_free(errorMessagePointer)
+    }
+
+    print("Finished executing SQL script.")
 
     if !FileManager.default.fileExists(atPath: dbFileURL.path) {
       throw VCDataBuilder.Exception.errMsg("Database file was not created at path: \(dbFileURL.path)")

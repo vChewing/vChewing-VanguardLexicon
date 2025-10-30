@@ -170,13 +170,21 @@ extension VCDataBuilder.TriePreparatorProtocol {
 // MARK: - VCDataBuilder.DataBuilderProtocol
 
 extension VCDataBuilder {
+  public typealias ChunkIterator = AsyncThrowingStream<BuildArtifactChunk, Error>
+
+  public struct BuildArtifactChunk: Sendable {
+    public let fileName: String
+    public let data: Data
+    public let isLastChunk: Bool
+  }
+
   public protocol DataBuilderProtocol: AnyObject {
     init?(isCHS: Bool?) async throws
     var subFolderNameComponents: [String] { get }
     var subFolderNameComponentsAftermath: [String] { get }
     var isCHS: Bool? { get }
     var data: Collector { get }
-    func assemble() async throws -> [String: Data]
+    func getIteratorForLexiconAssemblyTask() async throws -> ChunkIterator
     func performPostCompilation() async throws
   }
 }
@@ -239,18 +247,61 @@ extension VCDataBuilder.DataBuilderProtocol {
       folderURL = folderURL.appendingPathComponent(currentComponentName)
     }
     // Starts assemblying and data output.
-    let assembled = try await assemble()
-    try assembled.forEach { filename, data in
-      let fileURL = folderURL.appendingPathComponent(filename)
-      try FileManager.default.createDirectory(
-        at: folderURL,
-        withIntermediateDirectories: true
-      )
+    NSLog(" - 通用: 開始生成最終輸出的 SQL / 二進位產物。")
+    let assemblyStart = Date()
+    let stream = try await getIteratorForLexiconAssemblyTask()
+
+    try FileManager.default.createDirectory(
+      at: folderURL,
+      withIntermediateDirectories: true
+    )
+
+    var fileHandles = [String: FileHandle]()
+    var bytesWritten = 0
+
+    func makeFileHandle(for chunk: VCDataBuilder.BuildArtifactChunk) throws -> FileHandle {
+      if let existed = fileHandles[chunk.fileName] {
+        return existed
+      }
+      let fileURL = folderURL.appendingPathComponent(chunk.fileName)
       if FileManager.default.fileExists(atPath: fileURL.path) {
         try FileManager.default.removeItem(at: fileURL)
       }
-      try data.write(to: fileURL, options: [.atomic])
+      FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+      let fileHandle = try FileHandle(forWritingTo: fileURL)
+      fileHandles[chunk.fileName] = fileHandle
+      return fileHandle
     }
+
+    do {
+      for try await chunk in stream {
+        let fileHandle = try makeFileHandle(for: chunk)
+        if !chunk.data.isEmpty {
+          fileHandle.write(chunk.data)
+          bytesWritten += chunk.data.count
+        }
+        if chunk.isLastChunk {
+          try fileHandle.close()
+          fileHandles.removeValue(forKey: chunk.fileName)
+        }
+      }
+      for handle in fileHandles.values {
+        try handle.close()
+      }
+      fileHandles.removeAll()
+    } catch {
+      for handle in fileHandles.values {
+        try? handle.close()
+      }
+      fileHandles.removeAll()
+      throw error
+    }
+
+    NSLog(
+      " - 通用: 完成生成輸出內容，耗時 %.2f 秒，累計寫入 %.2f MB。",
+      Date().timeIntervalSince(assemblyStart),
+      Double(bytesWritten) / 1_048_576.0
+    )
     // Aftermath.
     NSLog(" - 準備執行追加建置過程。")
     NSLog(" - 通用: 所有前置作業已完成，開始進入後續辭典檔案建置階段。")
@@ -262,7 +313,7 @@ extension VCDataBuilder.DataBuilderProtocol {
 
   func compileSQLite(fileNameStem: String, outputFileNameStem: String? = nil) async throws {
     let outputFileNameStem = outputFileNameStem ?? fileNameStem
-    NSLog("   > Preparing SQLite database assembly via SQLite C API...")
+    NSLog("   > 正在透過 SQLite C API 準備組裝 SQLite 資料庫……")
 
     let buildRoot = FileManager.urlCurrentFolder.appendingPathComponent("Build")
     let sqlFolderURL = subFolderNameComponents.reduce(buildRoot) { partial, component in
@@ -289,9 +340,9 @@ extension VCDataBuilder.DataBuilderProtocol {
     if FileManager.default.fileExists(atPath: dbFileURL.path) {
       do {
         try FileManager.default.removeItem(at: dbFileURL)
-        NSLog("   > Removed existing database file.")
+        NSLog("   > 已移除既有的資料庫檔案。")
       } catch {
-        NSLog("   > Warning: Failed to remove existing database file: \(error)")
+        NSLog("   > 警告：無法移除既有的資料庫檔案：\(error)")
       }
     }
 
@@ -304,7 +355,7 @@ extension VCDataBuilder.DataBuilderProtocol {
       sqlData.append(0)
     }
 
-    NSLog("   > Opening SQLite database at: \(dbFileURL.path)")
+    NSLog("   > 正在開啟位於 \(dbFileURL.path) 的 SQLite 資料庫。")
 
     var database: OpaquePointer?
     let openFlags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
@@ -320,11 +371,11 @@ extension VCDataBuilder.DataBuilderProtocol {
     defer {
       if sqlite3_close(db) != SQLITE_OK {
         let closeMessage = String(cString: sqlite3_errmsg(db))
-        NSLog("   > Warning: sqlite3_close returned an error: \(closeMessage)")
+        NSLog("   > 警告：sqlite3_close 傳回錯誤：\(closeMessage)")
       }
     }
 
-    NSLog("   > Executing SQL script using SQLite C API...")
+    NSLog("   > 正在透過 SQLite C API 執行 SQL 指令稿……")
 
     var errorMessagePointer: UnsafeMutablePointer<CChar>?
     let execResult = sqlData.withUnsafeBytes { rawBuffer -> Int32 in
@@ -347,14 +398,14 @@ extension VCDataBuilder.DataBuilderProtocol {
       sqlite3_free(errorMessagePointer)
     }
 
-    NSLog("   > Finished executing SQL script.")
+    NSLog("   > 已完成 SQL 指令稿的執行。")
 
     if !FileManager.default.fileExists(atPath: dbFileURL.path) {
       throw VCDataBuilder.Exception
         .errMsg("Database file was not created at path: \(dbFileURL.path)")
     }
 
-    NSLog("   > Successfully created SQLite database at: \(dbFileURL.path)")
+    NSLog("   > 已成功在 \(dbFileURL.path) 建立 SQLite 資料庫。")
   }
 }
 

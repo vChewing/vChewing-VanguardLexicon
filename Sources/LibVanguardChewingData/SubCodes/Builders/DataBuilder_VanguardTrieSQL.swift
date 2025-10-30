@@ -41,21 +41,28 @@ extension VCDataBuilder.VanguardTrieSQLDataBuilder {
     ["Release", "vanguard-trie-sql"]
   }
 
-  public func assemble() async throws -> [String: Data] {
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     let table: [String: VanguardTrie.Trie] = [
       "VanguardFactoryDict4Typing.sql": trie4Typing,
       "VanguardFactoryDict4RevLookup.sql": trie4Rev,
     ]
-    var output = [String: Data]()
-    try table.forEach { filename, currentTrie in
-      let sqlStr = VanguardTrie.TrieSQLScriptGenerator.generate(currentTrie)
-      guard let sqlData = sqlStr.data(using: .utf8) else {
-        throw VCDataBuilder.Exception
-          .errMsg("Data encoding failed on assembling for VanguardTrieSQL.")
+    return AsyncThrowingStream { continuation in
+      Task {
+        do {
+          for (filename, currentTrie) in table {
+            let sqlStr = VanguardTrie.TrieSQLScriptGenerator.generate(currentTrie)
+            guard let sqlData = sqlStr.data(using: .utf8) else {
+              throw VCDataBuilder.Exception
+                .errMsg("Data encoding failed on assembling for VanguardTrieSQL.")
+            }
+            continuation.yield(.init(fileName: filename, data: sqlData, isLastChunk: true))
+          }
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
       }
-      output[filename] = sqlData
     }
-    return output
   }
 
   public func performPostCompilation() async throws {

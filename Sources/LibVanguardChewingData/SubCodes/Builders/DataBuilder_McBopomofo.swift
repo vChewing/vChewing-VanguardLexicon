@@ -40,7 +40,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
 
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
-  public func assemble() async throws -> [String: Data] {
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     var resultString = ["# format org.openvanilla.mcbopomofo.sorted\n"]
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
     grams.append(contentsOf: await data.getPunctuations())
@@ -56,7 +56,10 @@ extension VCDataBuilder.McBopomofoDataBuilder {
     guard let data = resultString.joined().data(using: .utf8) else {
       throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for McBopomofo.")
     }
-    return ["data.txt": data]
+    return AsyncThrowingStream { continuation in
+      continuation.yield(.init(fileName: "data.txt", data: data, isLastChunk: true))
+      continuation.finish()
+    }
   }
 
   /// This is a no-op for McBopomofo dict compilation process.

@@ -1,0 +1,22 @@
+{
+	"configurations": [
+		{
+			"type": "swift",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:vChewing-VanguardLexicon}",
+			"name": "Debug VCDataBuilder",
+			"program": "${workspaceFolder:vChewing-VanguardLexicon}/.build/debug/VCDataBuilder",
+			"preLaunchTask": "swift: Build Debug VCDataBuilder"
+		},
+		{
+			"type": "swift",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:vChewing-VanguardLexicon}",
+			"name": "Release VCDataBuilder",
+			"program": "${workspaceFolder:vChewing-VanguardLexicon}/.build/release/VCDataBuilder",
+			"preLaunchTask": "swift: Build Release VCDataBuilder"
+		}
+	]
+}

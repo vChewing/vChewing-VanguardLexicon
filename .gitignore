@@ -145,11 +145,7 @@ $tf/
 .Trashes
 .VolumeIcon.icns
 .vs/
-.vscode
-.vscode/configurationCache.log
-.vscode/dryrun.log
-.vscode/settings.json
-.vscode/targets.log
+.vscode/*.log
 ._*
 .~*
 aclocal.m4

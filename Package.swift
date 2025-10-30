@@ -17,6 +17,9 @@ let package = Package(
       targets: ["VCDataBuilder"]
     ),
   ],
+  dependencies: [
+    .package(path: "CSQLite3"),
+  ],
   targets: {
     let targets: [Target] = [
       .target(
@@ -27,14 +30,14 @@ let package = Package(
       ),
       .target(
         name: "LibVanguardChewingData",
-        dependencies: ["VanguardTrieKit"],
+        dependencies: ["VanguardTrieKit", "CSQLite3"],
         resources: [
           .process("./Resources/"),
         ]
       ),
       .executableTarget(
         name: "VCDataBuilder",
-        dependencies: ["LibVanguardChewingData"]
+        dependencies: ["LibVanguardChewingData", "CSQLite3"]
       ),
     ]
 

@@ -226,6 +226,8 @@ extension VCDataBuilder.Collector {
     let chunkLimit = max(64 * 1_024, chunkSize)
     var buffer = ContiguousArray<UInt8>()
     buffer.reserveCapacity(chunkLimit)
+    let functionStart = Date()
+    NSLog("|||_prepareLegacyGramFragments: 開始，chunkLimit=\(chunkLimit)")
 
     func flushBuffer(force: Bool) async throws {
       guard force || buffer.count >= chunkLimit else { return }
@@ -247,76 +249,140 @@ extension VCDataBuilder.Collector {
 
     // Punctuations -> theDataCHS and theDataCHT.
     var allPunctuationsMap = [String: VCDataBuilder.Unigram.GramSet]()
+    let punctuationCollectStart = Date()
     getPunctuations().forEach {
       allPunctuationsMap[$0.key, default: []].insert($0)
     }
+    NSLog(
+      "|||_prepareLegacyGramFragments: 蒐集標點資料完成，鍵數=\(allPunctuationsMap.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(punctuationCollectStart)
+    )
+    let punctuationCHTStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allPunctuationsMap,
       columnName: "theDataCHT",
       unigramStringBuilder: { unigram in unigram.value },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 標點 CHT 寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(punctuationCHTStart)
+    )
+    let punctuationCHSStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allPunctuationsMap,
       columnName: "theDataCHS",
       unigramStringBuilder: { unigram in unigram.value },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 標點 CHS 寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(punctuationCHSStart)
+    )
 
     // Core Kanjis and Phrases -> theDataCHS and theDataCHT.
     var allGramsMapCHS = [String: VCDataBuilder.Unigram.GramSet]()
     var allGramsMapCHT = [String: VCDataBuilder.Unigram.GramSet]()
+    let gramCollectStartCHT = Date()
     getAllUnigrams(isCHS: false).forEach {
       allGramsMapCHT[$0.key, default: []].insert($0)
     }
+    NSLog(
+      "|||_prepareLegacyGramFragments: 蒐集繁體主語料完成，鍵數=\(allGramsMapCHT.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(gramCollectStartCHT)
+    )
+    let gramCollectStartCHS = Date()
     getAllUnigrams(isCHS: true).forEach {
       allGramsMapCHS[$0.key, default: []].insert($0)
     }
+    NSLog(
+      "|||_prepareLegacyGramFragments: 蒐集簡體主語料完成，鍵數=\(allGramsMapCHS.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(gramCollectStartCHS)
+    )
+    let gramCHSWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allGramsMapCHS,
       columnName: "theDataCHS",
       unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 簡體主語料寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(gramCHSWriteStart)
+    )
+    let gramCHTWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allGramsMapCHT,
       columnName: "theDataCHT",
       unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 繁體主語料寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(gramCHTWriteStart)
+    )
 
     // Zhuyinwen.
     var allGramsMapZhuyinwen = [String: VCDataBuilder.Unigram.GramSet]()
+    let zhuyinCollectStart = Date()
     getZhuyinwen().forEach {
       allGramsMapZhuyinwen[$0.key, default: []].insert($0)
     }
+    NSLog(
+      "|||_prepareLegacyGramFragments: 蒐集注音文資料完成，鍵數=\(allGramsMapZhuyinwen.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(zhuyinCollectStart)
+    )
+    let zhuyinWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allGramsMapZhuyinwen,
       columnName: "theDataCHEW",
       unigramStringBuilder: { unigram in unigram.value },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 注音文寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(zhuyinWriteStart)
+    )
 
     // Symbols and Emojis.
     var allGramsMapSymbols = [String: VCDataBuilder.Unigram.GramSet]()
+    let symbolCollectStart = Date()
     getSymbols().forEach {
       allGramsMapSymbols[$0.key, default: []].insert($0)
     }
+    NSLog(
+      "|||_prepareLegacyGramFragments: 蒐集符號資料完成，鍵數=\(allGramsMapSymbols.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(symbolCollectStart)
+    )
+    let symbolWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       allGramsMapSymbols,
       columnName: "theDataSYMB",
       unigramStringBuilder: { unigram in unigram.value },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: 符號寫入完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(symbolWriteStart)
+    )
 
     // CNS.
+    let cnsWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       tableKanjiCNS,
       columnName: "theDataCNS",
       unigramStringBuilder: { unigram in unigram.value },
       writer: chunkedWriter
     )
+    NSLog(
+      "|||_prepareLegacyGramFragments: CNS 寫入完成，來源鍵數=\(tableKanjiCNS.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(cnsWriteStart)
+    )
     try await flushBuffer(force: true)
+    NSLog(
+      "|||_prepareLegacyGramFragments: 整體完成，耗時 %.2f 秒",
+      Date().timeIntervalSince(functionStart)
+    )
   }
 
   private func handleUnigramTableToSQLLegacy(
@@ -325,25 +391,76 @@ extension VCDataBuilder.Collector {
     unigramStringBuilder: (VCDataBuilder.Unigram) -> String,
     writer: (_ fragment: Data) async throws -> ()
   ) async throws {
+    let handlerStart = Date()
+    var processedEntries = 0
+    var skippedByFilter = 0
+    var skippedEmpty = 0
+    var totalFilterTime: TimeInterval = 0
+    var totalSortTime: TimeInterval = 0
+    var totalBuildTime: TimeInterval = 0
+    var totalWriteTime: TimeInterval = 0
+    var maxUnigramCount = 0
+    var totalUnigramCount = 0
+    var sampleCounter = 0
+    var timeSnapshots = [Int: TimeInterval]()
+    NSLog(
+      "|||_handleUnigramTableToSQLLegacy: column=\(columnName) 開始，輸入鍵數=\(table.count)"
+    )
     for (key, unigrams) in table {
       if VCDataBuilder.TestSampleFilter.shouldFilter(key) {
+        skippedByFilter += 1
         continue
       }
+      let filterStart = Date()
       let filteredUnigrams = VCDataBuilder.TestSampleFilter.filterUnigrams(unigrams)
-      guard !filteredUnigrams.isEmpty else { continue }
+      totalFilterTime += Date().timeIntervalSince(filterStart)
+      guard !filteredUnigrams.isEmpty else {
+        skippedEmpty += 1
+        continue
+      }
+      maxUnigramCount = max(maxUnigramCount, filteredUnigrams.count)
+      totalUnigramCount += filteredUnigrams.count
+      let sortStart = Date()
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
       var sortedUnigrams = filteredUnigrams.sorted { lhs, rhs -> Bool in
         (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
       }
+      totalSortTime += Date().timeIntervalSince(sortStart)
       if columnName == "theDataCNS", VCDataBuilder.TestSampleFilter.isEnabled {
         sortedUnigrams = Array(sortedUnigrams.prefix(5))
       }
+      let buildStart = Date()
       let arrValues = sortedUnigrams.map(unigramStringBuilder)
       let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
       let sqlStmt =
         "INSERT INTO DATA_MAIN (theKey, \(columnName)) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theKey) DO UPDATE SET \(columnName)='\(valueText)';\n"
+      totalBuildTime += Date().timeIntervalSince(buildStart)
+      let writeStart = Date()
       try await writer(Data(sqlStmt.utf8))
+      totalWriteTime += Date().timeIntervalSince(writeStart)
+      processedEntries += 1
+      sampleCounter += 1
+      if sampleCounter % 25000 == 0 {
+        let elapsed = Date().timeIntervalSince(handlerStart)
+        timeSnapshots[sampleCounter] = elapsed
+        NSLog(
+          "|||_handleUnigramTableToSQLLegacy: column=\(columnName) 已寫入=\(sampleCounter)，耗時=%.2f 秒",
+          elapsed
+        )
+      }
     }
+    let duration = Date().timeIntervalSince(handlerStart)
+    NSLog(
+      "|||_handleUnigramTableToSQLLegacy: column=\(columnName) 完成，寫入=\(processedEntries)，被過濾=\(skippedByFilter)，無資料=\(skippedEmpty)，最大單元圖數=\(maxUnigramCount)，平均單元圖數=\(processedEntries > 0 ? Double(totalUnigramCount) / Double(processedEntries) : 0)，耗時 %.2f 秒",
+      duration
+    )
+    NSLog(
+      "|||_handleUnigramTableToSQLLegacy: column=\(columnName) 細項耗時：filter=%.2f 秒、sort=%.2f 秒、build=%.2f 秒、write=%.2f 秒",
+      totalFilterTime,
+      totalSortTime,
+      totalBuildTime,
+      totalWriteTime
+    )
   }
 }

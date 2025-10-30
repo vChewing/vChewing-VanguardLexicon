@@ -312,7 +312,11 @@ extension VCDataBuilder.DataBuilderProtocol {
     let dbFilePath = ShellHelper.normalizePathForCurrentOS(
       "./Build/\(subFolderNameComponentsAftermath.joined(separator: "/"))/\(outputFileNameStem).sqlite"
     )
-    let dbDirectory = URL(fileURLWithPath: dbFilePath).deletingLastPathComponent().path
+    let sqlFileURL = URL(fileURLWithPath: sqlFilePath, relativeTo: FileManager.urlCurrentFolder)
+      .standardizedFileURL
+    let dbFileURL = URL(fileURLWithPath: dbFilePath, relativeTo: FileManager.urlCurrentFolder)
+      .standardizedFileURL
+    let dbDirectory = dbFileURL.deletingLastPathComponent().path
 
     // 先刪除現有的資料庫檔案以確保適當重建
     print("Removing any existing database file...")
@@ -323,9 +327,9 @@ extension VCDataBuilder.DataBuilderProtocol {
         print("Warning: Failed to remove existing database file: \(removeResult.output)")
       }
     #else
-      if FileManager.default.fileExists(atPath: dbFilePath) {
+      if FileManager.default.fileExists(atPath: dbFileURL.path) {
         do {
-          try FileManager.default.removeItem(atPath: dbFilePath)
+          try FileManager.default.removeItem(atPath: dbFileURL.path)
           print("Existing database file removed.")
         } catch {
           print("Warning: Failed to remove existing database file: \(error)")
@@ -359,29 +363,66 @@ extension VCDataBuilder.DataBuilderProtocol {
       """
     #else
       try FileManager.default.createDirectory(
-        atPath: dbDirectory,
+        at: dbFileURL.deletingLastPathComponent(),
         withIntermediateDirectories: true,
         attributes: nil
       )
 
-      // Unix 的 SQLite 命令
-      let command = "\(sqlite3Path) \"\(dbFilePath)\" < \"\(sqlFilePath)\""
+      let commandDescription = "\(sqlite3Path) \"\(dbFileURL.path)\" < \"\(sqlFileURL.path)\""
     #endif
 
-    print("Executing: \(command)")
+    #if os(Windows)
+      print("Executing: \(command)")
 
-    let result = ShellHelper.shell(command)
-    if result.exitCode != 0 {
-      throw VCDataBuilder.Exception
-        .errMsg("Failed to initialize Vanguard database:\n\(result.output)")
-    }
+      let result = ShellHelper.shell(command)
+      if result.exitCode != 0 {
+        throw VCDataBuilder.Exception
+          .errMsg("Failed to initialize Vanguard database:\n\(result.output)")
+      }
+    #else
+      print("Executing: \(commandDescription)")
+
+      let sqliteExecutableURL = URL(fileURLWithPath: sqlite3Path)
+      let inputHandle = try FileHandle(forReadingFrom: sqlFileURL)
+      defer { try? inputHandle.close() }
+
+      let outputPipe = Pipe()
+      let task = Process()
+      task.executableURL = sqliteExecutableURL
+      task.arguments = ["-batch", dbFileURL.path]
+      task.currentDirectoryURL = FileManager.urlCurrentFolder
+      task.standardInput = inputHandle
+      task.standardOutput = outputPipe
+      task.standardError = outputPipe
+
+      do {
+        try task.run()
+      } catch {
+        throw VCDataBuilder.Exception
+          .errMsg("Unable to invoke sqlite3 (\(error.localizedDescription))")
+      }
+
+      task.waitUntilExit()
+      let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+      let outputString = String(data: outputData, encoding: .utf8) ?? ""
+
+      if task.terminationStatus != 0 {
+        throw VCDataBuilder.Exception
+          .errMsg("Failed to initialize Vanguard database:\n\(outputString)")
+      }
+
+      let trimmedOutput = outputString.trimmingCharacters(in: .whitespacesAndNewlines)
+      if !trimmedOutput.isEmpty {
+        print(trimmedOutput)
+      }
+    #endif
 
     // Verify the database was created
-    if !FileManager.default.fileExists(atPath: dbFilePath) {
-      throw VCDataBuilder.Exception.errMsg("Database file was not created at path: \(dbFilePath)")
+    if !FileManager.default.fileExists(atPath: dbFileURL.path) {
+      throw VCDataBuilder.Exception.errMsg("Database file was not created at path: \(dbFileURL.path)")
     }
 
-    print("Successfully created SQLite database at: \(dbFilePath)")
+    print("Successfully created SQLite database at: \(dbFileURL.path)")
   }
 }
 

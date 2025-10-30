@@ -39,7 +39,7 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     ["Release", "chewing-cbased-\(langSuffix)"]
   }
 
-  public func assemble() async throws -> [String: Data] {
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     /// 新酷音輸入法在建置 dat 時會自行健檢，所以這裡略過健檢步驟。
     var tsiSRC = [String]()
     var charDef = [String]()
@@ -64,10 +64,11 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
     guard let dataTsiSRC, let dataCharDef else {
       throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for ChewingCBased.")
     }
-    return [
-      "tsi.src": dataTsiSRC,
-      "phone.cin": dataCharDef,
-    ]
+    return AsyncThrowingStream { continuation in
+      continuation.yield(.init(fileName: "tsi.src", data: dataTsiSRC, isLastChunk: true))
+      continuation.yield(.init(fileName: "phone.cin", data: dataCharDef, isLastChunk: true))
+      continuation.finish()
+    }
   }
 
   public func performPostCompilation() async throws {

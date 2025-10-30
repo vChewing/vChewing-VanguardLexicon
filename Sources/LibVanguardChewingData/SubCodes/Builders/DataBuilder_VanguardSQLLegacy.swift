@@ -37,36 +37,70 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
     ["Release", "vanguardSQL-Legacy"]
   }
 
-  public func assemble() async throws -> [String: Data] {
-    let assembled = await assembleSQLFile { [self] in
-      let unigramLines = await data.prepareUnigramMapsToSQLLegacy()
-      let revLookupLines = await data.prepareRevLookupMapToSQLLegacy()
-      return unigramLines + revLookupLines
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
+    let chunkSize = 512 * 1_024
+    let fileName = "vanguardLegacy.sql"
+    return AsyncThrowingStream { continuation in
+      Task { [self] in
+        do {
+          try await assembleSQLFile(chunkSize: chunkSize) { data, isFinal in
+            continuation.yield(.init(fileName: fileName, data: data, isLastChunk: isFinal))
+          }
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
+      }
     }
-    guard let dataSQL = assembled.data(using: .utf8) else {
-      throw VCDataBuilder.Exception
-        .errMsg("Data encoding failed on assembling for VanguardSQLLegacy.")
-    }
-    return ["vanguardLegacy.sql": dataSQL]
   }
 
   // This method uses terminal commands to convert SQL file to SQLite file.
   public func performPostCompilation() async throws {
     try await runInTextBlockThrowable {
       NSLog(" - 通用: 已完成健康檢查與資料通盤準備，準備開始辭典檔案建置組裝。")
-      NSLog(" - 通用: Vanguard Legacy SQLite database compilation started.")
+      NSLog(" - 通用: Vanguard Legacy SQLite 資料庫建置開始。")
       try await compileSQLite(
         fileNameStem: "vanguardLegacy",
         outputFileNameStem: "vChewingFactoryDatabase"
       )
-      NSLog(" - 通用: Vanguard Legacy SQLite database compilation completed successfully.")
+      NSLog(" - 通用: Vanguard Legacy SQLite 資料庫建置完成。")
     }
   }
 }
 
 extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
-  func assembleSQLFile(_ insertData: @escaping () async -> String) async -> String {
-    var strBuilder = [String]()
+  func assembleSQLFile(
+    chunkSize: Int = 512 * 1_024,
+    emit: @escaping (_ chunk: Data, _ isFinal: Bool) async throws -> ()
+  ) async throws {
+    let effectiveChunkSize = max(64 * 1_024, chunkSize)
+    var buffer = Data()
+    buffer.reserveCapacity(effectiveChunkSize)
+
+    func flush(isFinal: Bool) async throws {
+      guard !buffer.isEmpty else {
+        if isFinal {
+          try await emit(Data(), true)
+        }
+        return
+      }
+      let payload = buffer
+      buffer.removeAll(keepingCapacity: true)
+      try await emit(payload, isFinal)
+    }
+
+    func appendData(_ dataFragment: Data) async throws {
+      guard !dataFragment.isEmpty else { return }
+      buffer.append(dataFragment)
+      if buffer.count >= effectiveChunkSize {
+        try await flush(isFinal: false)
+      }
+    }
+
+    func append(_ text: String) async throws {
+      try await appendData(Data(text.utf8))
+    }
+
     // theDataMISC 這個欄目其實並沒有被使用到。但為了相容性所以繼續保留。
     let sqlHeader = #"""
     PRAGMA synchronous=OFF;
@@ -91,17 +125,61 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
       PRIMARY KEY (theChar)
     ) WITHOUT ROWID;
     """#
-    strBuilder.append(sqlHeader)
-    strBuilder.append("\n")
-    strBuilder.append(await insertData())
-    strBuilder.append("\nCOMMIT;\n")
-    return strBuilder.joined()
+
+    try await append(sqlHeader)
+    try await append("\n")
+
+    let unigramStart = Date()
+    NSLog("   > Vanguard SQL Legacy: 正在整理主要語料為 SQL。")
+    try await data.prepareLegacyGramFragments(chunkSize: effectiveChunkSize) { fragment in
+      try await appendData(fragment)
+    }
+    NSLog(
+      "   > Vanguard SQL Legacy: 語料 SQL 段落整理完畢，耗時 %.2f 秒。",
+      Date().timeIntervalSince(unigramStart)
+    )
+
+    let revStart = Date()
+    NSLog("   > Vanguard SQL Legacy: 正在整理反查資料為 SQL。")
+    try await data.prepareRevLookupMapToSQLLegacy(chunkSize: effectiveChunkSize) { fragment in
+      try await append(fragment)
+    }
+    NSLog(
+      "   > Vanguard SQL Legacy: 反查 SQL 段落整理完畢，耗時 %.2f 秒。",
+      Date().timeIntervalSince(revStart)
+    )
+
+    try await append("\nCOMMIT;\n")
+    try await flush(isFinal: true)
   }
 }
 
 extension VCDataBuilder.Collector {
-  fileprivate func prepareRevLookupMapToSQLLegacy() -> String {
-    var script = [String]()
+  fileprivate func prepareRevLookupMapToSQLLegacy(
+    chunkSize: Int,
+    _ writer: (_ fragment: String) async throws -> ()
+  ) async throws {
+    let chunkLimit = max(64 * 1_024, chunkSize)
+    var buffer = String()
+    buffer.reserveCapacity(chunkLimit)
+    var bufferBytes = 0
+
+    func flushBuffer(force: Bool) async throws {
+      guard force || bufferBytes >= chunkLimit else { return }
+      guard !buffer.isEmpty else { return }
+      let payload = buffer
+      buffer.removeAll(keepingCapacity: true)
+      bufferBytes = 0
+      try await writer(payload)
+    }
+
+    func appendFragment(_ fragment: String) async throws {
+      guard !fragment.isEmpty else { return }
+      buffer.append(fragment)
+      bufferBytes += fragment.utf8.count
+      try await flushBuffer(force: false)
+    }
+
     var allKeys = Set<String>()
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
@@ -135,33 +213,55 @@ extension VCDataBuilder.Collector {
       let valueText = encryptedValues.joined(separator: "\t")
         .replacingOccurrences(of: "'", with: "''")
       let sqlStmt =
-        "INSERT INTO DATA_REV (theChar, theReadings) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theChar) DO UPDATE SET theReadings='\(valueText)';"
-      script.append("\(sqlStmt)\n")
+        "INSERT INTO DATA_REV (theChar, theReadings) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theChar) DO UPDATE SET theReadings='\(valueText)';\n"
+      try await appendFragment(sqlStmt)
     }
-    return script.joined()
+    try await flushBuffer(force: true)
   }
 
-  fileprivate func prepareUnigramMapsToSQLLegacy() -> String {
-    var script = [String]()
+  fileprivate func prepareLegacyGramFragments(
+    chunkSize: Int,
+    _ writer: (_ fragment: Data) async throws -> ()
+  ) async throws {
+    let chunkLimit = max(64 * 1_024, chunkSize)
+    var buffer = ContiguousArray<UInt8>()
+    buffer.reserveCapacity(chunkLimit)
+
+    func flushBuffer(force: Bool) async throws {
+      guard force || buffer.count >= chunkLimit else { return }
+      guard !buffer.isEmpty else { return }
+      let payload = Data(buffer)
+      buffer.removeAll(keepingCapacity: true)
+      try await writer(payload)
+    }
+
+    func appendFragment(_ fragment: Data) async throws {
+      guard !fragment.isEmpty else { return }
+      buffer.append(contentsOf: fragment)
+      try await flushBuffer(force: false)
+    }
+
+    let chunkedWriter: (Data) async throws -> () = { fragment in
+      try await appendFragment(fragment)
+    }
+
     // Punctuations -> theDataCHS and theDataCHT.
     var allPunctuationsMap = [String: VCDataBuilder.Unigram.GramSet]()
     getPunctuations().forEach {
       allPunctuationsMap[$0.key, default: []].insert($0)
     }
-    handleUnigramTableToSQLLegacy(
-      &script,
+    try await handleUnigramTableToSQLLegacy(
       allPunctuationsMap,
-      columnName: "theDataCHT"
-    ) { unigram in
-      unigram.value
-    }
-    handleUnigramTableToSQLLegacy(
-      &script,
+      columnName: "theDataCHT",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: chunkedWriter
+    )
+    try await handleUnigramTableToSQLLegacy(
       allPunctuationsMap,
-      columnName: "theDataCHS"
-    ) { unigram in
-      unigram.value
-    }
+      columnName: "theDataCHS",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: chunkedWriter
+    )
 
     // Core Kanjis and Phrases -> theDataCHS and theDataCHT.
     var allGramsMapCHS = [String: VCDataBuilder.Unigram.GramSet]()
@@ -172,61 +272,59 @@ extension VCDataBuilder.Collector {
     getAllUnigrams(isCHS: true).forEach {
       allGramsMapCHS[$0.key, default: []].insert($0)
     }
-    handleUnigramTableToSQLLegacy(
-      &script,
+    try await handleUnigramTableToSQLLegacy(
       allGramsMapCHS,
-      columnName: "theDataCHS"
-    ) { unigram in
-      "\(unigram.score) \(unigram.value)"
-    }
-    handleUnigramTableToSQLLegacy(
-      &script,
+      columnName: "theDataCHS",
+      unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
+      writer: chunkedWriter
+    )
+    try await handleUnigramTableToSQLLegacy(
       allGramsMapCHT,
-      columnName: "theDataCHT"
-    ) { unigram in
-      "\(unigram.score) \(unigram.value)"
-    }
+      columnName: "theDataCHT",
+      unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
+      writer: chunkedWriter
+    )
 
     // Zhuyinwen.
     var allGramsMapZhuyinwen = [String: VCDataBuilder.Unigram.GramSet]()
     getZhuyinwen().forEach {
       allGramsMapZhuyinwen[$0.key, default: []].insert($0)
     }
-    handleUnigramTableToSQLLegacy(
-      &script,
+    try await handleUnigramTableToSQLLegacy(
       allGramsMapZhuyinwen,
-      columnName: "theDataCHEW"
-    ) { unigram in
-      unigram.value
-    }
+      columnName: "theDataCHEW",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: chunkedWriter
+    )
 
     // Symbols and Emojis.
     var allGramsMapSymbols = [String: VCDataBuilder.Unigram.GramSet]()
     getSymbols().forEach {
       allGramsMapSymbols[$0.key, default: []].insert($0)
     }
-    handleUnigramTableToSQLLegacy(
-      &script,
+    try await handleUnigramTableToSQLLegacy(
       allGramsMapSymbols,
-      columnName: "theDataSYMB"
-    ) { unigram in
-      unigram.value
-    }
+      columnName: "theDataSYMB",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: chunkedWriter
+    )
 
     // CNS.
-    handleUnigramTableToSQLLegacy(&script, tableKanjiCNS, columnName: "theDataCNS") { unigram in
-      unigram.value
-    }
-
-    return script.joined()
+    try await handleUnigramTableToSQLLegacy(
+      tableKanjiCNS,
+      columnName: "theDataCNS",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: chunkedWriter
+    )
+    try await flushBuffer(force: true)
   }
 
   private func handleUnigramTableToSQLLegacy(
-    _ script: inout [String],
     _ table: [String: VCDataBuilder.Unigram.GramSet],
     columnName: String,
-    unigramStringBuilder: (VCDataBuilder.Unigram) -> String
-  ) {
+    unigramStringBuilder: (VCDataBuilder.Unigram) -> String,
+    writer: (_ fragment: Data) async throws -> ()
+  ) async throws {
     for (key, unigrams) in table {
       if VCDataBuilder.TestSampleFilter.shouldFilter(key) {
         continue
@@ -244,8 +342,8 @@ extension VCDataBuilder.Collector {
       let arrValues = sortedUnigrams.map(unigramStringBuilder)
       let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
       let sqlStmt =
-        "INSERT INTO DATA_MAIN (theKey, \(columnName)) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theKey) DO UPDATE SET \(columnName)='\(valueText)';"
-      script.append("\(sqlStmt)\n")
+        "INSERT INTO DATA_MAIN (theKey, \(columnName)) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theKey) DO UPDATE SET \(columnName)='\(valueText)';\n"
+      try await writer(Data(sqlStmt.utf8))
     }
   }
 }

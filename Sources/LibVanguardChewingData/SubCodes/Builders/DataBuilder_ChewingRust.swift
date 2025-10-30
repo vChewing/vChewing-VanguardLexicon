@@ -39,7 +39,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     ["Release", "chewing-rust-\(langSuffix)"]
   }
 
-  public func assemble() async throws -> [String: Data] {
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     /// 新酷音輸入法在建置 dat 時會自行健檢，所以這裡略過健檢步驟。
     var tsiSRC = [String]()
     var wordSRC = [String]()
@@ -60,10 +60,11 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     guard let dataTsiSRC, let dataWordSRC else {
       throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling for ChewingRust.")
     }
-    return [
-      "tsi.src": dataTsiSRC,
-      "word.src": dataWordSRC,
-    ]
+    return AsyncThrowingStream { continuation in
+      continuation.yield(.init(fileName: "tsi.src", data: dataTsiSRC, isLastChunk: true))
+      continuation.yield(.init(fileName: "word.src", data: dataWordSRC, isLastChunk: true))
+      continuation.finish()
+    }
   }
 
   public func performPostCompilation() async throws {

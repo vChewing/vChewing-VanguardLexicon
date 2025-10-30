@@ -39,17 +39,24 @@ extension VCDataBuilder.VanguardTriePlistDataBuilder {
 
   nonisolated public var subFolderNameComponentsAftermath: [String] { [] }
 
-  public func assemble() async throws -> [String: Data] {
+  public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     let table: [String: VanguardTrie.Trie] = [
       "VanguardFactoryDict4Typing.plist": trie4Typing,
       "VanguardFactoryDict4RevLookup.plist": trie4Rev,
     ]
-    var output = [String: Data]()
-    try table.forEach { filename, currentTrie in
-      let sqlData = try VanguardTrie.TrieIO.serialize(currentTrie)
-      output[filename] = sqlData
+    return AsyncThrowingStream { continuation in
+      Task {
+        do {
+          for (filename, currentTrie) in table {
+            let data = try VanguardTrie.TrieIO.serialize(currentTrie)
+            continuation.yield(.init(fileName: filename, data: data, isLastChunk: true))
+          }
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
+      }
     }
-    return output
   }
 
   public func performPostCompilation() async throws {

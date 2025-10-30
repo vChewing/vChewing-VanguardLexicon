@@ -53,12 +53,13 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   // This method uses terminal commands to convert SQL file to SQLite file.
   public func performPostCompilation() async throws {
     try await runInTextBlockThrowable {
-      print("Vanguard Legacy SQLite database compilation started.")
+      NSLog(" - 通用: 已完成健康檢查與資料通盤準備，準備開始辭典檔案建置組裝。")
+      NSLog(" - 通用: Vanguard Legacy SQLite database compilation started.")
       try await compileSQLite(
         fileNameStem: "vanguardLegacy",
         outputFileNameStem: "vChewingFactoryDatabase"
       )
-      print("Vanguard Legacy SQLite database compilation completed successfully.")
+      NSLog(" - 通用: Vanguard Legacy SQLite database compilation completed successfully.")
     }
   }
 }

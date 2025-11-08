@@ -441,7 +441,7 @@ extension VCDataBuilder.Collector {
       totalWriteTime += Date().timeIntervalSince(writeStart)
       processedEntries += 1
       sampleCounter += 1
-      if sampleCounter % 25000 == 0 {
+      if sampleCounter % 25_000 == 0 {
         let elapsed = Date().timeIntervalSince(handlerStart)
         timeSnapshots[sampleCounter] = elapsed
         NSLog(

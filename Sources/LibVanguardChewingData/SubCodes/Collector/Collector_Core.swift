@@ -394,6 +394,7 @@ extension VCDataBuilder.Unigram {
       }
 
       var norms: [Double] = []
+      var collectedErrors: [String] = []
 
       try Category.allCases.forEach { type in
         let urls = try type.urlsOfPhraseAssets(isCHS: isCHS)
@@ -423,22 +424,26 @@ extension VCDataBuilder.Unigram {
 
             // 檢查最小欄位數量 (詞語, 頻次, 讀音)
             guard components.count >= 3 else {
-              throw VCDataBuilder.Exception.invalidPhraseFormat(
+              let errorMsg = VCDataBuilder.Exception.invalidPhraseFormat(
                 file: fileURL.lastPathComponent,
                 line: lineData,
                 reason: "Entry must have at least 3 fields: phrase, frequency, and pronunciation. Found \(components.count) field(s)."
-              )
+              ).errorDescription ?? "Unknown error"
+              collectedErrors.append(errorMsg)
+              continue
             }
 
             let phrase = components[0].description
 
             // 檢查頻次欄位是否合理
             guard let occurrence = Int(components[1]) else {
-              throw VCDataBuilder.Exception.invalidPhraseFormat(
+              let errorMsg = VCDataBuilder.Exception.invalidPhraseFormat(
                 file: fileURL.lastPathComponent,
                 line: lineData,
                 reason: "Frequency field '\(components[1])' is not a valid integer. Expected format: 詞語 頻次 讀音串"
-              )
+              ).errorDescription ?? "Unknown error"
+              collectedErrors.append(errorMsg)
+              continue
             }
 
             let phone = components[2...].joined(separator: "-")
@@ -475,6 +480,11 @@ extension VCDataBuilder.Unigram {
         norms.append(currentNorm)
       }
       norm += norms.max() ?? 0
+      
+      // 如果有收集到錯誤，一次性拋出所有錯誤
+      if !collectedErrors.isEmpty {
+        throw VCDataBuilder.Exception.healthCheckException(collectedErrors)
+      }
     } catch {
       if let localizedError = error as? LocalizedError,
          let description = localizedError.errorDescription {

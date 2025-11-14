@@ -10,6 +10,29 @@ extension VCDataBuilder {
   public enum Exception: Error {
     case errMsg(String)
     case healthCheckException([String])
+    case invalidPhraseFormat(file: String, line: String, reason: String)
+  }
+}
+
+// MARK: - VCDataBuilder.Exception + LocalizedError
+
+extension VCDataBuilder.Exception: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case let .errMsg(msg):
+      return msg
+    case let .healthCheckException(msgs):
+      return "Health check failed:\n" + msgs.joined(separator: "\n")
+    case let .invalidPhraseFormat(file, line, reason):
+      return """
+      ❌ Invalid phrase format in file '\(file)':
+      Line content: \(line)
+      Error: \(reason)
+
+      Please ensure all phrase entries follow the format: 詞語 頻次 讀音串
+      (Word, frequency number, pronunciation chain)
+      """
+    }
   }
 }
 

@@ -414,29 +414,47 @@ extension VCDataBuilder.Unigram {
           }
 
           var handledHashes = Set<Int>()
-          strRAW.components(separatedBy: .newlines).forEach { lineData in
-            guard !handledHashes.contains(lineData.hashValue) else { return }
+          let lines = strRAW.components(separatedBy: .newlines)
+          for (lineIndex, lineData) in lines.enumerated() {
+            guard !handledHashes.contains(lineData.hashValue) else { continue }
             handledHashes.insert(lineData.hashValue)
-            guard !lineData.isEmpty else { return }
+            guard !lineData.isEmpty else { continue }
             let components = lineData.components(separatedBy: " ")
-            guard components.count >= 3 else { return }
+
+            // 檢查最小欄位數量 (詞語, 頻次, 讀音)
+            guard components.count >= 3 else {
+              throw VCDataBuilder.Exception.invalidPhraseFormat(
+                file: fileURL.lastPathComponent,
+                line: lineData,
+                reason: "Entry must have at least 3 fields: phrase, frequency, and pronunciation. Found \(components.count) field(s)."
+              )
+            }
 
             let phrase = components[0].description
-            guard let occurrence = Int(components[1]) else { return }
+
+            // 檢查頻次欄位是否合理
+            guard let occurrence = Int(components[1]) else {
+              throw VCDataBuilder.Exception.invalidPhraseFormat(
+                file: fileURL.lastPathComponent,
+                line: lineData,
+                reason: "Frequency field '\(components[1])' is not a valid integer. Expected format: 詞語 頻次 讀音串"
+              )
+            }
+
             let phone = components[2...].joined(separator: "-")
 
-            guard !phrase.isEmpty, !phone.isEmpty else { return }
+            guard !phrase.isEmpty, !phone.isEmpty else { continue }
 
             // 使用 UnigramKey 進行去重檢查
             let key = ReadingWordPair(phrase: phrase, phone: phone)
-            guard !processedPairs.contains(key) else { return }
+            guard !processedPairs.contains(key) else { continue }
             processedPairs.insert(key)
 
             // 確保在目標類別中不存在相同的組合
             if let existingSet = unigramTable[type]?[phone] {
               guard !existingSet.contains(where: {
                 $0.value == phrase && $0.key == phone
-              }) else { return }
+              }) else { continue }
             }
 
             // 建立 Unigram
@@ -458,7 +476,13 @@ extension VCDataBuilder.Unigram {
       }
       norm += norms.max() ?? 0
     } catch {
-      NSLog(" - Exception happened when reading raw phrases data.")
+      if let localizedError = error as? LocalizedError,
+         let description = localizedError.errorDescription {
+        NSLog(" - Exception happened when reading raw phrases data.")
+        NSLog("%@", description)
+      } else {
+        NSLog(" - Exception happened when reading raw phrases data.")
+      }
       throw error
     }
 

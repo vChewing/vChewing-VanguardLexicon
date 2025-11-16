@@ -2,9 +2,6 @@ excluded:
   - .git**
   - Packages/Build/**
   - Build/**
-  - "**/.build/**"
-  - "**/.index-build/**"
-  - "**/resource_bundle_accessor.swift"
   - Packages/**/.build/**
   - resource_bundle_accessor.swift
   - Pods

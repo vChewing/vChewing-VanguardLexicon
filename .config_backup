@@ -13,9 +13,6 @@
 [remote "gitcode"]
         url = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
         fetch = +refs/heads/*:refs/remotes/gitcode/*
-[remote "gitlab"]
-        url = https://gitlab.com/vChewing/vChewing-VanguardLexicon.git/
-        fetch = +refs/heads/*:refs/remotes/gitlab/*
 [remote "github"]
         url = https://github.com/vChewing/vChewing-VanguardLexicon/
         fetch = +refs/heads/*:refs/remotes/github/*
@@ -25,7 +22,6 @@
         pushurl = https://gitee.com/vchewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
-        pushurl = https://gitlab.com/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://github.com/vChewing/vChewing-VanguardLexicon/
 [lfs]
 	repositoryformatversion = 0

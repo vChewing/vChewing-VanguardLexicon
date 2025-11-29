@@ -4,7 +4,7 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
-// 開發用私人腳本，將自己記錄的語彙過濾表的內容同步到威注音語彙庫內。
+// 開發用私人腳本，將自己記錄的語彙過濾表的內容同步到先鋒語料庫內。
 
 import Foundation
 

@@ -78,7 +78,7 @@ install-vchewing: macv
 ifeq ($(OS),Windows_NT)
 	@echo "Windows 不支援 vChewing。"
 else
-	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署威注音核心語彙檔案……$$(tput sgr0)\033[0m"
+	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署唯音輸入法核心語彙檔案……$$(tput sgr0)\033[0m"
 	@$(MKDIR) "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
 	@$(CP) "$(BUILD_DIR)/Release/vanguardSQL-Legacy/vChewingFactoryDatabase.sqlite" "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
 	@$(PKILL) vChewing || echo "// vChewing is not running"

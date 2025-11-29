@@ -6,7 +6,7 @@ __include: vchewing-tc.schema:/
 
 schema:
   schema_id: vchewing-sc
-  name: 威注音-简体中文
+  name: 先锋-简体中文
   version: '2.4'
   author:
     - 佛振 Lotem <chen.sst@gmail.com>
@@ -19,7 +19,7 @@ schema:
 
     请配合 librime>=1.3 使用。
     
-    「威注音」是为了让已经熟悉新酷音与奇摩注音的音韵方案的人群更方便使用 Rime 而生的。
+    「先鋒語料庫」是为了让已经熟悉新酷音与奇摩注音的音韵方案的人群更方便使用 Rime 而生的。
     因简繁体模式的辞库各自独立（以彻底规避 OpenCC 可能的不足或过度操作），故移除简繁转换功能。
 
 speller:

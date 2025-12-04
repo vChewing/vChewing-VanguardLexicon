@@ -86,10 +86,10 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
       "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
     )
 
-    // Execute the command using `exec` where possible to avoid shell parsing.
+    // 儘可能使用 `exec` 執行命令以避免 shell 解析。
     #if os(Windows)
-      // For Windows, avoid shell string construction and directly exec the binary
-      // with arguments. Normalize the paths for Windows path separators.
+      // 對於 Windows，避免使用 shell 字串建構，直接執行二進位檔案並傳遞引數。
+      // 為 Windows 路徑分隔符號正規化路徑。
       let phoneCinPath = pathStemTemp + "\\phone.cin"
       let tsiSrcPath = pathStemTemp + "\\tsi.src"
       let args = [phoneCinPath, tsiSrcPath]
@@ -106,7 +106,7 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
       )
     }
 
-    // Move the generated files to the appropriate directory using FileManager
+    // 使用 FileManager 將產生的檔案移動至適當目錄
     do {
       try FileManager.default.createDirectory(atPath: pathStemFinal, withIntermediateDirectories: true)
       let filesToMove = ["index_tree.dat", "dictionary.dat"]
@@ -164,7 +164,7 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
 // MARK: - Aftermath
 
 extension VCDataBuilder.ChewingCBasedDataBuilder {
-  /// Returns the path to the appropriate executable based on the operating system
+  /// 根據作業系統返回適當的可執行檔案路徑
   fileprivate static func getExecutablePath() -> String? {
     #if canImport(Darwin)
       return "./bin/libchewing-database-initializer/init_database_macos_universal"

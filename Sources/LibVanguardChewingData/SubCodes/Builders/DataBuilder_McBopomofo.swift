@@ -62,7 +62,7 @@ extension VCDataBuilder.McBopomofoDataBuilder {
     }
   }
 
-  /// This is a no-op for McBopomofo dict compilation process.
+  /// 這是 McBopomofo 詞典編譯過程中的空操作。
   public func performPostCompilation() async throws {
     print("Data compilation succeeded for McBopomofo.")
   }

@@ -58,7 +58,7 @@ extension FileManager {
 
 extension String {
   public mutating func regReplace(pattern: String, replaceWith: String = "") {
-    // Ref: https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
+    // 參考：https://stackoverflow.com/a/40993403/4162914 && https://stackoverflow.com/a/71291137/4162914
     do {
       let regex = try NSRegularExpression(
         pattern: pattern, options: [.caseInsensitive, .anchorsMatchLines]
@@ -90,17 +90,17 @@ enum BundleSearchError: Error {
 }
 
 extension Bundle {
-  /// Search for files in the bundle using a pattern
+  /// 使用模式在 bundle 中搜尋檔案
   /// - Parameters:
-  ///   - pattern: Regular expression pattern to match filenames
-  ///   - extension: Optional file extension filter
-  /// - Returns: Array of matched filenames or paths
+  ///   - pattern: 用於匹配檔案名稱的正規表達式模式
+  ///   - extension: 可選的檔案副檔名篩選器
+  /// - Returns: 匹配的檔案名稱或路徑陣列
   public func findFiles(
     matching pattern: String,
     extension: String? = nil
   ) throws
     -> [URL] {
-    // Create NSRegularExpression - works on both Linux and Apple platforms
+    // 建立 NSRegularExpression - 在 Linux 和 Apple 平台上都可運作
     let regex: NSRegularExpression
     do {
       regex = try NSRegularExpression(pattern: pattern, options: [])
@@ -108,7 +108,7 @@ extension Bundle {
       throw BundleSearchError.regexError("Invalid regex pattern: \(error.localizedDescription)")
     }
 
-    // Get resources with optional extension filter
+    // 取得資源，可選擇性地使用副檔名篩選器
     guard let nsURLs = urls(forResourcesWithExtension: `extension`, subdirectory: nil) else {
       throw BundleSearchError.bundleResourcesNotFound
     }
@@ -117,7 +117,7 @@ extension Bundle {
       if let filename = url.pathComponents.last {
         let range = NSRange(location: 0, length: filename.utf16.count)
 
-        // Check if filename matches the pattern
+        // 檢查檔案名稱是否符合模式
         if regex.firstMatch(in: filename, options: [], range: range) != nil {
           return url
         }
@@ -126,11 +126,11 @@ extension Bundle {
     }
   }
 
-  /// Search for files in the bundle matching multiple patterns
+  /// 在 bundle 中搜尋符合多個模式的檔案
   /// - Parameters:
-  ///   - patterns: Array of regex patterns to match
-  ///   - matchAll: If true, file must match all patterns. If false, matching any pattern is sufficient
-  /// - Returns: Array of matched filenames
+  ///   - patterns: 要匹配的正規表達式模式陣列
+  ///   - matchAll: 若為 true，檔案必須符合所有模式。若為 false，符合任一模式即可
+  /// - Returns: 匹配的檔案名稱陣列
   public func findFiles(
     matching patterns: [String],
     matchAll: Bool = false
@@ -155,13 +155,13 @@ extension Bundle {
         let range = NSRange(location: 0, length: filename.utf16.count)
 
         if matchAll {
-          // Must match all patterns
+          // 必須符合所有模式
           let matchesAll = regexPatterns.allSatisfy { regex in
             regex.firstMatch(in: filename, options: [], range: range) != nil
           }
           return matchesAll ? url : nil
         } else {
-          // Match any pattern
+          // 符合任一模式
           let matchesAny = regexPatterns.contains { regex in
             regex.firstMatch(in: filename, options: [], range: range) != nil
           }

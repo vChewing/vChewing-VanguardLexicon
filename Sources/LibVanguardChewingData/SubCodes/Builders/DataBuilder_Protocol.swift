@@ -77,7 +77,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
 
     await withTaskGroup(of: Void.self) { group in
       group.addTask { [self] in
-        // revLookup
+        // 反查表
         var allKeys = Set<String>()
         data.reverseLookupTable.keys.forEach { allKeys.insert($0) }
         data.reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
@@ -111,7 +111,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
       group.addTask { [self] in
         await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
           subGroup.addTask {
-            // chs
+            // 簡體中文
             self.data.unigramsKanjiCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .chs) }
@@ -122,7 +122,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
             }.compactMap { $0.asEntry(type: .chs) }
           }
           subGroup.addTask {
-            // cht
+            // 繁體中文
             self.data.unigramsKanjiCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .cht) }
@@ -133,25 +133,25 @@ extension VCDataBuilder.TriePreparatorProtocol {
             }.compactMap { $0.asEntry(type: .cht) }
           }
           subGroup.addTask {
-            // nonKanji
+            // 非漢字
             self.data.unigrams4NonKanji.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .nonKanji) }
           }
           subGroup.addTask {
-            // symbolPhrases
+            // 符號詞組
             await self.data.getSymbols().compactMap { $0.asEntry(type: .symbolPhrases) }
           }
           subGroup.addTask {
-            // zhuyinwen
+            // 注音文
             await self.data.getZhuyinwen().compactMap { $0.asEntry(type: .zhuyinwen) }
           }
           subGroup.addTask {
-            // letters and punctuations
+            // 字母與標點符號
             await self.data.getPunctuations().compactMap { $0.asEntry(type: .letterPunctuations) }
           }
           subGroup.addTask {
-            // cns
+            // CNS 全字庫
             self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
           }
           for await result in subGroup {
@@ -229,7 +229,7 @@ extension VCDataBuilder.DataBuilderProtocol {
 
   public func writeAssembledAssets() async throws {
     let subFolderNameComponentsAftermath = subFolderNameComponentsAftermath
-    // Create aftermath folder if necessary.
+    // 必要時建立追加資料夾。
     aftermath: do {
       guard !subFolderNameComponentsAftermath.isEmpty else { break aftermath }
       var folderURLAftermath = FileManager.urlCurrentFolder.appendingPathComponent("Build")
@@ -241,12 +241,12 @@ extension VCDataBuilder.DataBuilderProtocol {
         withIntermediateDirectories: true
       )
     }
-    // Create primary folder.
+    // 建立主資料夾。
     var folderURL = FileManager.urlCurrentFolder.appendingPathComponent("Build")
     subFolderNameComponents.forEach { currentComponentName in
       folderURL = folderURL.appendingPathComponent(currentComponentName)
     }
-    // Starts assemblying and data output.
+    // 開始組裝與輸出資料。
     NSLog(" - 通用: 開始生成最終輸出的 SQL / 二進位產物。")
     let assemblyStart = Date()
     let stream = try await getIteratorForLexiconAssemblyTask()
@@ -302,7 +302,7 @@ extension VCDataBuilder.DataBuilderProtocol {
       Date().timeIntervalSince(assemblyStart),
       Double(bytesWritten) / 1_048_576.0
     )
-    // Aftermath.
+    // 追加處理。
     NSLog(" - 準備執行追加建置過程。")
     NSLog(" - 通用: 所有前置作業已完成，開始進入後續辭典檔案建置階段。")
     try await runInTextBlockThrowable {
@@ -350,7 +350,7 @@ extension VCDataBuilder.DataBuilderProtocol {
     if sqlData.starts(with: [0xEF, 0xBB, 0xBF]) {
       sqlData.removeFirst(3)
     }
-    // sqlite3_exec expects a null-terminated buffer.
+    // sqlite3_exec 期望接收以 null 結尾的緩衝區。
     if sqlData.last != 0 {
       sqlData.append(0)
     }

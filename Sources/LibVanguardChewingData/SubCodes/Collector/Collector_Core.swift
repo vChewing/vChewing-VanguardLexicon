@@ -222,14 +222,14 @@ extension VCDataBuilder.Unigram {
   )] {
     // 正規表達式
     var patterns: [(String, String)] = [
-      // CJKWhiteSpace (\x{3000}) to ASCII Space
-      // NonBreakWhiteSpace (\x{A0}) to ASCII Space
-      // Tab to ASCII Space
+      // CJKWhiteSpace (\x{3000}) 轉 ASCII Space
+      // NonBreakWhiteSpace (\x{A0}) 轉 ASCII Space
+      // Tab 轉 ASCII Space
       // 統整連續空格為一個 ASCII 空格
       (#"( +|　+| +|\t+)+"#, " "),
       // 去除行尾行首空格
       (#"(^ | $)"#, ""),
-      // CR & Form Feed to LF, 且去除重複行
+      // CR & Form Feed 轉 LF，且去除重複行
       (#"(\f+|\r+|\n+)+"#, "\n"),
     ]
 
@@ -638,7 +638,7 @@ extension VCDataBuilder.Unigram {
 extension VCDataBuilder.Collector {
   func getZhuyinwen() -> [VCDataBuilder.Unigram] {
     do {
-      // Punctuations.
+      // 注音文。
       let fileNameStem = "data-zhuyinwen"
       let fileURL = Bundle.module.url(forResource: fileNameStem, withExtension: "txt")
       guard let fileURL else { return [] }
@@ -665,7 +665,7 @@ extension VCDataBuilder.Collector {
 
   func getSymbols() -> [VCDataBuilder.Unigram] {
     do {
-      // Punctuations.
+      // 符號。
       let fileNameStem = "data-symbols"
       let fileURL = Bundle.module.url(forResource: fileNameStem, withExtension: "txt")
       guard let fileURL else { return [] }
@@ -692,7 +692,7 @@ extension VCDataBuilder.Collector {
 
   func getPunctuations() -> [VCDataBuilder.Unigram] {
     do {
-      // Punctuations.
+      // 標點符號。
       let fileNameStem = "data-punctuations"
       let fileURL = Bundle.module.url(forResource: fileNameStem, withExtension: "txt")
       guard let fileURL else { return [] }

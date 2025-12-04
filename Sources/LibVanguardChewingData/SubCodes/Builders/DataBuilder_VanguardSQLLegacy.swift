@@ -54,7 +54,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
     }
   }
 
-  // This method uses terminal commands to convert SQL file to SQLite file.
+  // 此方法使用終端命令將 SQL 檔案轉換為 SQLite 檔案。
   public func performPostCompilation() async throws {
     try await runInTextBlockThrowable {
       NSLog(" - 通用: 已完成健康檢查與資料通盤準備，準備開始辭典檔案建置組裝。")
@@ -247,7 +247,7 @@ extension VCDataBuilder.Collector {
       try await appendFragment(fragment)
     }
 
-    // Punctuations -> theDataCHS and theDataCHT.
+    // 標點符號 -> theDataCHS 和 theDataCHT。
     var allPunctuationsMap = [String: VCDataBuilder.Unigram.GramSet]()
     let punctuationCollectStart = Date()
     getPunctuations().forEach {
@@ -280,7 +280,7 @@ extension VCDataBuilder.Collector {
       Date().timeIntervalSince(punctuationCHSStart)
     )
 
-    // Core Kanjis and Phrases -> theDataCHS and theDataCHT.
+    // 核心漢字與詞組 -> theDataCHS 和 theDataCHT。
     var allGramsMapCHS = [String: VCDataBuilder.Unigram.GramSet]()
     var allGramsMapCHT = [String: VCDataBuilder.Unigram.GramSet]()
     let gramCollectStartCHT = Date()
@@ -322,7 +322,7 @@ extension VCDataBuilder.Collector {
       Date().timeIntervalSince(gramCHTWriteStart)
     )
 
-    // Zhuyinwen.
+    // 注音文。
     var allGramsMapZhuyinwen = [String: VCDataBuilder.Unigram.GramSet]()
     let zhuyinCollectStart = Date()
     getZhuyinwen().forEach {
@@ -344,7 +344,7 @@ extension VCDataBuilder.Collector {
       Date().timeIntervalSince(zhuyinWriteStart)
     )
 
-    // Symbols and Emojis.
+    // 符號與表情符號。
     var allGramsMapSymbols = [String: VCDataBuilder.Unigram.GramSet]()
     let symbolCollectStart = Date()
     getSymbols().forEach {
@@ -366,7 +366,7 @@ extension VCDataBuilder.Collector {
       Date().timeIntervalSince(symbolWriteStart)
     )
 
-    // CNS.
+    // CNS 全字庫。
     let cnsWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       tableKanjiCNS,

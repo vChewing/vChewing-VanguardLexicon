@@ -70,14 +70,14 @@ extension VCDataBuilder.ChewingRustDataBuilder {
   public func performPostCompilation() async throws {
     print("Locating Rust and Cargo executables...")
 
-    // Find the location of cargo
+    // 尋找 cargo 位置
     #if os(Windows)
-      // Prefer using findExecutable instead of running a shell script to locate cargo.
+      // 優先使用 findExecutable 而非執行 shell 腳本來尋找 cargo。
       var cargoLocationResult: (output: String, exitCode: Int32) = ("", 1)
       if let cargoFound = ShellHelper.findExecutable("cargo", path: ProcessInfo.processInfo.environment["PATH"]) {
         cargoLocationResult = (cargoFound + "\n", 0)
       }
-      // If not found using PATH, fall back to checking common installation locations
+      // 如果在 PATH 中找不到，則後備檢查常見安裝位置
       if cargoLocationResult.exitCode != 0 {
         let possiblePaths = [
           "\(ProcessInfo.processInfo.environment["USERPROFILE"] ?? "")\\.cargo\\bin\\cargo.exe",
@@ -96,7 +96,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       if let cargoFound {
         cargoLocationResult = (cargoFound + "\n", 0)
       } else {
-        cargoLocationResult = ShellHelper.exec("/usr/bin/which", args: ["cargo"]) // fallback
+        cargoLocationResult = ShellHelper.exec("/usr/bin/which", args: ["cargo"]) // 後備方案
       }
     #endif
 
@@ -106,7 +106,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
         .errMsg("Cargo not found in PATH. Please make sure Rust and Cargo are properly installed.")
     }
 
-    // Extract cargo path and its directory
+    // 提取 cargo 路徑及其目錄
     #if os(Windows)
       let cargoPath = cargoLocationResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
       let cargoDir = URL(fileURLWithPath: cargoPath).deletingLastPathComponent().path
@@ -115,7 +115,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       let cargoDir = URL(fileURLWithPath: cargoPath).deletingLastPathComponent().path
     #endif
 
-    // Add cargo directory to current PATH
+    // 將 cargo 目錄加入目前的 PATH
     #if os(Windows)
       let originalPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
       let updatedPath = "\(cargoDir);\(originalPath)"
@@ -127,7 +127,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     print("Found Cargo at: \(cargoPath)")
     print("Added \(cargoDir) to PATH")
 
-    // Check rustc version
+    // 檢查 rustc 版本
     #if os(Windows)
       let rustcPath = ShellHelper.findExecutable("rustc", path: updatedPath) ?? "rustc"
       let rustVersionCheck = ShellHelper.exec(rustcPath, args: ["--version"], path: updatedPath)
@@ -140,7 +140,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       throw VCDataBuilder.Exception.errMsg("Rust is not installed or not found in PATH.")
     }
 
-    // Extract version number from rustc output
+    // 從 rustc 輸出中提取版本號碼
     let rustVersionOutput = rustVersionCheck.output.trimmingCharacters(in: .whitespacesAndNewlines)
     let versionRegex = try NSRegularExpression(pattern: "rustc (\\d+\\.\\d+\\.\\d+)")
     let outputRange = NSRange(
@@ -163,10 +163,10 @@ extension VCDataBuilder.ChewingRustDataBuilder {
 
     print("Rust v\(rustVersion) (>= \(minimumVersion)) and Cargo are installed.")
 
-    // Initialize path variable that will be used for subsequent commands
+    // 初始化後續命令將使用的 path 變數
     var pathToUse = updatedPath
 
-    // Check if chewing-cli is installed
+    // 檢查 chewing-cli 是否已安裝
     print("Checking if chewing-cli is installed...")
     #if os(Windows)
       let chewingCliPath = "C:\\Program Files (x86)\\ChewingTextService\\chewing-cli.exe"
@@ -191,11 +191,11 @@ extension VCDataBuilder.ChewingRustDataBuilder {
         print("chewing-cli is not installed. Attempting to install...")
         let cargoBinDir = "\(ProcessInfo.processInfo.environment["HOME"] ?? ".")/cargo/bin"
 
-        // Get the cargo installation directory
+        // 取得 cargo 安裝目錄
         let cargoInstallResult = ShellHelper.exec("cargo", args: ["install", "--list"], path: pathToUse)
         print("Cargo install location check: \(cargoInstallResult.output)")
 
-        // Install chewing-cli
+        // 安裝 chewing-cli
         let installResult = ShellHelper.exec("cargo", args: ["install", "chewing-cli"], path: pathToUse)
         if installResult.exitCode != 0 {
           throw VCDataBuilder.Exception
@@ -214,7 +214,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
       }
     #endif
 
-    // Run the chewing-cli commands
+    // 執行 chewing-cli 命令
     print("Running chewing-cli commands...")
 
     let pathStemTemp = ShellHelper.normalizePathForCurrentOS(
@@ -226,7 +226,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
 
     // 修正跨平台命令
     #if os(Windows)
-      // Use direct exec invocation of chewing-cli and create output directory with FileManager
+      // 直接使用 exec 呼叫 chewing-cli，並使用 FileManager 建立輸出目錄
       do {
         try FileManager.default.createDirectory(atPath: pathStemFinal, withIntermediateDirectories: true)
       } catch {
@@ -247,7 +247,7 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     if firstResult.exitCode != 0 {
       print("Command failed with error:")
       print(firstResult.output)
-      // We don't exit here, we continue to the next command
+      // 我們不在此退出，繼續執行下一個命令
     } else {
       print("First command executed successfully.")
     }
@@ -264,12 +264,12 @@ extension VCDataBuilder.ChewingRustDataBuilder {
     if secondResult.exitCode != 0 {
       print("Command failed with error:")
       print(secondResult.output)
-      // We continue to report any error but don't exit
+      // 我們繼續回報任何錯誤，但不退出
     } else {
       print("Second command executed successfully.")
     }
 
-    // Check if any command failed
+    // 檢查是否有任何命令失敗
     if firstResult.exitCode != 0 || secondResult.exitCode != 0 {
       throw VCDataBuilder.Exception.errMsg("One or more chewing-cli commands failed.")
     } else {

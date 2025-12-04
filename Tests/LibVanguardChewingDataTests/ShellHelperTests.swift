@@ -9,22 +9,22 @@ import Testing
 @Test
 func testExecDoesNotInterpretMetaCharacters() {
   #if os(Windows)
-    // On Windows we run powershell and ensure argument literal is passed.
-    // Windows 10 ships Powershell v5 but the executable path is still v1.0:
+    // 在 Windows 上執行 powershell 並確保引數以字面形式傳遞。
+    // Windows 10 附帶 Powershell v5，但可執行檔路徑仍為 v1.0：
     let cmd = ShellHelper.exec(
       "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
       args: ["-NoProfile", "-Command", "Write-Output '; echo INJECTION'"]
     )
     #if canImport(Foundation)
-      // The output should contain the string literal including '; echo INJECTION'
+      // 輸出應包含字串字面值，包括 '; echo INJECTION'
       assert(cmd.exitCode == 0)
       assert(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines).contains("; echo INJECTION"))
     #endif
   #else
-    // On Unix, /bin/echo accepts first argument as literal; if we used shell '-c', the ';' might become operator.
-    let cmd = ShellHelper.exec("/bin/echo", args: ["; echo INJECTION"]) // arg containing a semicolon
+    // 在 Unix 上，/bin/echo 將第一個引數視為字面值；如果使用 shell '-c'，';' 可能會成為運算子。
+    let cmd = ShellHelper.exec("/bin/echo", args: ["; echo INJECTION"]) // 包含分號的引數
     assert(cmd.exitCode == 0)
-    // The output should be the literal argument, not executing the `echo INJECTION` as a separate command.
+    // 輸出應該是字面引數，而非執行 `echo INJECTION` 作為單獨的命令。
     assert(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines) == "; echo INJECTION")
   #endif
 }

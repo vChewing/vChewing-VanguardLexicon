@@ -86,45 +86,42 @@ extension VCDataBuilder.ChewingCBasedDataBuilder {
       "./Build/" + subFolderNameComponentsAftermath.joined(separator: "/")
     )
 
-    // Execute the command
+    // Execute the command using `exec` where possible to avoid shell parsing.
     #if os(Windows)
-      // 修正 PowerShell 命令格式
+      // For Windows, avoid shell string construction and directly exec the binary
+      // with arguments. Normalize the paths for Windows path separators.
       let phoneCinPath = pathStemTemp + "\\phone.cin"
       let tsiSrcPath = pathStemTemp + "\\tsi.src"
-      let command = "Start-Process -FilePath '" + executablePath + "' -ArgumentList '" +
-        phoneCinPath + "','" + tsiSrcPath + "' -NoNewWindow -Wait"
+      let args = [phoneCinPath, tsiSrcPath]
+      print("Executing: \(executablePath) \(args.joined(separator: " "))")
+      let result = ShellHelper.exec(executablePath, args: args)
     #else
-      let command =
-        "\"\(executablePath)\" \"\(pathStemTemp)/phone.cin\" \"\(pathStemTemp)/tsi.src\""
+      let args = ["\(pathStemTemp)/phone.cin", "\(pathStemTemp)/tsi.src"]
+      print("Executing: \(executablePath) \(args.joined(separator: " "))")
+      let result = ShellHelper.exec(executablePath, args: args)
     #endif
-
-    print("Executing: \(command)")
-
-    let result = ShellHelper.shell(command)
     if result.exitCode != 0 {
       throw VCDataBuilder.Exception.errMsg(
         "Failed to initialize database:\n\(result.output)"
       )
     }
 
-    // Move the generated files to the appropriate directory
-    #if os(Windows)
-      // 修正 PowerShell 移動文件命令
-      let moveCommand = "if (Test-Path '.\\index_tree.dat','.\\dictionary.dat') { " +
-        "New-Item -ItemType Directory -Force -Path '" + pathStemFinal + "'; " +
-        "Move-Item -Force -Path '.\\index_tree.dat','.\\dictionary.dat' -Destination '" +
-        pathStemFinal + "' }"
-    #else
-      let moveCommand = "mv -f \"./index_tree.dat\" \"./dictionary.dat\" \"\(pathStemFinal)/\""
-    #endif
-
-    print("Executing: \(moveCommand)")
-
-    let moveResult = ShellHelper.shell(moveCommand)
-    if moveResult.exitCode != 0 {
-      throw VCDataBuilder.Exception.errMsg(
-        "Failed to move generated files:\n\(moveResult.output)"
-      )
+    // Move the generated files to the appropriate directory using FileManager
+    do {
+      try FileManager.default.createDirectory(atPath: pathStemFinal, withIntermediateDirectories: true)
+      let filesToMove = ["index_tree.dat", "dictionary.dat"]
+      for f in filesToMove {
+        let src = FileManager.default.currentDirectoryPath + "/" + f
+        let dst = pathStemFinal + "/" + f
+        if FileManager.default.fileExists(atPath: src) {
+          if FileManager.default.fileExists(atPath: dst) {
+            try FileManager.default.removeItem(atPath: dst)
+          }
+          try FileManager.default.moveItem(atPath: src, toPath: dst)
+        }
+      }
+    } catch {
+      throw VCDataBuilder.Exception.errMsg("Failed to move generated files: \(error.localizedDescription)")
     }
 
     print("Database initialization successfully for C-Based Chewing.")

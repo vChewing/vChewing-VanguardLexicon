@@ -366,7 +366,7 @@ extension VCDataBuilder.Collector {
       Date().timeIntervalSince(symbolWriteStart)
     )
 
-    // CNS.
+    // CNS 全字庫。
     let cnsWriteStart = Date()
     try await handleUnigramTableToSQLLegacy(
       tableKanjiCNS,

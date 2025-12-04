@@ -28,6 +28,8 @@ enum ShellHelper {
       // 使用 -NoProfile 來加速啟動，使用 -Command 來執行命令
       task.arguments = ["-NoProfile", "-Command", command]
     #else
+      // Keep compatibility for scripts but discourage use. Use `exec` for
+      // explicit executable + args invocation instead of `shell`.
       task.executableURL = URL(fileURLWithPath: "/bin/bash")
       task.arguments = ["-c", command]
     #endif
@@ -82,6 +84,75 @@ enum ShellHelper {
 
     task.waitUntilExit()
     return (output, task.terminationStatus)
+  }
+
+  /// Executes an executable directly with arguments (no shell parsing).
+  /// If `path` is provided it will be used as PATH env var for resolution.
+  static func exec(
+    _ executable: String,
+    args: [String] = [],
+    path: String? = nil,
+    environment: [String: String]? = nil
+  )
+    -> (output: String, exitCode: Int32) {
+    let task = Process()
+    let pipe = Pipe()
+
+    task.standardOutput = pipe
+    task.standardError = pipe
+
+    #if os(Windows)
+      // Try to execute the provided executable directly. If `executable` is a
+      // PowerShell snippet or a command, the caller should call PowerShell
+      // directly; however for our case we expect an EXE path (or name) and args.
+      task.executableURL = URL(fileURLWithPath: executable)
+      task.arguments = args
+    #else
+      task.executableURL = URL(fileURLWithPath: executable)
+      task.arguments = args
+    #endif
+
+    var env = ProcessInfo.processInfo.environment
+    if let environment = environment {
+      for (k, v) in environment { env[k] = v }
+    }
+    if let p = path { env["PATH"] = p }
+    task.environment = env
+
+    do {
+      try task.run()
+    } catch {
+      print("Error: \(error.localizedDescription)")
+      return ("", 1)
+    }
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8) ?? ""
+
+    task.waitUntilExit()
+    return (output, task.terminationStatus)
+  }
+
+  /// Find an executable by searching PATH (or provided path). Returns absolute path or nil.
+  static func findExecutable(_ name: String, path: String? = nil) -> String? {
+    let defaultPath = "/usr/bin:/bin:/usr/local/bin"
+    let searchPath = (path ?? ProcessInfo.processInfo.environment["PATH"]) ??
+      ProcessInfo.processInfo.environment["PATH"] ?? defaultPath
+    #if os(Windows)
+      let parts = searchPath.split(separator: ";").map(String.init)
+    #else
+      let parts = searchPath.split(separator: ":").map(String.init)
+    #endif
+    for p in parts {
+      let candidate = URL(fileURLWithPath: p).appendingPathComponent(name).path
+      if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
+    }
+    // fallback: check common locations
+    let fallbackCandidates = ["/usr/bin/\(name)", "/bin/\(name)", "/usr/local/bin/\(name)"]
+    for c in fallbackCandidates {
+      if FileManager.default.isExecutableFile(atPath: c) { return c }
+    }
+    return nil
   }
 
   /// Throws an exception with the specified error message and exits

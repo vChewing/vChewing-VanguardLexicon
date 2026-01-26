@@ -28,23 +28,32 @@ enum ShellHelper {
       // 使用 -NoProfile 來加速啟動，使用 -Command 來執行命令
       task.arguments = ["-NoProfile", "-Command", command]
     #else
-      // 為了與腳本保持相容性而保留，但不建議使用。應使用 `exec` 明確指定可執行檔案與引數，而非使用 `shell`。
-      task.executableURL = URL(fileURLWithPath: "/bin/bash")
-      task.arguments = ["-c", command]
+      // Avoid `-c` style shell invocation; attempt to execute the command directly using `exec`.
+      let parts = command.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+      if let exe = parts.first, !exe.isEmpty {
+        let executable = findExecutable(exe) ?? exe
+        let args = Array(parts.dropFirst())
+        return exec(executable, args: args)
+      } else {
+        print("Error: empty command")
+        return ("", 1)
+      }
     #endif
 
-    do {
-      try task.run()
-    } catch {
-      print("Error: \(error.localizedDescription)")
-      return ("", 1)
-    }
+    #if os(Windows)
+      do {
+        try task.run()
+      } catch {
+        print("Error: \(error.localizedDescription)")
+        return ("", 1)
+      }
 
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: .utf8) ?? ""
+      let data = pipe.fileHandleForReading.readDataToEndOfFile()
+      let output = String(data: data, encoding: .utf8) ?? ""
 
-    task.waitUntilExit()
-    return (output, task.terminationStatus)
+      task.waitUntilExit()
+      return (output, task.terminationStatus)
+    #endif
   }
 
   /// 使用特定的 PATH 環境變數執行 shell 命令並返回輸出和退出代碼
@@ -63,26 +72,32 @@ enum ShellHelper {
       let pathCmd = "$env:PATH = '" + normalizePathForCurrentOS(path) + "'; " + command
       task.arguments = ["-NoProfile", "-Command", pathCmd]
     #else
-      task.executableURL = URL(fileURLWithPath: "/bin/bash")
-      task.arguments = ["-c", command]
-
-      var environment = ProcessInfo.processInfo.environment
-      environment["PATH"] = path
-      task.environment = environment
+      // Avoid `-c` style shell invocation; parse the command and execute directly using provided PATH.
+      let parts = command.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+      if let exe = parts.first, !exe.isEmpty {
+        let executable = findExecutable(exe, path: path) ?? exe
+        let args = Array(parts.dropFirst())
+        return exec(executable, args: args, path: path)
+      } else {
+        print("Error: empty command")
+        return ("", 1)
+      }
     #endif
 
-    do {
-      try task.run()
-    } catch {
-      print("Error: \(error.localizedDescription)")
-      return ("", 1)
-    }
+    #if os(Windows)
+      do {
+        try task.run()
+      } catch {
+        print("Error: \(error.localizedDescription)")
+        return ("", 1)
+      }
 
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: .utf8) ?? ""
+      let data = pipe.fileHandleForReading.readDataToEndOfFile()
+      let output = String(data: data, encoding: .utf8) ?? ""
 
-    task.waitUntilExit()
-    return (output, task.terminationStatus)
+      task.waitUntilExit()
+      return (output, task.terminationStatus)
+    #endif
   }
 
   /// 直接執行可執行檔案並傳遞引數（不經過 shell 解析）。

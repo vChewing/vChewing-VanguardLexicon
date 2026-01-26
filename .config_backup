@@ -7,6 +7,9 @@
         precomposeunicode = true
 [submodule]
         active = .
+[remote "atomgit"]
+        url = https://atomgit.com/vChewing/vChewing-VanguardLexicon.git/
+        fetch = +refs/heads/*:refs/remotes/atomgit/*
 [remote "gitee"]
         url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git
         fetch = +refs/heads/*:refs/remotes/gitlink/*
@@ -19,6 +22,7 @@
 [remote "all"]
         url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git/
         fetch = +refs/heads/*:refs/remotes/all/*
+        pushurl = https://atomgit.com/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitee.com/vchewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/

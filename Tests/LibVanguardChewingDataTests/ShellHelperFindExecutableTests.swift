@@ -11,11 +11,11 @@ func testFindExecutableResolvesCommonSystemCommands() {
   #if os(Windows)
     // 在 Windows 上，系統應該存在 powershell.exe
     let pwshPath = ShellHelper.findExecutable("powershell.exe", path: ProcessInfo.processInfo.environment["PATH"]) ?? ""
-    assert(!pwshPath.isEmpty)
+    #expect(!pwshPath.isEmpty)
   #else
     // 在 Darwin/Linux 上應該有 `swiftc` 或 `sh`。先嘗試 'swiftc'，後備方案是 'sh'。
     var found = ShellHelper.findExecutable("swiftc", path: ProcessInfo.processInfo.environment["PATH"]) != nil
     if !found { found = ShellHelper.findExecutable("sh", path: ProcessInfo.processInfo.environment["PATH"]) != nil }
-    assert(found)
+    #expect(found)
   #endif
 }

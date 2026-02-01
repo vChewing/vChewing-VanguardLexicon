@@ -17,14 +17,14 @@ func testExecDoesNotInterpretMetaCharacters() {
     )
     #if canImport(Foundation)
       // 輸出應包含字串字面值，包括 '; echo INJECTION'
-      assert(cmd.exitCode == 0)
-      assert(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines).contains("; echo INJECTION"))
+      #expect(cmd.exitCode == 0)
+      #expect(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines).contains("; echo INJECTION"))
     #endif
   #else
     // 在 Unix 上，/bin/echo 將第一個引數視為字面值；如果使用 shell '-c'，';' 可能會成為運算子。
     let cmd = ShellHelper.exec("/bin/echo", args: ["; echo INJECTION"]) // 包含分號的引數
-    assert(cmd.exitCode == 0)
+    #expect(cmd.exitCode == 0)
     // 輸出應該是字面引數，而非執行 `echo INJECTION` 作為單獨的命令。
-    assert(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines) == "; echo INJECTION")
+    #expect(cmd.output.trimmingCharacters(in: .whitespacesAndNewlines) == "; echo INJECTION")
   #endif
 }

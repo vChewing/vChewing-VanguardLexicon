@@ -267,7 +267,12 @@ extension VCDataBuilder.DataBuilderProtocol {
       if FileManager.default.fileExists(atPath: fileURL.path) {
         try FileManager.default.removeItem(at: fileURL)
       }
-      FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+      let fileCreated = FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+      guard fileCreated else {
+        throw VCDataBuilder.Exception.errMsg(
+          "Unable to create file at path: \(fileURL.path)"
+        )
+      }
       let fileHandle = try FileHandle(forWritingTo: fileURL)
       fileHandles[chunk.fileName] = fileHandle
       return fileHandle

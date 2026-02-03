@@ -18,6 +18,18 @@ let package = Package(
       name: "VCDataBuilder",
       targets: ["VCDataBuilder"]
     ),
+    .plugin(
+      name: "VanguardTrieSQLPlugin",
+      targets: ["VanguardTrieSQLPlugin"]
+    ),
+    .plugin(
+      name: "VanguardSQLLegacyPlugin",
+      targets: ["VanguardSQLLegacyPlugin"]
+    ),
+    .plugin(
+      name: "TextTemplateAssetInjectorPlugin",
+      targets: ["TextTemplateAssetInjectorPlugin"]
+    ),
   ],
   dependencies: [
     .package(path: "CSQLite3"),
@@ -40,6 +52,44 @@ let package = Package(
       .executableTarget(
         name: "VCDataBuilder",
         dependencies: ["LibVanguardChewingData", "CSQLite3"]
+      ),
+      .plugin(
+        name: "VanguardTrieSQLPlugin",
+        capability: .command(
+          intent: .custom(
+            verb: "vanguard-trie-sql",
+            description: "Generates VanguardTrieSQL data and injects it into Resources"
+          ),
+          permissions: [
+            .writeToPackageDirectory(reason: "This command injects resources into the package sources."),
+          ]
+        ),
+        dependencies: ["VCDataBuilder"]
+      ),
+      .plugin(
+        name: "VanguardSQLLegacyPlugin",
+        capability: .command(
+          intent: .custom(
+            verb: "vanguard-sql-legacy",
+            description: "Generates VanguardSQLLegacy data and injects it into Resources"
+          ),
+          permissions: [
+            .writeToPackageDirectory(reason: "This command injects resources into the package sources."),
+          ]
+        ),
+        dependencies: ["VCDataBuilder"]
+      ),
+      .plugin(
+        name: "TextTemplateAssetInjectorPlugin",
+        capability: .command(
+          intent: .custom(
+            verb: "inject-text-template-assets",
+            description: "Injects text template assets into Resources/TextTemplateAssets"
+          ),
+          permissions: [
+            .writeToPackageDirectory(reason: "This command injects resources into the package sources."),
+          ]
+        )
       ),
     ]
 

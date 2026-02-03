@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "LibVanguardChewingData",
+  name: "VanguardLexicon",
   platforms: [
     .macOS(.v10_15),
   ],

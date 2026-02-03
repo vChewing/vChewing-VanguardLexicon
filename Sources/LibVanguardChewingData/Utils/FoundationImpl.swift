@@ -48,10 +48,12 @@ public func ** (_ base: Double, _ exp: Double) -> Double {
 }
 
 extension FileManager {
-  public static let urlCurrentFolder = URL(
-    fileURLWithPath: FileManager.default
-      .currentDirectoryPath
-  )
+  public static let urlCurrentFolder: URL = {
+    if let envPath = ProcessInfo.processInfo.environment["VANGUARD_OUTPUT_DIR"] {
+      return URL(fileURLWithPath: envPath)
+    }
+    return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+  }()
 }
 
 // MARK: - Regex Implementations.

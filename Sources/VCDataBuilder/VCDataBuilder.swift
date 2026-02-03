@@ -61,6 +61,18 @@ struct Main {
       exit(1)
     }
 
+    if args.first == "extract-text-templates", args.count == 2 {
+      let dst = URL(fileURLWithPath: args[1])
+      do {
+        try FileManager.default.createDirectory(at: dst, withIntermediateDirectories: true)
+        try VCDataBuilder.exportTextTemplates(to: dst)
+        return
+      } catch {
+        print("Extraction failed: \(error)")
+        exit(1)
+      }
+    }
+
     var cases = [VCDataBuilder.BuilderType]()
     let parsedCases = args.compactMap { VCDataBuilder.BuilderType(rawValue: $0) }
 

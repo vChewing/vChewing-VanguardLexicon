@@ -246,7 +246,10 @@ extension VCDataBuilder.DataBuilderProtocol {
     // 必要時建立追加資料夾。
     aftermath: do {
       guard !subFolderNameComponentsAftermath.isEmpty else { break aftermath }
-      var folderURLAftermath = FileManager.urlCurrentFolder.appendingPathComponent("Build")
+      var folderURLAftermath = FileManager.urlCurrentFolder
+      if ProcessInfo.processInfo.environment["VANGUARD_OUTPUT_DIR"] == nil {
+        folderURLAftermath.appendPathComponent("Build")
+      }
       subFolderNameComponentsAftermath.forEach { currentComponentName in
         folderURLAftermath = folderURLAftermath.appendingPathComponent(currentComponentName)
       }
@@ -340,7 +343,11 @@ extension VCDataBuilder.DataBuilderProtocol {
     }
     let sqlFileURL = sqlFolderURL.appendingPathComponent("\(fileNameStem).sql")
 
-    let dbFolderURL = subFolderNameComponentsAftermath.reduce(buildRoot) { partial, component in
+    var dbFolderURL = FileManager.urlCurrentFolder
+    if ProcessInfo.processInfo.environment["VANGUARD_OUTPUT_DIR"] == nil {
+      dbFolderURL.appendPathComponent("Build")
+    }
+    dbFolderURL = subFolderNameComponentsAftermath.reduce(dbFolderURL) { partial, component in
       partial.appendingPathComponent(component)
     }
     let dbFileURL = dbFolderURL.appendingPathComponent("\(outputFileNameStem).sqlite")

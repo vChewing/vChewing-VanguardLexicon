@@ -44,13 +44,16 @@ extension VCDataBuilder.Unigram {
 // MARK: - VCDataBuilder.TriePreparatorProtocol
 
 extension VCDataBuilder {
-  public protocol TriePreparatorProtocol: AnyObject, DataBuilderProtocol {
-    var trie4Typing: VanguardTrie.Trie { get }
-    var trie4Rev: VanguardTrie.Trie { get }
+  public protocol TriePreparatorProtocol: Actor, DataBuilderProtocol {
+    nonisolated var mutexTrie4Typing: NSMutex<VanguardTrie.Trie> { get }
+    nonisolated var mutexTrie4Rev: NSMutex<VanguardTrie.Trie> { get }
   }
 }
 
 extension VCDataBuilder.TriePreparatorProtocol {
+  public var trie4Typing: VanguardTrie.Trie { mutexTrie4Typing.value }
+  public var trie4Rev: VanguardTrie.Trie { mutexTrie4Rev.value }
+
   public func prepareTrie() async {
     NSLog(" - 通用: 正在構築辭典樹。")
     trie4Typing.clearAllContents()
@@ -79,9 +82,14 @@ extension VCDataBuilder.TriePreparatorProtocol {
       group.addTask { [self] in
         // 反查表
         var allKeys = Set<String>()
-        data.reverseLookupTable.keys.forEach { allKeys.insert($0) }
-        data.reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
-        data.reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
+        let table = await data.reverseLookupTable
+        let tableNonKanji = await data.reverseLookupTable4NonKanji
+        let tableCNS = await data.reverseLookupTable4CNS
+
+        table.keys.forEach { allKeys.insert($0) }
+        tableNonKanji.keys.forEach { allKeys.insert($0) }
+        tableCNS.keys.forEach { allKeys.insert($0) }
+
         var allKeysToHandle = allKeys.sorted()
         if VCDataBuilder.TestSampleFilter.isEnabled {
           let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
@@ -92,11 +100,11 @@ extension VCDataBuilder.TriePreparatorProtocol {
           }
           allKeysToHandle = limitedKeys
         }
-        allKeysToHandle.forEach { key in
+        for key in allKeysToHandle {
           var arrValues = [String]()
-          arrValues.append(contentsOf: data.reverseLookupTable[key] ?? [])
-          arrValues.append(contentsOf: data.reverseLookupTable4NonKanji[key] ?? [])
-          arrValues.append(contentsOf: data.reverseLookupTable4CNS[key] ?? [])
+          arrValues.append(contentsOf: table[key] ?? [])
+          arrValues.append(contentsOf: tableNonKanji[key] ?? [])
+          arrValues.append(contentsOf: tableCNS[key] ?? [])
           arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
           let newEntry = VanguardTrie.Trie.Entry(
             value: arrValues.joined(separator: "\t").asEncryptedBopomofoKeyChain,
@@ -104,7 +112,9 @@ extension VCDataBuilder.TriePreparatorProtocol {
             probability: 0,
             previous: nil
           )
-          trie4Rev.insert(entry: newEntry, readings: [key])
+          mutexTrie4Rev.withLock {
+            $0.insert(entry: newEntry, readings: [key])
+          }
         }
         NSLog(" - 通用: 成功構築辭典樹（反查表）。")
       }
@@ -112,29 +122,29 @@ extension VCDataBuilder.TriePreparatorProtocol {
         await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
           subGroup.addTask {
             // 簡體中文
-            self.data.unigramsKanjiCHS.values.flatMap {
+            await self.data.unigramsKanjiCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .chs) }
           }
           subGroup.addTask {
-            self.data.unigramsCHS.values.flatMap {
+            await self.data.unigramsCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .chs) }
           }
           subGroup.addTask {
             // 繁體中文
-            self.data.unigramsKanjiCHT.values.flatMap {
+            await self.data.unigramsKanjiCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .cht) }
           }
           subGroup.addTask {
-            self.data.unigramsCHT.values.flatMap {
+            await self.data.unigramsCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .cht) }
           }
           subGroup.addTask {
             // 非漢字
-            self.data.unigrams4NonKanji.values.flatMap {
+            await self.data.unigrams4NonKanji.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
             }.compactMap { $0.asEntry(type: .nonKanji) }
           }
@@ -152,11 +162,13 @@ extension VCDataBuilder.TriePreparatorProtocol {
           }
           subGroup.addTask {
             // CNS 全字庫
-            self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
+            await self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
           }
           for await result in subGroup {
-            result.forEach {
-              trie4Typing.insert(entry: $0.0, readingsEncrypted: $0.1)
+            for x in result {
+              mutexTrie4Typing.withLock {
+                $0.insert(entry: x.0, readingsEncrypted: x.1)
+              }
             }
           }
         }
@@ -178,7 +190,7 @@ extension VCDataBuilder {
     public let isLastChunk: Bool
   }
 
-  public protocol DataBuilderProtocol: AnyObject {
+  public protocol DataBuilderProtocol: Actor {
     init?(isCHS: Bool?) async throws
     var subFolderNameComponents: [String] { get }
     var subFolderNameComponentsAftermath: [String] { get }
@@ -194,7 +206,8 @@ extension VCDataBuilder.DataBuilderProtocol {
     try await self.init(isCHS: isCHS)
   }
 
-  public func runInTextBlock(_ task: () async -> ()) async {
+  @Sendable
+  public func runInTextBlock(_ task: @Sendable () async -> ()) async {
     NSLog("===============================")
     NSLog("-------------------------------")
     defer {
@@ -204,7 +217,8 @@ extension VCDataBuilder.DataBuilderProtocol {
     await task()
   }
 
-  public func runInTextBlockThrowable(_ task: () async throws -> ()) async throws {
+  @Sendable
+  public func runInTextBlockThrowable(_ task: @Sendable () async throws -> ()) async throws {
     NSLog("===============================")
     NSLog("-------------------------------")
     defer {

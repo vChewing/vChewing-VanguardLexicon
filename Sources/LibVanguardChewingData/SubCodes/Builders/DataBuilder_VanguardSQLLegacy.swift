@@ -71,32 +71,43 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
 extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
   func assembleSQLFile(
     chunkSize: Int = 512 * 1_024,
-    emit: @escaping (_ chunk: Data, _ isFinal: Bool) async throws -> ()
+    emit: @Sendable @escaping (_ chunk: Data, _ isFinal: Bool) async throws -> ()
   ) async throws {
     let effectiveChunkSize = max(64 * 1_024, chunkSize)
-    var buffer = Data()
-    buffer.reserveCapacity(effectiveChunkSize)
+    let buffer = NSMutex<Data>(Data())
+    buffer.value.reserveCapacity(effectiveChunkSize)
 
+    @Sendable
     func flush(isFinal: Bool) async throws {
-      guard !buffer.isEmpty else {
-        if isFinal {
-          try await emit(Data(), true)
+      var emission: (Data, Bool)?
+      buffer.withLock { realBuffer in
+        if realBuffer.isEmpty {
+          if isFinal {
+            emission = (Data(), true)
+          }
+        } else {
+          let payload = realBuffer
+          realBuffer.removeAll(keepingCapacity: true)
+          emission = (payload, isFinal)
         }
-        return
       }
-      let payload = buffer
-      buffer.removeAll(keepingCapacity: true)
-      try await emit(payload, isFinal)
+      if let (chunk, final) = emission {
+        try await emit(chunk, final)
+      }
     }
 
+    @Sendable
     func appendData(_ dataFragment: Data) async throws {
       guard !dataFragment.isEmpty else { return }
-      buffer.append(dataFragment)
-      if buffer.count >= effectiveChunkSize {
+      buffer.withLock { realBuffer in
+        realBuffer.append(dataFragment)
+      }
+      if buffer.value.count >= effectiveChunkSize {
         try await flush(isFinal: false)
       }
     }
 
+    @Sendable
     func append(_ text: String) async throws {
       try await appendData(Data(text.utf8))
     }
@@ -157,26 +168,28 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
 extension VCDataBuilder.Collector {
   fileprivate func prepareRevLookupMapToSQLLegacy(
     chunkSize: Int,
-    _ writer: (_ fragment: String) async throws -> ()
+    _ writer: @Sendable (_ fragment: String) async throws -> ()
   ) async throws {
     let chunkLimit = max(64 * 1_024, chunkSize)
-    var buffer = String()
-    buffer.reserveCapacity(chunkLimit)
-    var bufferBytes = 0
+    let buffer = NSMutex<String>(String())
+    buffer.value.reserveCapacity(chunkLimit)
+    let bufferBytes = NSMutex<Int>(0)
 
+    @Sendable
     func flushBuffer(force: Bool) async throws {
-      guard force || bufferBytes >= chunkLimit else { return }
-      guard !buffer.isEmpty else { return }
-      let payload = buffer
-      buffer.removeAll(keepingCapacity: true)
-      bufferBytes = 0
+      guard force || bufferBytes.value >= chunkLimit else { return }
+      guard !buffer.value.isEmpty else { return }
+      let payload = buffer.value
+      buffer.value.removeAll(keepingCapacity: true)
+      bufferBytes.value = 0
       try await writer(payload)
     }
 
+    @Sendable
     func appendFragment(_ fragment: String) async throws {
       guard !fragment.isEmpty else { return }
-      buffer.append(fragment)
-      bufferBytes += fragment.utf8.count
+      buffer.value.append(fragment)
+      bufferBytes.value += fragment.utf8.count
       try await flushBuffer(force: false)
     }
 

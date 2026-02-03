@@ -25,8 +25,8 @@ extension VCDataBuilder {
     nonisolated public let isCHS: Bool?
 
     public let data: Collector
-    nonisolated public let trie4Typing: VanguardTrie.Trie = .init(separator: "-")
-    nonisolated public let trie4Rev: VanguardTrie.Trie = .init(separator: "-")
+    nonisolated public let mutexTrie4Typing: NSMutex<VanguardTrie.Trie> = .init(.init(separator: "-"))
+    nonisolated public let mutexTrie4Rev: NSMutex<VanguardTrie.Trie> = .init(.init(separator: "-"))
   }
 }
 
@@ -42,12 +42,12 @@ extension VCDataBuilder.VanguardTrieSQLDataBuilder {
   }
 
   public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
-    let table: [String: VanguardTrie.Trie] = [
-      "VanguardFactoryDict4Typing.sql": trie4Typing,
-      "VanguardFactoryDict4RevLookup.sql": trie4Rev,
-    ]
-    return AsyncThrowingStream { continuation in
+    AsyncThrowingStream { continuation in
       Task {
+        let table: [String: VanguardTrie.Trie] = [
+          "VanguardFactoryDict4Typing.sql": trie4Typing,
+          "VanguardFactoryDict4RevLookup.sql": trie4Rev,
+        ]
         do {
           for (filename, currentTrie) in table {
             let sqlStr = VanguardTrie.TrieSQLScriptGenerator.generate(currentTrie)

@@ -202,9 +202,6 @@ extension VCDataBuilder {
 }
 
 extension VCDataBuilder.DataBuilderProtocol {
-  public init?(isCHS: Bool? = nil) async throws {
-    try await self.init(isCHS: isCHS)
-  }
 
   @Sendable
   public func runInTextBlock(_ task: @Sendable () async -> ()) async {
@@ -454,15 +451,15 @@ extension VCDataBuilder {
 extension VCDataBuilder.BuilderType {
   public func getAssembler() async throws -> (VCDataBuilder.DataBuilderProtocol & Actor)? {
     switch self {
-    case .vanguardTrieSQL: try await VCDataBuilder.VanguardTrieSQLDataBuilder()
-    case .vanguardTriePlist: try await VCDataBuilder.VanguardTriePlistDataBuilder()
+    case .vanguardTrieSQL: try await VCDataBuilder.VanguardTrieSQLDataBuilder(isCHS: nil)
+    case .vanguardTriePlist: try await VCDataBuilder.VanguardTriePlistDataBuilder(isCHS: nil)
     case .chewingRustCHS: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: true)
     case .chewingRustCHT: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: false)
     case .chewingCBasedCHS: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: true)
     case .chewingCBasedCHT: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: false)
     case .mcbopomofoCHS: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: true)
     case .mcbopomofoCHT: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: false)
-    case .vanguardSQLLegacy: try await VCDataBuilder.VanguardSQLLegacyDataBuilder()
+    case .vanguardSQLLegacy: try await VCDataBuilder.VanguardSQLLegacyDataBuilder(isCHS: nil)
     }
   }
 

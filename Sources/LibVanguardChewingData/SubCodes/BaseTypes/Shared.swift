@@ -86,7 +86,7 @@ extension String {
 
 /// A simple NSMutex implementation using NSLock for macOS 10.9+ compatibility.
 /// Provides thread-safe access to a wrapped value.
-nonisolated public final class NSMutex<Value>: Sendable {
+public final class NSMutex<Value>: @unchecked Sendable {
   // MARK: Lifecycle
 
   public init(_ value: Value) {

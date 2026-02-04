@@ -74,6 +74,11 @@ install: install-vchewing clean
 macv:
 	swift run VCDataBuilder vanguardSQLLegacy
 
+vanguardSQLLegacy:
+ifeq ($(OS),Windows_NT)
+	/usr/bin/swift run VCDataBuilder vanguardSQLLegacy
+endif
+
 install-vchewing: macv
 ifeq ($(OS),Windows_NT)
 	@echo "Windows 不支援 vChewing。"

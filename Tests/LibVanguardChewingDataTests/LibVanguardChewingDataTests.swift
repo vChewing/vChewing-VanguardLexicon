@@ -54,12 +54,12 @@ func testCollectorSanityCheckCHT() async throws {
 
 @Test
 func testTrie() async throws {
-  let builder = try await VCDataBuilder.VanguardTriePlistDataBuilder()
-  let matchedA4 = builder?.trie4Typing.nodes.values.first {
+  let builder = try await VCDataBuilder.VanguardTriePlistDataBuilder(isCHS: nil)
+  let matchedA4 = builder?.mutexTrie4Typing.value.nodes.values.first {
     $0.readingKey == "a4"
   }
   #expect(matchedA4 != nil)
-  let matched = builder?.trie4Typing.nodes.values.first {
+  let matched = builder?.mutexTrie4Typing.value.nodes.values.first {
     $0.readingKey == "diE2"
   }
   #expect(matched != nil)

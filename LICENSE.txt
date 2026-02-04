@@ -1,4 +1,4 @@
-libvChewing Phrase Database: 3-Clause BSD License
+Vanguard Lexicon: 3-Clause BSD License
 
 © 2021-2022 vChewing Project, Maintained by Shiki Suen.
 

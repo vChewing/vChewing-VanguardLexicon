@@ -17,18 +17,6 @@ let package = Package(
       name: "VCDataBuilder",
       targets: ["VCDataBuilder"]
     ),
-    .plugin(
-      name: "VanguardTrieSQLPlugin",
-      targets: ["VanguardTrieSQLPlugin"]
-    ),
-    .plugin(
-      name: "VanguardSQLLegacyPlugin",
-      targets: ["VanguardSQLLegacyPlugin"]
-    ),
-    .plugin(
-      name: "TextTemplateAssetInjectorPlugin",
-      targets: ["TextTemplateAssetInjectorPlugin"]
-    ),
   ],
   targets: [
     .target(
@@ -52,21 +40,6 @@ let package = Package(
     .executableTarget(
       name: "VCDataBuilder",
       dependencies: ["LibVanguardChewingData", "CSQLite3"]
-    ),
-    .plugin(
-      name: "VanguardTrieSQLPlugin",
-      capability: .buildTool(),
-      dependencies: ["VCDataBuilder"]
-    ),
-    .plugin(
-      name: "VanguardSQLLegacyPlugin",
-      capability: .buildTool(),
-      dependencies: ["VCDataBuilder"]
-    ),
-    .plugin(
-      name: "TextTemplateAssetInjectorPlugin",
-      capability: .buildTool(),
-      dependencies: ["VCDataBuilder"]
     ),
   ]
 )

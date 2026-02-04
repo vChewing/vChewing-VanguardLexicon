@@ -1,0 +1,19 @@
+name: Swift Build (WinNT)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  windows:
+    name: Swift Build (WinNT)
+
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.2
+        with:
+          windows-swift-version: swift-6.2-release
+          windows-swift-build: 6.2-RELEASE

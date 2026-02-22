@@ -202,7 +202,6 @@ extension VCDataBuilder {
 }
 
 extension VCDataBuilder.DataBuilderProtocol {
-
   @Sendable
   public func runInTextBlock(_ task: @Sendable () async -> ()) async {
     NSLog("===============================")

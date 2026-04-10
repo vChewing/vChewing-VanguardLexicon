@@ -64,3 +64,16 @@ func testTrie() async throws {
   }
   #expect(matched != nil)
 }
+
+@Test
+func testTextMapBuilderEmitsTypingFileOnly() async throws {
+  let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
+  let iterator = try await builder.getIteratorForLexiconAssemblyTask()
+
+  var fileNames = [String]()
+  for try await chunk in iterator {
+    fileNames.append(chunk.fileName)
+  }
+
+  #expect(fileNames == ["VanguardFactoryDict4Typing.txtMap"])
+}

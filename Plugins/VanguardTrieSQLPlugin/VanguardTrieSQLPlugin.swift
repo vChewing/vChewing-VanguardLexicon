@@ -9,7 +9,7 @@ import PackagePlugin
 struct VanguardTrieSQLPlugin: BuildToolPlugin {
   func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
     let tool = try context.tool(named: "VCDataBuilder")
-    let buildDir = context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData/Release/vanguard-trie-sql")
+    let buildDir = context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData/Build/Release/vanguard-trie-sql")
     let outputFiles = [
       buildDir.appending(path: "VanguardFactoryDict4Typing.sqlite"),
       buildDir.appending(path: "VanguardFactoryDict4RevLookup.sqlite"),

@@ -147,9 +147,7 @@ extension VCDataBuilder.Collector {
       grams += tableKanjiCNS.values.flatMap { $0.map { $0 } }
     }
     guard sorted else { return grams }
-    return grams.sorted { lhs, rhs -> Bool in
-      (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
-    }
+    return grams.sorted(by: VCDataBuilder.Unigram.sortForSerialization)
   }
 
   public func propagateWeights() async {

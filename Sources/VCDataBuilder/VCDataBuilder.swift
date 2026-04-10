@@ -25,6 +25,7 @@ struct Main {
     可用的辭典建置目標：
       vanguardTrieSQL   - 先鋒引擎原廠辭典格式（Trie, SQLite）
       vanguardTriePlist - 先鋒引擎原廠辭典格式（Trie, Plist）
+      vanguardTextMap  - 先鋒引擎原廠辭典格式（Trie, TextMap）
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
       chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文）

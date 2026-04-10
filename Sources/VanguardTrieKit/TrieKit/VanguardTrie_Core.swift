@@ -39,7 +39,12 @@ public enum VanguardTrie {
       guard let separatorChar = separatorRaw.first else { throw decodingErrorSep }
 
       self.readingSeparator = separatorChar
-      let nodesExtracted = try container.decode(Set<TNode>.self, forKey: .nodes)
+      let nodesExtracted: [TNode]
+      if let decodedArray = try? container.decode([TNode].self, forKey: .nodes) {
+        nodesExtracted = decodedArray
+      } else {
+        nodesExtracted = Array(try container.decode(Set<TNode>.self, forKey: .nodes))
+      }
       var nodesMap = [Int: TNode]()
       var newKeyInitialsIDMap: [String: Set<Int>] = [:]
       nodesExtracted.forEach { node in
@@ -117,7 +122,10 @@ public enum VanguardTrie {
           try container.encode(readingKey, forKey: .readingKey)
         }
         if !children.isEmpty {
-          try container.encode(children, forKey: .children)
+          let sortedChildren = Dictionary(uniqueKeysWithValues: children.sorted { lhs, rhs in
+            lhs.key < rhs.key
+          })
+          try container.encode(sortedChildren, forKey: .children)
         }
       }
 
@@ -244,7 +252,7 @@ public enum VanguardTrie {
       var container = encoder.container(keyedBy: CodingKeys.self)
 
       try container.encode(String(readingSeparator), forKey: .readingSeparator)
-      try container.encode(Set(nodes.values), forKey: .nodes)
+      try container.encode(nodes.values.sorted { $0.id < $1.id }, forKey: .nodes)
     }
 
     // MARK: Private

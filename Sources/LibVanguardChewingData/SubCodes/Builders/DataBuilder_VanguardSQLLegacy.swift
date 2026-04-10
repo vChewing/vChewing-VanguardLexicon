@@ -207,11 +207,7 @@ extension VCDataBuilder.Collector {
       keysToHandle = limitedKeys.sorted()
     }
     for key in keysToHandle {
-      var arrValues = [String]()
-      arrValues.append(contentsOf: reverseLookupTable[key] ?? [])
-      arrValues.append(contentsOf: reverseLookupTable4NonKanji[key] ?? [])
-      arrValues.append(contentsOf: reverseLookupTable4CNS[key] ?? [])
-      arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
+      let arrValues = orderedRevLookupValuesForSerialization(of: key)
       let filteredArrValues = VCDataBuilder.TestSampleFilter.filterReadings(arrValues)
       let readingsToUse: [String]
       if VCDataBuilder.TestSampleFilter.isEnabled {
@@ -419,7 +415,11 @@ extension VCDataBuilder.Collector {
     NSLog(
       "|||_handleUnigramTableToSQLLegacy: column=\(columnName) 開始，輸入鍵數=\(table.count)"
     )
-    for (key, unigrams) in table {
+    let sortedKeys = table.keys.sorted {
+      $0.asEncryptedBopomofoKeyChain < $1.asEncryptedBopomofoKeyChain
+    }
+    for key in sortedKeys {
+      guard let unigrams = table[key] else { continue }
       if VCDataBuilder.TestSampleFilter.shouldFilter(key) {
         skippedByFilter += 1
         continue
@@ -436,9 +436,7 @@ extension VCDataBuilder.Collector {
       let sortStart = Date()
       // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
       let safeKey = key.asEncryptedBopomofoKeyChain.replacingOccurrences(of: "'", with: "''")
-      var sortedUnigrams = filteredUnigrams.sorted { lhs, rhs -> Bool in
-        (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
-      }
+      var sortedUnigrams = filteredUnigrams.sorted(by: VCDataBuilder.Unigram.sortForSerialization)
       totalSortTime += Date().timeIntervalSince(sortStart)
       if columnName == "theDataCNS", VCDataBuilder.TestSampleFilter.isEnabled {
         sortedUnigrams = Array(sortedUnigrams.prefix(5))

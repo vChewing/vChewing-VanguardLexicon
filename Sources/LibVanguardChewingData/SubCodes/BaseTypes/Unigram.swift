@@ -22,6 +22,7 @@ extension VCDataBuilder {
       self.score = score
       self.count = count
       self.type = category
+      self.timestamp = VCDataBuilder.Unigram.nextStableSerial()
     }
 
     public required init(from decoder: any Decoder) throws {
@@ -31,6 +32,8 @@ extension VCDataBuilder {
       self.score = try container.decode(Double.self, forKey: .score)
       self.count = try container.decode(Int.self, forKey: .count)
       self.type = try container.decode(Category.self, forKey: .category)
+      self.timestamp = try container.decodeIfPresent(Double.self, forKey: .timestamp)
+        ?? VCDataBuilder.Unigram.nextStableSerial()
     }
 
     // MARK: Public
@@ -59,7 +62,7 @@ extension VCDataBuilder {
     public private(set) var score: Double = -1.0
     public let count: Int
     public let type: Category
-    public let timestamp: Double = Date().timeIntervalSince1970
+    public let timestamp: Double
 
     public var keyValueHash: Int {
       "\(key)\t\(value)".hashValue
@@ -136,6 +139,30 @@ extension VCDataBuilder {
       score = weightRounded
     }
 
+    // MARK: Internal
+
+    static func sortForSerialization(_ lhs: VCDataBuilder.Unigram, _ rhs: VCDataBuilder.Unigram)
+      -> Bool {
+      let lhsKey = lhs.key.asEncryptedBopomofoKeyChain
+      let rhsKey = rhs.key.asEncryptedBopomofoKeyChain
+      if lhsKey != rhsKey {
+        return lhsKey < rhsKey
+      }
+      if lhs.score != rhs.score {
+        return lhs.score > rhs.score
+      }
+      if lhs.timestamp != rhs.timestamp {
+        return lhs.timestamp < rhs.timestamp
+      }
+      if lhs.value != rhs.value {
+        return lhs.value < rhs.value
+      }
+      if lhs.type != rhs.type {
+        return lhs.type.description < rhs.type.description
+      }
+      return lhs.count > rhs.count
+    }
+
     // MARK: Private
 
     private enum CodingKeys: String, CodingKey {
@@ -145,6 +172,17 @@ extension VCDataBuilder {
       case count = "c"
       case category = "t"
       case timestamp = "d"
+    }
+
+    private static let stableSerialLock = NSLock()
+    nonisolated(unsafe) private static var stableSerialCursor: Double = 0
+
+    private static func nextStableSerial() -> Double {
+      stableSerialLock.lock()
+      defer { stableSerialLock.unlock() }
+      let result = stableSerialCursor
+      stableSerialCursor += 1
+      return result
     }
   }
 }

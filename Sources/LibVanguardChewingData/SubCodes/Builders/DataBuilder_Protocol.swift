@@ -47,10 +47,75 @@ extension VCDataBuilder {
   public protocol TriePreparatorProtocol: Actor, DataBuilderProtocol {
     nonisolated var mutexTrie4Typing: NSMutex<VanguardTrie.Trie> { get }
     nonisolated var mutexTrie4Rev: NSMutex<VanguardTrie.Trie> { get }
+    nonisolated var shouldPrepareRevLookupTrie: Bool { get }
+  }
+}
+
+// MARK: - VCDataBuilder.PreparedTypingTrieInsertion
+
+extension VCDataBuilder {
+  fileprivate struct PreparedTypingTrieInsertion: Sendable {
+    let entry: VanguardTrie.Trie.Entry
+    let readingArray: [String]
+    let encryptedReadingKey: String
+    let orderToken: Double
+  }
+}
+
+extension VCDataBuilder.Unigram {
+  fileprivate func asPreparedTypingTrieInsertion(type: VanguardTrie.Trie.EntryType)
+    -> VCDataBuilder.PreparedTypingTrieInsertion? {
+    guard let (entry, readingArray) = asEntry(type: type) else { return nil }
+    let encryptedReadingKey = readingArray.map(\.asEncryptedBopomofoKeyChain).joined(separator: "-")
+    return .init(
+      entry: entry,
+      readingArray: readingArray,
+      encryptedReadingKey: encryptedReadingKey,
+      orderToken: timestamp
+    )
+  }
+}
+
+extension VCDataBuilder.Collector {
+  func sortedRevLookupKeysForSerialization() -> [String] {
+    var allKeys = Set<String>()
+    reverseLookupTable.keys.forEach { allKeys.insert($0) }
+    reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
+    reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
+
+    var allKeysToHandle = allKeys.sorted()
+    if VCDataBuilder.TestSampleFilter.isEnabled {
+      let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
+      var limitedKeys = Array(allKeysToHandle.prefix(limit))
+      if allKeys.contains("和"), !limitedKeys.contains("和") {
+        limitedKeys.append("和")
+        limitedKeys.sort()
+      }
+      allKeysToHandle = limitedKeys
+    }
+    return allKeysToHandle
+  }
+
+  func orderedRevLookupValuesForSerialization(of key: String) -> [String] {
+    let buckets = [
+      Array(reverseLookupTable[key] ?? []).sorted(),
+      Array(reverseLookupTable4NonKanji[key] ?? []).sorted(),
+      Array(reverseLookupTable4CNS[key] ?? []).sorted(),
+    ]
+    var handled = Set<String>()
+    var result = [String]()
+    for bucket in buckets {
+      for value in bucket where handled.insert(value).inserted {
+        result.append(value)
+      }
+    }
+    return result
   }
 }
 
 extension VCDataBuilder.TriePreparatorProtocol {
+  nonisolated public var shouldPrepareRevLookupTrie: Bool { true }
+
   public var trie4Typing: VanguardTrie.Trie { mutexTrie4Typing.value }
   public var trie4Rev: VanguardTrie.Trie { mutexTrie4Rev.value }
 
@@ -76,98 +141,126 @@ extension VCDataBuilder.TriePreparatorProtocol {
       previous: nil
     )
     trie4Typing.insert(entry: dateEntry, readings: [dateEntryKey])
-    trie4Rev.insert(entry: dateEntry, readings: [dateEntryKey])
+    if shouldPrepareRevLookupTrie {
+      trie4Rev.insert(entry: dateEntry, readings: [dateEntryKey])
+    }
 
     await withTaskGroup(of: Void.self) { group in
-      group.addTask { [self] in
-        // 反查表
-        var allKeys = Set<String>()
-        let table = await data.reverseLookupTable
-        let tableNonKanji = await data.reverseLookupTable4NonKanji
-        let tableCNS = await data.reverseLookupTable4CNS
-
-        table.keys.forEach { allKeys.insert($0) }
-        tableNonKanji.keys.forEach { allKeys.insert($0) }
-        tableCNS.keys.forEach { allKeys.insert($0) }
-
-        var allKeysToHandle = allKeys.sorted()
-        if VCDataBuilder.TestSampleFilter.isEnabled {
-          let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
-          var limitedKeys = Array(allKeysToHandle.prefix(limit))
-          if allKeys.contains("和"), !limitedKeys.contains("和") {
-            limitedKeys.append("和")
-            limitedKeys.sort()
+      if shouldPrepareRevLookupTrie {
+        group.addTask { [self] in
+          // 反查表
+          let allKeysToHandle = await data.sortedRevLookupKeysForSerialization()
+          for key in allKeysToHandle {
+            let arrValues = await data.orderedRevLookupValuesForSerialization(of: key)
+            let newEntry = VanguardTrie.Trie.Entry(
+              value: arrValues.joined(separator: "\t").asEncryptedBopomofoKeyChain,
+              typeID: .revLookup,
+              probability: 0,
+              previous: nil
+            )
+            mutexTrie4Rev.withLock {
+              $0.insert(entry: newEntry, readings: [key])
+            }
           }
-          allKeysToHandle = limitedKeys
+          NSLog(" - 通用: 成功構築辭典樹（反查表）。")
         }
-        for key in allKeysToHandle {
-          var arrValues = [String]()
-          arrValues.append(contentsOf: table[key] ?? [])
-          arrValues.append(contentsOf: tableNonKanji[key] ?? [])
-          arrValues.append(contentsOf: tableCNS[key] ?? [])
-          arrValues = NSOrderedSet(array: arrValues).array.compactMap { $0 as? String }
-          let newEntry = VanguardTrie.Trie.Entry(
-            value: arrValues.joined(separator: "\t").asEncryptedBopomofoKeyChain,
-            typeID: .revLookup,
-            probability: 0,
-            previous: nil
-          )
-          mutexTrie4Rev.withLock {
-            $0.insert(entry: newEntry, readings: [key])
-          }
-        }
-        NSLog(" - 通用: 成功構築辭典樹（反查表）。")
       }
       group.addTask { [self] in
-        await withTaskGroup(of: [(VanguardTrie.Trie.Entry, [String])].self) { subGroup in
+        await withTaskGroup(of: (Int32, [VCDataBuilder.PreparedTypingTrieInsertion]).self) {
+          subGroup in
           subGroup.addTask {
             // 簡體中文
-            await self.data.unigramsKanjiCHS.values.flatMap {
+            let insertions = await self.data.unigramsKanjiCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.compactMap { $0.asEntry(type: .chs) }
+            }.compactMap { $0.asPreparedTypingTrieInsertion(type: .chs) }
+            return (VanguardTrie.Trie.EntryType.chs.rawValue, insertions)
           }
           subGroup.addTask {
-            await self.data.unigramsCHS.values.flatMap {
+            let insertions = await self.data.unigramsCHS.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.compactMap { $0.asEntry(type: .chs) }
+            }.compactMap { $0.asPreparedTypingTrieInsertion(type: .chs) }
+            return (VanguardTrie.Trie.EntryType.chs.rawValue, insertions)
           }
           subGroup.addTask {
             // 繁體中文
-            await self.data.unigramsKanjiCHT.values.flatMap {
+            let insertions = await self.data.unigramsKanjiCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.compactMap { $0.asEntry(type: .cht) }
+            }.compactMap { $0.asPreparedTypingTrieInsertion(type: .cht) }
+            return (VanguardTrie.Trie.EntryType.cht.rawValue, insertions)
           }
           subGroup.addTask {
-            await self.data.unigramsCHT.values.flatMap {
+            let insertions = await self.data.unigramsCHT.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.compactMap { $0.asEntry(type: .cht) }
+            }.compactMap { $0.asPreparedTypingTrieInsertion(type: .cht) }
+            return (VanguardTrie.Trie.EntryType.cht.rawValue, insertions)
           }
           subGroup.addTask {
             // 非漢字
-            await self.data.unigrams4NonKanji.values.flatMap {
+            let insertions = await self.data.unigrams4NonKanji.values.flatMap {
               $0.values.flatMap { $0.map { $0 } }
-            }.compactMap { $0.asEntry(type: .nonKanji) }
+            }.compactMap { $0.asPreparedTypingTrieInsertion(type: .nonKanji) }
+            return (VanguardTrie.Trie.EntryType.nonKanji.rawValue, insertions)
           }
           subGroup.addTask {
             // 符號詞組
-            await self.data.getSymbols().compactMap { $0.asEntry(type: .symbolPhrases) }
+            let insertions = await self.data.getSymbols().compactMap {
+              $0.asPreparedTypingTrieInsertion(type: .symbolPhrases)
+            }
+            return (VanguardTrie.Trie.EntryType.symbolPhrases.rawValue, insertions)
           }
           subGroup.addTask {
             // 注音文
-            await self.data.getZhuyinwen().compactMap { $0.asEntry(type: .zhuyinwen) }
+            let insertions = await self.data.getZhuyinwen().compactMap {
+              $0.asPreparedTypingTrieInsertion(type: .zhuyinwen)
+            }
+            return (VanguardTrie.Trie.EntryType.zhuyinwen.rawValue, insertions)
           }
           subGroup.addTask {
             // 字母與標點符號
-            await self.data.getPunctuations().compactMap { $0.asEntry(type: .letterPunctuations) }
+            let insertions = await self.data.getPunctuations().compactMap {
+              $0.asPreparedTypingTrieInsertion(type: .letterPunctuations)
+            }
+            return (VanguardTrie.Trie.EntryType.letterPunctuations.rawValue, insertions)
           }
           subGroup.addTask {
             // CNS 全字庫
-            await self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap { $0.asEntry(type: .cns) }
+            let insertions = await self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap {
+              $0.asPreparedTypingTrieInsertion(type: .cns)
+            }
+            return (VanguardTrie.Trie.EntryType.cns.rawValue, insertions)
           }
-          for await result in subGroup {
-            for x in result {
+          var insertionsByType = [Int32: [VCDataBuilder.PreparedTypingTrieInsertion]]()
+          for await (typeID, insertions) in subGroup {
+            insertionsByType[typeID, default: []].append(contentsOf: insertions)
+          }
+          let orderedTypeIDs: [Int32] = [
+            VanguardTrie.Trie.EntryType.chs.rawValue,
+            VanguardTrie.Trie.EntryType.cht.rawValue,
+            VanguardTrie.Trie.EntryType.nonKanji.rawValue,
+            VanguardTrie.Trie.EntryType.symbolPhrases.rawValue,
+            VanguardTrie.Trie.EntryType.zhuyinwen.rawValue,
+            VanguardTrie.Trie.EntryType.letterPunctuations.rawValue,
+            VanguardTrie.Trie.EntryType.cns.rawValue,
+          ]
+          for typeID in orderedTypeIDs {
+            let sortedInsertions = (insertionsByType[typeID] ?? []).sorted { lhs, rhs in
+              if lhs.encryptedReadingKey != rhs.encryptedReadingKey {
+                return lhs.encryptedReadingKey < rhs.encryptedReadingKey
+              }
+              if lhs.entry.probability != rhs.entry.probability {
+                return lhs.entry.probability > rhs.entry.probability
+              }
+              if lhs.orderToken != rhs.orderToken {
+                return lhs.orderToken < rhs.orderToken
+              }
+              if lhs.entry.value != rhs.entry.value {
+                return lhs.entry.value < rhs.entry.value
+              }
+              return (lhs.entry.previous ?? "") < (rhs.entry.previous ?? "")
+            }
+            for insertion in sortedInsertions {
               mutexTrie4Typing.withLock {
-                $0.insert(entry: x.0, readingsEncrypted: x.1)
+                $0.insert(entry: insertion.entry, readingsEncrypted: insertion.readingArray)
               }
             }
           }
@@ -437,6 +530,7 @@ extension VCDataBuilder {
   public enum BuilderType: String, CaseIterable, Sendable, Hashable, Codable {
     case vanguardTrieSQL
     case vanguardTriePlist
+    case vanguardTextMap
     case chewingRustCHS
     case chewingRustCHT
     case chewingCBasedCHS
@@ -452,6 +546,7 @@ extension VCDataBuilder.BuilderType {
     switch self {
     case .vanguardTrieSQL: try await VCDataBuilder.VanguardTrieSQLDataBuilder(isCHS: nil)
     case .vanguardTriePlist: try await VCDataBuilder.VanguardTriePlistDataBuilder(isCHS: nil)
+    case .vanguardTextMap: try await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil)
     case .chewingRustCHS: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: true)
     case .chewingRustCHT: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: false)
     case .chewingCBasedCHS: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: true)

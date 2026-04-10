@@ -105,9 +105,10 @@ extension VanguardTrie {
       let batchSize = 500 // 每批插入的節點數量
       var nodeValues: [String] = []
       var count = 0
+      let sortedNodes = nodes.sorted { $0.key < $1.key }
 
       // 處理所有節點（包括根節點）
-      for (id, node) in nodes {
+      for (id, node) in sortedNodes {
         // 正確處理所有字串以避免 SQL 注入和引號問題
         let escapedReadingKey = escapeSQLString(node.readingKey)
 
@@ -122,7 +123,7 @@ extension VanguardTrie {
         count += 1
 
         // 達到批處理大小或處理完所有節點時，生成一條批量插入語句
-        if nodeValues.count >= batchSize || count == nodes.count {
+        if nodeValues.count >= batchSize || count == sortedNodes.count {
           sqlCommands
             .append(
               "INSERT INTO nodes (id, reading_key, entries_blob) VALUES \(nodeValues.joined(separator: ","));"
@@ -171,12 +172,14 @@ extension VanguardTrie {
     ) {
       let batchSize = 500 // 每批插入數量
       var keyInitialsValues: [String] = []
+      let sortedKeyInitials = keyInitialsMap.keys.sorted()
 
       // 遍歷所有 keyInitials 和對應的節點 ID Set
-      for (keyInitials, nodeIDs) in keyInitialsMap {
+      for keyInitials in sortedKeyInitials {
+        guard let nodeIDs = keyInitialsMap[keyInitials] else { continue }
         let escapedKeyInitials = escapeSQLString(keyInitials)
         // 將 Set<Int> 轉換為 JSON 字串
-        let jsonData = try? JSONEncoder().encode(nodeIDs)
+        let jsonData = try? JSONEncoder().encode(Array(nodeIDs).sorted())
         if let jsonString = jsonData.map({ String(data: $0, encoding: .utf8) ?? "[]" }) {
           let escapedJsonString = escapeSQLString(jsonString)
           keyInitialsValues.append("('\(escapedKeyInitials)', '\(escapedJsonString)')")

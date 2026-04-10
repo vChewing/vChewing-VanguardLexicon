@@ -30,6 +30,10 @@ let package = Package(
       name: "TextTemplateAssetInjectorPlugin",
       targets: ["TextTemplateAssetInjectorPlugin"]
     ),
+    .plugin(
+      name: "VanguardTextMapPlugin",
+      targets: ["VanguardTextMapPlugin"]
+    ),
   ],
   targets: {
     let targets: [Target] = [
@@ -67,6 +71,11 @@ let package = Package(
       ),
       .plugin(
         name: "TextTemplateAssetInjectorPlugin",
+        capability: .buildTool(),
+        dependencies: ["VCDataBuilder"]
+      ),
+      .plugin(
+        name: "VanguardTextMapPlugin",
         capability: .buildTool(),
         dependencies: ["VCDataBuilder"]
       ),

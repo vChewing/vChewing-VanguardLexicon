@@ -24,6 +24,12 @@ Linux 系统的话，请注意两个先决条件：
 
 本仓库的格式化往往是 `make lint; make format` 按照这个顺序一次性执行格式化操作。
 
+如果要验证 `SMALL_TESTABLE_SAMPLE` 模式下的建置产物是否保持恆定，可以直接在仓库根目录运行：
+
+- `./verify_tiny_sample_determinism.sh`
+
+这道脚本会连续建置 `vanguardSQLLegacy`、`vanguardTriePlist`、`vanguardTrieSQL`、`vanguardTextMap` 各两次，并在比较时忽略 `_BUILD_TIMESTAMP` 这项刻意允许漂移的元资料；其余内容若有差异，会直接打印为 `DIFF`。
+
 在使用本仓库时，请在仓库根目录下运行 `swift run`，会出现类似下述格式的使用说明：
 
 ```

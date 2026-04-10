@@ -5,21 +5,22 @@
 import Foundation
 import PackagePlugin
 
+// VanguardTextMap 不包括 RevLookup 資料，因為這種資料可以通過主資料表直接產生。
+
 @main
-struct VanguardSQLLegacyPlugin: BuildToolPlugin {
+struct VanguardTextMapPlugin: BuildToolPlugin {
   func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
     let tool = try context.tool(named: "VCDataBuilder")
-    let buildDir = context.pluginWorkDirectoryURL
-      .appending(path: "VanguardLexiconData/Build/Release/vanguardSQL-Legacy")
+    let buildDir = context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData/Build/Release/vanguard-textmap")
     let outputFiles = [
-      buildDir.appending(path: "vChewingFactoryDatabase.sqlite"),
+      buildDir.appending(path: "VanguardFactoryDict4Typing.txtMap"),
     ]
 
     return [
       .buildCommand(
-        displayName: "VCDataBuilder: VanguardSQLLegacy",
+        displayName: "VCDataBuilder: VanguardTextMap",
         executable: tool.url,
-        arguments: ["vanguardSQLLegacy"],
+        arguments: ["vanguardTextMap"],
         environment: [
           "VANGUARD_OUTPUT_DIR": context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData").path,
         ],

@@ -79,6 +79,11 @@ ifeq ($(OS),Windows_NT)
 	/usr/bin/swift run VCDataBuilder vanguardSQLLegacy
 endif
 
+vanguardTextMap-macOS:
+ifeq ($(UNAME_S),Darwin)
+	/usr/bin/swift run VCDataBuilder vanguardTextMap
+endif
+
 install-vchewing: macv
 ifeq ($(OS),Windows_NT)
 	@echo "Windows 不支援 vChewing。"

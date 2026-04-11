@@ -5,6 +5,9 @@ TextMap 現為**單一檔案格式**：**Typing TextMap**（`.txtMap`）。
 > 自 2026-04-11 起，`vanguardTextMap` builder / plugin 不再生成 `VanguardFactoryDict4RevLookup.revlookup`。
 > 過去的 dedicated RevLookup TSV 僅屬未曾推往 production 的草案產物，現已正式退出規格；需要反查時，應由 consumer 端直接從 MainTextMap 派生生成。
 
+> [!WARNING]
+> 為保持檔案整潔性與 git 歷史可讀性，建議將該格式（`.txtMap`）納入 .gitattributes 的 CRLF/LF 自動轉換例外忽略清單。雖然最新版 parser 已支援 CRLF 相容性，混雜的換行符仍會導致 git diff 雜訊且增加後續維護風險。幸運的是，因為 KEY_LINE_MAP 區段記載的起始位置是「行號」而非 data byte position 資訊的緣故，前述故障發生了也不會導致不可逆的資料損毀。
+
 ### Typing TextMap（`.txtMap`）
 
 三段式 PRAGMA 結構。分隔符為 Tab (`\t`)。

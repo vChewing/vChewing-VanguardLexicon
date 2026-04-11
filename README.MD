@@ -9,7 +9,7 @@
 > [!WARNING]
 > 敝专案所支持的的目标建置格式当中的 VanguardTextMap 格式会因为 Git 的 CRLF / LF 自动转换行为而出现一些异常。这些异常并非不可逆转，但仍会带来一些管理层面上的麻烦。详见敝专案的 `./ValueAdds/Specs/VanguardTextMapSpec.md` 档案。
 
-针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.7。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
+针对以下组译对象的组译过程均需要 swift 脚本支援，且 swift 版本不小于 5.10。除非你要支持非常老的 macOS 系统，否则最好使用至少 Swift 6.2。Windows 的话建议 Swift 6.3+。<br />理想状态就是至少 macOS Catalina 且安装了带有对应版本 swift 支援的 Xcode 命令列工具。
 
 Linux 系统的话，请注意两个先决条件：
 1. 洽 [swiftlygo.xyz](https://swiftlygo.xyz/) 网站提供的指引、来安装 Swift 语言。

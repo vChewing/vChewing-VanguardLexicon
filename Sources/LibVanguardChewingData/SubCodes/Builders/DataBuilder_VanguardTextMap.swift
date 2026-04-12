@@ -70,7 +70,7 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
     if FileManager.default.fileExists(atPath: legacyRevLookupURL.path) {
       try FileManager.default.removeItem(at: legacyRevLookupURL)
     }
-    print("Vanguard TextMap database initialization completed successfully.")
+    NSLog("Vanguard TextMap 資料庫初期化已成功完成。")
   }
 }
 

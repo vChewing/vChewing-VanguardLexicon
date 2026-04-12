@@ -72,7 +72,7 @@ dockerrun:
 install: install-vchewing clean
 
 macv:
-	swift run VCDataBuilder vanguardSQLLegacy
+	swift run VCDataBuilder vanguardTextMap
 
 vanguardSQLLegacy:
 ifeq ($(OS),Windows_NT)
@@ -90,7 +90,7 @@ ifeq ($(OS),Windows_NT)
 else
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署唯音輸入法核心語彙檔案……$$(tput sgr0)\033[0m"
 	@$(MKDIR) "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
-	@$(CP) "$(BUILD_DIR)/Release/vanguardSQL-Legacy/vChewingFactoryDatabase.sqlite" "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
+	@$(CP) "$(BUILD_DIR)/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap" "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
 	@$(PKILL) vChewing || echo "// vChewing is not running"
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 endif

@@ -11,12 +11,121 @@ extension VCDataBuilder.Collector {
     return result
   }()
 
+  struct DuplicateScanSource: Sendable {
+    let name: String
+    let content: String
+    let readingFieldIndex: Int
+  }
+
+  struct DuplicateRecord: Hashable, Sendable {
+    let phrase: String
+    let reading: String
+    let source: String
+    let lineNumber: Int
+    let rawLine: String
+
+    var signature: String {
+      phrase + "\t" + reading
+    }
+  }
+
+  struct DuplicateGroup: Sendable {
+    let phrase: String
+    let reading: String
+    let records: [DuplicateRecord]
+
+    var signature: String {
+      phrase + "\t" + reading
+    }
+  }
+
+  static func collectDuplicateGroups(
+    in sources: [DuplicateScanSource],
+    compatibleMode: Bool
+  )
+    -> [DuplicateGroup] {
+    var buckets = [String: [DuplicateRecord]]()
+
+    sources.sorted(by: { $0.name < $1.name }).forEach { source in
+      normalizedLinesForDuplicateScan(
+        from: source.content,
+        compatibleMode: compatibleMode
+      ).forEach { lineNumber, line in
+        guard let record = makeDuplicateRecord(
+          from: line,
+          source: source.name,
+          lineNumber: lineNumber,
+          readingFieldIndex: source.readingFieldIndex
+        ) else {
+          return
+        }
+        buckets[record.signature, default: []].append(record)
+      }
+    }
+
+    return buckets.values.compactMap { records in
+      guard records.count > 1 else { return nil }
+      let sortedRecords = records.sorted { lhs, rhs in
+        if lhs.source != rhs.source {
+          return lhs.source < rhs.source
+        }
+        if lhs.lineNumber != rhs.lineNumber {
+          return lhs.lineNumber < rhs.lineNumber
+        }
+        return lhs.rawLine < rhs.rawLine
+      }
+      guard let firstRecord = sortedRecords.first else { return nil }
+      return DuplicateGroup(
+        phrase: firstRecord.phrase,
+        reading: firstRecord.reading,
+        records: sortedRecords
+      )
+    }.sorted { lhs, rhs in
+      if lhs.phrase != rhs.phrase {
+        return lhs.phrase < rhs.phrase
+      }
+      return lhs.reading < rhs.reading
+    }
+  }
+
+  static func renderDuplicateReport(from groups: [DuplicateGroup]) -> [String] {
+    guard !groups.isEmpty else { return [] }
+
+    let totalRecordCount = groups.reduce(0) { partialResult, group in
+      partialResult + group.records.count
+    }
+    let duplicatedRecordCount = groups.reduce(0) { partialResult, group in
+      partialResult + max(0, group.records.count - 1)
+    }
+
+    var lines = [String]()
+    lines.append(Self.lineSeparator4HealthCheck)
+    lines.append("健檢測試失敗：")
+    lines.append(
+      "發現 \(groups.count) 組重複詞條，共涉及 \(totalRecordCount) 筆記錄，其中重複項 \(duplicatedRecordCount) 筆。"
+    )
+    lines.append("下述重複項目請務必手動排查：")
+
+    groups.forEach { group in
+      lines.append("【\(group.signature)】")
+      group.records.forEach { record in
+        lines.append("  [\(record.source):\(record.lineNumber)] \(record.rawLine)")
+      }
+    }
+
+    return lines
+  }
+
   /// 健檢函式。
   func healthCheckPerMode(isCHS: Bool) throws -> [String] {
     let i18nTag = isCHS ? "簡體中文" : "繁體中文"
     NSLog(" - \(i18nTag): 開始籌集資料、準備執行健康度測試。")
     let data = getAllUnigrams(isCHS: isCHS)
     NSLog(" - \(i18nTag): 開始執行健康度測試。")
+    let duplicateGroups = try Self.collectDuplicateGroups(
+      in: duplicateScanSources(isCHS: isCHS),
+      compatibleMode: compatibleMode
+    )
     var result = [String]()
     var unigramMonoCharPromotedMap = [String: VCDataBuilder.Unigram]()
     var valueToScore = [String: Double]()
@@ -182,16 +291,116 @@ extension VCDataBuilder.Collector {
       }
     }
 
-    guard faulty.isEmpty else {
+    var shouldFail = false
+
+    if !duplicateGroups.isEmpty {
+      Self.renderDuplicateReport(from: duplicateGroups).forEach(printl)
+      shouldFail = true
+    }
+
+    if !faulty.isEmpty {
       printl(Self.lineSeparator4HealthCheck)
-      printl("健檢測試失敗：")
+      if !shouldFail {
+        printl("健檢測試失敗：")
+      }
       printl("下述單元圖用到了漢字核心表當中尚未收錄的讀音，可能無法正常輸入：")
       for content in faulty {
         printl("\(content.key): \(content.value)")
       }
+      shouldFail = true
+    }
+
+    if shouldFail {
       throw VCDataBuilder.Exception.healthCheckException(result)
     }
 
     return result
+  }
+
+  private static func normalizedLinesForDuplicateScan(
+    from content: String,
+    compatibleMode: Bool
+  )
+    -> [(lineNumber: Int, line: String)] {
+    let regexPatterns = VCDataBuilder.Unigram.preparedRegexPatterns(
+      compatibleMode: compatibleMode
+    )
+    let enumerated = content.components(separatedBy: .newlines).enumerated()
+    return enumerated.compactMap { index, rawLine in
+      var normalized = rawLine
+      for (regex, replacement) in regexPatterns {
+        normalized = regex.stringByReplacingMatches(
+          in: normalized,
+          options: [],
+          range: NSRange(location: 0, length: normalized.utf16.count),
+          withTemplate: replacement
+        )
+      }
+      guard !normalized.isEmpty else { return nil }
+      return (lineNumber: index + 1, line: normalized)
+    }
+  }
+
+  private static func makeDuplicateRecord(
+    from line: String,
+    source: String,
+    lineNumber: Int,
+    readingFieldIndex: Int
+  )
+    -> DuplicateRecord? {
+    let components = line.components(separatedBy: " ")
+    guard components.count > readingFieldIndex else { return nil }
+
+    let phrase = components[0]
+    let reading = components[readingFieldIndex...].joined(separator: "-")
+    guard !phrase.isEmpty, !reading.isEmpty else { return nil }
+
+    return DuplicateRecord(
+      phrase: phrase,
+      reading: reading,
+      source: source,
+      lineNumber: lineNumber,
+      rawLine: line
+    )
+  }
+
+  private func duplicateScanSources(isCHS: Bool) throws -> [DuplicateScanSource] {
+    var sources = [DuplicateScanSource]()
+
+    func appendSingleSource(matching regex: String, readingFieldIndex: Int) throws {
+      guard let fileURL = try Bundle.module.findFiles(matching: regex, extension: "txt").first else {
+        throw VCDataBuilder.Exception.errMsg(
+          "Missing health check asset matching '\(regex).txt'."
+        )
+      }
+      let content = try String(contentsOf: fileURL, encoding: .utf8)
+      sources.append(
+        DuplicateScanSource(
+          name: fileURL.lastPathComponent,
+          content: content,
+          readingFieldIndex: readingFieldIndex
+        )
+      )
+    }
+
+    try appendSingleSource(matching: "char-kanji-core", readingFieldIndex: 3)
+    try appendSingleSource(matching: "char-misc-bpmf", readingFieldIndex: 2)
+    try appendSingleSource(matching: "char-misc-nonkanji", readingFieldIndex: 2)
+
+    try VCDataBuilder.Unigram.Category.allCases.forEach { category in
+      let urls = try category.urlsOfPhraseAssets(isCHS: isCHS)
+      try urls.forEach { fileURL in
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        sources.append(
+          DuplicateScanSource(
+            name: fileURL.lastPathComponent,
+            content: content,
+            readingFieldIndex: 2
+          )
+        )
+      }
+    }
+
+    return sources
   }
 }

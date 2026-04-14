@@ -78,6 +78,7 @@ extension VCDataBuilder {
       self.reverseLookupTable4NonKanji = reverseLookupTable4NonKanji
       self.reverseLookupTable4CNS = reverseLookupTable4CNS
       self.norm = temporaryNormShared + (norms.max() ?? 0)
+      self.compatibleMode = compatibleMode
       self.unigramsKanjiCHS = unigramsKanjiCHS
       self.unigramsKanjiCHT = unigramsKanjiCHT
       self.tableKanjiCNS = tableKanjiCNS
@@ -95,6 +96,7 @@ extension VCDataBuilder {
     public let reverseLookupTable4NonKanji: [String: Set<String>]
     public let reverseLookupTable4CNS: [String: Set<String>]
     public let norm: Double
+    public let compatibleMode: Bool
     public private(set) var weightPropagated: Bool = false
     public private(set) var exceptedChars: Set<String> = .init()
   }

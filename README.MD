@@ -14,8 +14,9 @@
 Linux 系统的话，请注意两个先决条件：
 1. 洽 [swiftlygo.xyz](https://swiftlygo.xyz/) 网站提供的指引、来安装 Swift 语言。
     - 关于在 Linux / WinNT / macOS 系统下安装 Swift 语言的更通用的方法，请洽 [Swift 官方网站](https://www.swift.org/)。
-2. 如果要建置給（0.6.1 版开始的以 Rust 语言写就的）新酷音輸入法使用的話，你得在安裝最新 Rust 稳定版之后、通过 `cargo install chewing-cli` 命令安装 chewing-cli。
-    - 关于 Rust 语言的安装方法请洽 [Rust 官方网站](https://www.rust-lang.org/)。
+2. 如果要把 chewingRustCHS / chewingRustCHT 的建置产物回灌到 libchewing-rust 做额外 smoke test，再另外安装 Rust 工具链即可。
+  - VanguardLexicon 现在已经会直接用纯 Swift 生成 `tsi.dat` 与 `word.dat`，不再依赖 `cargo install chewing-cli`。
+  - 关于 Rust 语言的安装方法请洽 [Rust 官方网站](https://www.rust-lang.org/)。
 
 ------
 
@@ -62,14 +63,9 @@ Linux 系统的话，请注意两个先决条件：
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
         `dictionary.dat` 與 `index_tree.dat`，不再依賴 precompiled `init_database` binary。
         除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
-      2. chewingRustCHS 與 chewingRustCHT 在 Windows 系统下建置的話，
-         需要事先安裝「TSF 版」新酷音輸入法、且版本至少 2024.10.1。
-         已知該版 TSF 新酷音有同綑 chewing-cli 工具，該工具可以用來建置辭典。
-         而敝倉庫會生成用以建置辭典的所有原始檔案格式（tsi.src 與 word.src）。
-      3. Windows 系統下建置時需要注意：
-           - 需要 PowerShell 5.1 或更高版本
-           - 執行策略（Execution Policy）需要允許執行本地腳本
-           - 建議使用管理員權限執行，以避免檔案權限問題。
+      2. chewingRustCHS 與 chewingRustCHT 現由本倉庫內的純 Swift 產生器直接生成
+         `tsi.dat` 與 `word.dat`，不再依賴外部 chewing-cli 或任何已安裝的新酷音工具。
+         若要把建置產物回灌給 libchewing-rust 做 smoke test，再另行安裝 Rust 工具鏈即可。
 
     範例：
       // 給所有的建置目標全部建置一遍：

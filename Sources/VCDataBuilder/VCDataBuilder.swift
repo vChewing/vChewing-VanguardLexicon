@@ -38,14 +38,9 @@ struct Main {
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
         `dictionary.dat` 與 `index_tree.dat`，不再依賴 precompiled `init_database` binary。
         除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
-      2. chewingRustCHS 與 chewingRustCHT 在 Windows 系统下建置的話，
-         需要事先安裝「TSF 版」新酷音輸入法、且版本至少 2024.10.1。
-         已知該版 TSF 新酷音有同綑 chewing-cli 工具，該工具可以用來建置辭典。
-         而敝倉庫會生成用以建置辭典的所有原始檔案格式（tsi.src 與 word.src）。
-      3. Windows 系統下建置時需要注意：
-           - 需要 PowerShell 5.1 或更高版本
-           - 執行策略（Execution Policy）需要允許執行本地腳本
-           - 建議使用管理員權限執行，以避免檔案權限問題。
+      2. chewingRustCHS 與 chewingRustCHT 現由本倉庫內的純 Swift 產生器直接生成
+         `tsi.dat` 與 `word.dat`，不再依賴外部 chewing-cli 或任何已安裝的新酷音工具。
+         若要把建置產物回灌給 libchewing-rust 做 smoke test，再另行安裝 Rust 工具鏈即可。
 
     範例：
       // 給所有的建置目標全部建置一遍：

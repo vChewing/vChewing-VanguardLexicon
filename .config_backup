@@ -24,7 +24,7 @@
         fetch = +refs/heads/*:refs/remotes/all/*
         pushurl = https://atomgit.com/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://gitee.com/vchewing/vChewing-VanguardLexicon.git/
-        pushurl = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git/
+        pushurl = https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon/
         pushurl = https://gitcode.net/vChewing/vChewing-VanguardLexicon.git/
         pushurl = https://github.com/vChewing/vChewing-VanguardLexicon/
 [lfs]

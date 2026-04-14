@@ -28,18 +28,16 @@ struct Main {
       vanguardTextMap  - 先鋒引擎原廠辭典格式（Trie, TextMap）
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
-      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文）
-      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文）
+      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文，純 Swift 生成器）
+      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
       mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
       mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
       vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite 格式）
 
     注意：
-      1. chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：
-           - macOS 10.15 以上（Intel 或 Apple Silicon）
-           - Linux（僅 x86_64）
-           - Windows NT 10.0 以上（僅 x86_64）
-         除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
+      1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
+        `dictionary.dat` 與 `index_tree.dat`，不再依賴 precompiled `init_database` binary。
+        除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
       2. chewingRustCHS 與 chewingRustCHT 在 Windows 系统下建置的話，
          需要事先安裝「TSF 版」新酷音輸入法、且版本至少 2024.10.1。
          已知該版 TSF 新酷音有同綑 chewing-cli 工具，該工具可以用來建置辭典。

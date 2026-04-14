@@ -158,7 +158,6 @@ Backup*/
 BenchmarkDotNet.Artifacts/
 bin/cook_mac.exe
 bin/dataCompiler.exe
-bin/libchewing-database-initializer/init_database
 bld/
 BPMFBase.txt
 BPMFMappings-tmp.txt

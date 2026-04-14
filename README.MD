@@ -52,18 +52,16 @@ Linux 系统的话，请注意两个先决条件：
       vanguardTriePlist - 先鋒引擎原廠辭典格式（Trie, Plist）
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
-      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文）
-      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文）
+      chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文，純 Swift 生成器）
+      chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
       mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
       mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
       vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite 格式）
 
     注意：
-      1. chewingCBasedCHS 與 chewingCBasedCHT 的建置僅可以在下述系統內執行：
-           - macOS 10.15 以上（Intel 或 Apple Silicon）
-           - Linux（僅 x86_64）
-           - Windows NT 10.0 以上（僅 x86_64）
-         除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
+      1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
+        `dictionary.dat` 與 `index_tree.dat`，不再依賴 precompiled `init_database` binary。
+        除非迫不得已，否則請改用以 Rust 語言寫就的次世代新酷音輸入法引擎。
       2. chewingRustCHS 與 chewingRustCHT 在 Windows 系统下建置的話，
          需要事先安裝「TSF 版」新酷音輸入法、且版本至少 2024.10.1。
          已知該版 TSF 新酷音有同綑 chewing-cli 工具，該工具可以用來建置辭典。
@@ -125,7 +123,7 @@ Linux 系统的话，请注意两个先决条件：
 
 注一：该仓库的 Swift 脚本编译系统虽有对新酷音词库格式的支持，却并未使用新酷音的字词库与频率语料，故不受其 LGPLv2 协议之约束。
 
-注二：该仓库随赠一套 LibChewing 酷音输入法引擎的辞典编译程式「init_database」的修改版本（可以辨识高于 65535 的词频资料），方便大陆使用者「哪怕无法存取 GitHub、也能编译出用于新酷音的词库档案」。这套档案继承酷音输入法引擎的授权「LGPL 2.1」。另外，这个 binary 仅针对以 C 语言写就的新酷音引擎。至于以 Rust 写就的新酷音引擎所需要的档案，敝仓库也会同时正常建置、且建置过程不依赖这个 binary。
+注二：自 2026-04-14 起，`chewingCBasedCHS` 与 `chewingCBasedCHT` 所需的 `dictionary.dat` / `index_tree.dat` 由本仓库内的 Swift 产生器直接生成，已不再随附或依赖 `init_database` binary。
 
 注三：VanguardTrieKit 以 LGPLv3 释出。本仓库内的 VanguardTrieKit 是从 LibVanguard 复制出来的个别档案的副本、且不包含对 SQLite API 的直接交互之部分。
 

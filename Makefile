@@ -22,7 +22,6 @@ endif
 BUILD_DIR := $(shell pwd)$(PATHSEP)Build
 RELEASE_DIR := $(BUILD_DIR)$(PATHSEP)Release
 INTERMEDIATE_DIR := $(BUILD_DIR)$(PATHSEP)Intermediate
-CHEWING_C_INITIALIZER := $(shell pwd)$(PATHSEP)bin$(PATHSEP)libchewing-database-initializer$(PATHSEP)init_database
 
 # 確認建置目錄存在性
 ifeq ($(OS),Windows_NT)

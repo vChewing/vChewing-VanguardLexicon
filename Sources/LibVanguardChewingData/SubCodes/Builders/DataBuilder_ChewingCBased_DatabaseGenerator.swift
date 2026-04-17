@@ -468,11 +468,14 @@ extension ChewingCBasedDatabaseGenerator {
     phrases: inout [PhraseRecord]
   ) throws
     -> Data {
-    let estimatedSize = words.reduce(into: 0) { partialResult, word in
+    // 下述運算必須拆開，不能將兩個算式直接相加，否則 Windows 版 Swift 無法正常解讀。
+    let estimatedSizeOfWords = words.reduce(into: 0) { partialResult, word in
       partialResult += word.phrase.utf8.count + 1
-    } + phrases.reduce(into: 0) { partialResult, phrase in
+    }
+    let estimatedSizeOfPhrases = phrases.reduce(into: 0) { partialResult, phrase in
       partialResult += phrase.phrase.utf8.count + 1
     }
+    let estimatedSize = estimatedSizeOfWords + estimatedSizeOfPhrases
 
     var dictionary = Data()
     dictionary.reserveCapacity(estimatedSize)

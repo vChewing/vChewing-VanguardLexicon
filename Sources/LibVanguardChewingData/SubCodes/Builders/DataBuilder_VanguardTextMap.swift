@@ -43,7 +43,7 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
     AsyncThrowingStream { continuation in
       Task { [self] in
         do {
-          // Phase 02: 生成 Typing TextMap。
+          // 生成 Typing TextMap。
           let typingData = assembleTextMapFromTrie(trie4Typing)
           guard let typingBytes = typingData.data(using: .utf8) else {
             throw VCDataBuilder.Exception

@@ -154,14 +154,14 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
       assembleTypingEntries(from: node, into: &valueLines, defaultProbs: defaultProbs)
       let count = valueLines.count - startLine
       if count > 0 {
-        keyMapLines.append("\(node.readingKey)\t\(startLine)\t\(count)")
+        keyMapLines.append("\(node.readingKey.asDecryptedBopomofoKeyChain)\t\(startLine)\t\(count)")
       }
     }
 
     var result = ""
     // HEADER
     result += "#PRAGMA:VANGUARD_HOMA_LEXICON_HEADER\n"
-    result += "VERSION\t1\n"
+    result += "VERSION\t1.1\n"
     result += "TYPE\tTYPING\n"
     result += "READING_SEPARATOR\t\(trie.readingSeparator)\n"
     result += "ENTRY_COUNT\t\(valueLines.count)\n"

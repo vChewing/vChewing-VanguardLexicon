@@ -16,7 +16,7 @@ TextMap 現為**單一檔案格式**：**Typing TextMap**（`.txtMap`）。
 
 ```
 #PRAGMA:VANGUARD_HOMA_LEXICON_HEADER
-VERSION	1
+VERSION	1.1
 TYPE	TYPING
 READING_SEPARATOR	-
 ENTRY_COUNT	871
@@ -75,13 +75,13 @@ value\tprobability\ttypeID[\tprevious]
 
 ```
 #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
-Su4	0	23
-Su4-xiT	23	2
-SuP3	25	2
+ㄕㄨˋ	0	23
+ㄕㄨˋ-ㄒㄧㄣ	23	2
+ㄕㄨㄟˇ	25	2
 ...
 ```
 
-每行：`readingKey\tstartLine\tcount`。`startLine` 為該讀音在 VALUES 區段中的起始行號（0-based），`count` 為該讀音佔的行數。讀音使用加密字元集（ㄅ→b 等拉丁替代），多音節以 `-` 分隔。
+每行：`readingKey\tstartLine\tcount`。`startLine` 為該讀音在 VALUES 區段中的起始行號（0-based），`count` 為該讀音佔的行數。讀音直接使用原生注音字串，多音節以 `-` 分隔。
 
 ### RevLookup 派生規則（取代 dedicated `.revlookup`）
 

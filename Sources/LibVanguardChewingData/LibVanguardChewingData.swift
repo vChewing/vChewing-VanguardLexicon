@@ -14,16 +14,7 @@ extension VCDataBuilder {
       "template-associatedPhrases-chs.txt",
       "template-associatedPhrases-cht.txt",
     ]
-    let bundle: Bundle
-    #if compiler(>=6.2) && canImport(Darwin)
-      if #available(macOS 12, *) {
-        bundle = #bundle
-      } else {
-        bundle = Bundle.module
-      }
-    #else
-      bundle = Bundle.module
-    #endif
+    let bundle = Bundle.module
     for fileName in fileNames {
       // The resources are likely in "Resources/components/chs" or "cht" in source,
       // but Bundle.module flatifies them or keeps folder structure?

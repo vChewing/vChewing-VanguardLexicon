@@ -9,23 +9,44 @@ import PackagePlugin
 struct VanguardSQLLegacyPlugin: BuildToolPlugin {
   func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
     let tool = try context.tool(named: "VCDataBuilder")
-    let buildDir = context.pluginWorkDirectoryURL
-      .appending(path: "VanguardLexiconData/Build/Release/vanguardSQL-Legacy")
-    let outputFiles = [
-      buildDir.appending(path: "vChewingFactoryDatabase.sqlite"),
-    ]
+    #if compiler(>=6.0)
+      let buildDir = context.pluginWorkDirectoryURL
+        .appending(path: "VanguardLexiconData/Build/Release/vanguardSQL-Legacy")
+      let outputFiles = [
+        buildDir.appending(path: "vChewingFactoryDatabase.sqlite"),
+      ]
 
-    return [
-      .buildCommand(
-        displayName: "VCDataBuilder: VanguardSQLLegacy",
-        executable: tool.url,
-        arguments: ["vanguardSQLLegacy"],
-        environment: [
-          "VANGUARD_OUTPUT_DIR": context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData").path,
-        ],
-        inputFiles: [],
-        outputFiles: outputFiles
-      ),
-    ]
+      return [
+        .buildCommand(
+          displayName: "VCDataBuilder: VanguardSQLLegacy",
+          executable: tool.url,
+          arguments: ["vanguardSQLLegacy"],
+          environment: [
+            "VANGUARD_OUTPUT_DIR": context.pluginWorkDirectoryURL.appending(path: "VanguardLexiconData").path,
+          ],
+          inputFiles: [],
+          outputFiles: outputFiles
+        ),
+      ]
+    #else
+      let buildDir = context.pluginWorkDirectory
+        .appending("VanguardLexiconData/Build/Release/vanguardSQL-Legacy")
+      let outputFiles = [
+        buildDir.appending("vChewingFactoryDatabase.sqlite"),
+      ]
+
+      return [
+        .buildCommand(
+          displayName: "VCDataBuilder: VanguardSQLLegacy",
+          executable: tool.path,
+          arguments: ["vanguardSQLLegacy"],
+          environment: [
+            "VANGUARD_OUTPUT_DIR": context.pluginWorkDirectory.appending("VanguardLexiconData").string,
+          ],
+          inputFiles: [],
+          outputFiles: outputFiles
+        ),
+      ]
+    #endif
   }
 }

@@ -13,7 +13,7 @@ public enum VanguardTrie {
       self.root = .init(id: 0)
       self.nodes = [:]
 
-      // 初始化時，將根節點加入到節點辭典中
+      // 初期化時，將根節點加入到節點辭典中
       root.id = 0
       nodes[0] = root
       self.keyInitialsIDMap = [:]

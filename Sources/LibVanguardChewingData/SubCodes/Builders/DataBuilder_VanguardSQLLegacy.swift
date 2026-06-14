@@ -230,30 +230,33 @@ extension VCDataBuilder.Collector {
 
   fileprivate func prepareLegacyGramFragments(
     chunkSize: Int,
-    _ writer: (_ fragment: Data) async throws -> ()
+    _ writer: @Sendable (_ fragment: Data) async throws -> ()
   ) async throws {
     let chunkLimit = max(64 * 1_024, chunkSize)
-    var buffer = ContiguousArray<UInt8>()
-    buffer.reserveCapacity(chunkLimit)
+    let buffer = NSMutex<ContiguousArray<UInt8>>(.init())
+    buffer.withLock { $0.reserveCapacity(chunkLimit) }
     let functionStart = Date()
     NSLog("|||_prepareLegacyGramFragments: 開始，chunkLimit=\(chunkLimit)")
 
+    @Sendable
     func flushBuffer(force: Bool) async throws {
-      guard force || buffer.count >= chunkLimit else { return }
-      guard !buffer.isEmpty else { return }
-      let payload = Data(buffer)
-      buffer.removeAll(keepingCapacity: true)
-      try await writer(payload)
+      var emission: Data?
+      buffer.withLock { buf in
+        guard force || buf.count >= chunkLimit else { return }
+        guard !buf.isEmpty else { return }
+        emission = Data(buf)
+        buf.removeAll(keepingCapacity: true)
+      }
+      if let emission {
+        try await writer(emission)
+      }
     }
 
+    @Sendable
     func appendFragment(_ fragment: Data) async throws {
       guard !fragment.isEmpty else { return }
-      buffer.append(contentsOf: fragment)
+      buffer.withLock { $0.append(contentsOf: fragment) }
       try await flushBuffer(force: false)
-    }
-
-    let chunkedWriter: (Data) async throws -> () = { fragment in
-      try await appendFragment(fragment)
     }
 
     // 標點符號 -> theDataCHS 和 theDataCHT。
@@ -271,7 +274,7 @@ extension VCDataBuilder.Collector {
       allPunctuationsMap,
       columnName: "theDataCHT",
       unigramStringBuilder: { unigram in unigram.value },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 標點 CHT 寫入完成，耗時 %.2f 秒",
@@ -282,7 +285,7 @@ extension VCDataBuilder.Collector {
       allPunctuationsMap,
       columnName: "theDataCHS",
       unigramStringBuilder: { unigram in unigram.value },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 標點 CHS 寫入完成，耗時 %.2f 秒",
@@ -313,7 +316,7 @@ extension VCDataBuilder.Collector {
       allGramsMapCHS,
       columnName: "theDataCHS",
       unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 簡體主語料寫入完成，耗時 %.2f 秒",
@@ -324,7 +327,7 @@ extension VCDataBuilder.Collector {
       allGramsMapCHT,
       columnName: "theDataCHT",
       unigramStringBuilder: { unigram in "\(unigram.score) \(unigram.value)" },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 繁體主語料寫入完成，耗時 %.2f 秒",
@@ -346,7 +349,7 @@ extension VCDataBuilder.Collector {
       allGramsMapZhuyinwen,
       columnName: "theDataCHEW",
       unigramStringBuilder: { unigram in unigram.value },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 注音文寫入完成，耗時 %.2f 秒",
@@ -368,7 +371,7 @@ extension VCDataBuilder.Collector {
       allGramsMapSymbols,
       columnName: "theDataSYMB",
       unigramStringBuilder: { unigram in unigram.value },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: 符號寫入完成，耗時 %.2f 秒",
@@ -381,7 +384,7 @@ extension VCDataBuilder.Collector {
       tableKanjiCNS,
       columnName: "theDataCNS",
       unigramStringBuilder: { unigram in unigram.value },
-      writer: chunkedWriter
+      writer: appendFragment
     )
     NSLog(
       "|||_prepareLegacyGramFragments: CNS 寫入完成，來源鍵數=\(tableKanjiCNS.count)，耗時 %.2f 秒",
@@ -398,7 +401,7 @@ extension VCDataBuilder.Collector {
     _ table: [String: VCDataBuilder.Unigram.GramSet],
     columnName: String,
     unigramStringBuilder: (VCDataBuilder.Unigram) -> String,
-    writer: (_ fragment: Data) async throws -> ()
+    writer: @Sendable (_ fragment: Data) async throws -> ()
   ) async throws {
     let handlerStart = Date()
     var processedEntries = 0

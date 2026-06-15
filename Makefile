@@ -88,8 +88,7 @@ ifeq ($(OS),Windows_NT)
 	@echo "Windows 不支援 vChewing。"
 else
 	@echo "\033[0;32m//$$(tput bold) macOS: 正在部署唯音輸入法核心語彙檔案……$$(tput sgr0)\033[0m"
-	@$(MKDIR) "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
-	@$(CP) "$(BUILD_DIR)/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap" "$(HOME)/Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
+	@"$(HOME)/Library/Input Methods/vChewing.app/Contents/MacOS/vChewing" --import-standalone-factory-lexicon "$(BUILD_DIR)/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap"
 	@$(PKILL) vChewing || echo "// vChewing is not running"
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 endif

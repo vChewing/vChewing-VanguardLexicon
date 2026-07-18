@@ -10,20 +10,31 @@ import Foundation
 
 // MARK: - Constants
 
-let chsFilterRaw =
-  try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt",
-    encoding: .utf8
-  )
-let chtFilterRaw =
-  try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt",
-    encoding: .utf8
-  )
+func readFilterFile(at path: String, label: String) -> String? {
+  do {
+    return try String(contentsOfFile: path, encoding: .utf8)
+  } catch {
+    print("// !! 無法讀取過濾表檔案 (\(label)): \(path)")
+    print("// !! 錯誤: \(error.localizedDescription)")
+    return nil
+  }
+}
+
+let chsFilterRaw = readFilterFile(
+  at: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-chs.txt",
+  label: "CHS"
+)
+let chtFilterRaw = readFilterFile(
+  at: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/exclude-phrases-cht.txt",
+  label: "CHT"
+)
 let urlCHS = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/chs/")
 let urlCHT = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/cht/")
 
-guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else { exit(0) }
+guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else {
+  print("// !! 過濾表檔案讀取失敗，bleach 程序終止。")
+  exit(1)
+}
 
 func makeFilter(from rawString: String) -> [(String, String)] {
   var pairsToFilter: [(String, String)] = []
@@ -93,9 +104,18 @@ func handleURLs(lang: LangTag, handler: @escaping (LangTag, URL) -> ()) {
 
 LangTag.allCases.forEach { langTag in
   handleURLs(lang: langTag) { i18nTag, fileURL in
-    guard var target = try? String(contentsOf: fileURL, encoding: .utf8) else { return }
+    guard var target = try? String(contentsOf: fileURL, encoding: .utf8) else {
+      print("// !! 無法讀取目標檔案: \(fileURL.path)")
+      return
+    }
+    let originalCount = target.count
     trimSingleFile(lang: i18nTag, target: &target)
-    print("\(target.count) \(fileURL.path)")
-    try? target.write(to: fileURL, atomically: true, encoding: .utf8)
+    print("// \(originalCount) -> \(target.count) \(fileURL.path)")
+    do {
+      try target.write(to: fileURL, atomically: true, encoding: .utf8)
+    } catch {
+      print("// !! 無法寫入目標檔案: \(fileURL.path)")
+      print("// !! 錯誤: \(error.localizedDescription)")
+    }
   }
 }

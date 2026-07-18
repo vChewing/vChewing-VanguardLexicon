@@ -22,7 +22,10 @@ func handleFiles(_ handler: @escaping ((url: URL, fileName: String)) -> ()) {
 }
 
 handleFiles { url, fileName in
-  guard let rawStr = try? String(contentsOf: url, encoding: .utf8) else { return }
+  guard let rawStr = try? String(contentsOf: url, encoding: .utf8) else {
+    print("// !! 無法讀取目標檔案: \(fileName)")
+    return
+  }
   var headerLines = [String]()
   var contentLines = [String]()
   rawStr.enumerateLines { currentLine, _ in

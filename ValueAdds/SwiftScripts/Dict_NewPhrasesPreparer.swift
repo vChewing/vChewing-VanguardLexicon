@@ -42,20 +42,31 @@ struct Phrase {
 
 // MARK: - Constants
 
-let chsFilterRaw =
-  try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt",
-    encoding: .utf8
-  )
-let chtFilterRaw =
-  try? String(
-    contentsOfFile: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt",
-    encoding: .utf8
-  )
+func readUserDataFile(at path: String, label: String) -> String? {
+  do {
+    return try String(contentsOfFile: path, encoding: .utf8)
+  } catch {
+    print("// !! 無法讀取使用者資料檔案 (\(label)): \(path)")
+    print("// !! 錯誤: \(error.localizedDescription)")
+    return nil
+  }
+}
+
+let chsFilterRaw = readUserDataFile(
+  at: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-chs.txt",
+  label: "CHS"
+)
+let chtFilterRaw = readUserDataFile(
+  at: "/Users/shikisuen/Library/Mobile Documents/com~apple~CloudDocs/vChewing/userdata-cht.txt",
+  label: "CHT"
+)
 let urlCHS = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/chs/")
 let urlCHT = URL(fileURLWithPath: "./Sources/LibVanguardChewingData/Resources/components/cht/")
 
-guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else { exit(0) }
+guard let chsFilterRaw = chsFilterRaw, let chtFilterRaw = chtFilterRaw else {
+  print("// !! 使用者資料檔案讀取失敗，prepare 程序終止。")
+  exit(1)
+}
 
 func makeFilter(from rawString: String) -> [Phrase] {
   var phrases: [Phrase] = []

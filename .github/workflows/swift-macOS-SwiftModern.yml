@@ -11,7 +11,7 @@ jobs:
     name: Swift Build (macOS-Modern)
     runs-on: macos-26
     steps:
-      - uses: maxim-lobanov/setup-xcode@v1.6.0
+      - uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: '26.2.0'
       - uses: actions/checkout@v4

@@ -4,7 +4,7 @@ This directory contains scripts to migrate git submodule URLs from `gitee.com/vC
 
 ## ⚠️ Important Warnings
 
-**THESE SCRIPTS REWRITE GIT HISTORY!** 
+**THESE SCRIPTS REWRITE GIT HISTORY!**
 
 Before using:
 1. **Create a full backup** of your repository
@@ -38,7 +38,7 @@ Python script using `git-filter-repo` to rewrite repository history.
 
 **Prerequisites:**
 - Python 3.6+
-- Git  
+- Git
 - git-filter-repo (`pip install git-filter-repo`)
 
 **Usage:**

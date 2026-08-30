@@ -14,12 +14,12 @@ if ($LASTEXITCODE -ne 0) {
 
 # URL mappings
 $oldURLs = @(
-  "https://gitee.com/vChewing/libvchewing-data.git",
-  "https://gitee.com/vChewing/libvchewing-data",
-  "http://gitee.com/vChewing/libvchewing-data.git",
-  "http://gitee.com/vChewing/libvchewing-data",
-  "git@gitee.com:vChewing/libvchewing-data.git",
-  "git://gitee.com/vChewing/libvchewing-data"
+  "https://gitee.com/vChewing/vChewing-VanguardLexicon.git",
+  "https://gitee.com/vChewing/vChewing-VanguardLexicon",
+  "http://gitee.com/vChewing/vChewing-VanguardLexicon.git",
+  "http://gitee.com/vChewing/vChewing-VanguardLexicon",
+  "git@gitee.com:vChewing/vChewing-VanguardLexicon.git",
+  "git://gitee.com/vChewing/vChewing-VanguardLexicon"
 )
 $newURL = "https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git"
 
@@ -47,12 +47,12 @@ foreach ($repoPath in $Repos) {
     $filterScript = @"
 if [ -f .gitmodules ]; then
   # Use perl for reliable in-place editing across platforms (case-insensitive)
-  perl -i -pe 's|https://gitee\.com/vchewing/libvchewing-data\.git|$newURL|gi' .gitmodules
-  perl -i -pe 's|https://gitee\.com/vchewing/libvchewing-data|$newURL|gi' .gitmodules
-  perl -i -pe 's|http://gitee\.com/vchewing/libvchewing-data\.git|$newURL|gi' .gitmodules
-  perl -i -pe 's|http://gitee\.com/vchewing/libvchewing-data|$newURL|gi' .gitmodules
-  perl -i -pe 's|git\@gitee\.com:vchewing/libvchewing-data\.git|$newURL|gi' .gitmodules
-  perl -i -pe 's|git://gitee\.com/vchewing/libvchewing-data|$newURL|gi' .gitmodules
+  perl -i -pe 's|https://gitee\.com/vchewing/vChewing-VanguardLexicon\.git|$newURL|gi' .gitmodules
+  perl -i -pe 's|https://gitee\.com/vchewing/vChewing-VanguardLexicon|$newURL|gi' .gitmodules
+  perl -i -pe 's|http://gitee\.com/vchewing/vChewing-VanguardLexicon\.git|$newURL|gi' .gitmodules
+  perl -i -pe 's|http://gitee\.com/vchewing/vChewing-VanguardLexicon|$newURL|gi' .gitmodules
+  perl -i -pe 's|git\@gitee\.com:vchewing/vChewing-VanguardLexicon\.git|$newURL|gi' .gitmodules
+  perl -i -pe 's|git://gitee\.com/vchewing/vChewing-VanguardLexicon|$newURL|gi' .gitmodules
 fi
 "@
 
@@ -74,7 +74,7 @@ fi
 
     # Verify the changes
     Write-Host "[INFO] Verifying changes..." -ForegroundColor Yellow
-    $grepResult = git --no-pager grep -n "gitee.com/vChewing/libvchewing-data" -- .gitmodules 2>&1
+    $grepResult = git --no-pager grep -n "gitee.com/vChewing/vChewing-VanguardLexicon" -- .gitmodules 2>&1
 
     if ($LASTEXITCODE -eq 0) {
       Write-Host "[WARN] Leftover gitee URL found in $fullPath/.gitmodules:" -ForegroundColor Red

@@ -1,6 +1,6 @@
 # Submodule URL Migration Scripts
 
-This directory contains scripts to migrate git submodule URLs from `gitee.com/vChewing/libvchewing-data` to `gitlink.org.cn/vChewing/vChewing-VanguardLexicon` across all commits and tags in a repository's history.
+This directory contains scripts to migrate git submodule URLs from `gitee.com/vChewing/vChewing-VanguardLexicon` to `gitlink.org.cn/vChewing/vChewing-VanguardLexicon` across all commits and tags in a repository's history.
 
 ## ⚠️ Important Warnings
 
@@ -62,12 +62,12 @@ python3 update-submodule-urls.py /path/to/vChewing-macOS /path/to/vChewing-OSX-L
 ## URLs Being Replaced
 
 The scripts replace the following URL patterns:
-- `https://gitee.com/vChewing/libvchewing-data.git`
-- `https://gitee.com/vChewing/libvchewing-data`
-- `http://gitee.com/vChewing/libvchewing-data.git`
-- `http://gitee.com/vChewing/libvchewing-data`
-- `git@gitee.com:vChewing/libvchewing-data.git`
-- `git://gitee.com/vChewing/libvchewing-data`
+- `https://gitee.com/vChewing/vChewing-VanguardLexicon.git`
+- `https://gitee.com/vChewing/vChewing-VanguardLexicon`
+- `http://gitee.com/vChewing/vChewing-VanguardLexicon.git`
+- `http://gitee.com/vChewing/vChewing-VanguardLexicon`
+- `git@gitee.com:vChewing/vChewing-VanguardLexicon.git`
+- `git://gitee.com/vChewing/vChewing-VanguardLexicon`
 
 All are replaced with:
 - `https://gitlink.org.cn/vChewing/vChewing-VanguardLexicon.git`

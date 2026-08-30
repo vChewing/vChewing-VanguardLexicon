@@ -4,7 +4,7 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
-// 該檔案用來將全字庫 OpenData 當中的資料轉成可以交給 libvchewing-data 編譯的那種原始資料格式。
+// 該檔案用來將全字庫 OpenData 當中的資料轉成可以交給 vChewing-VanguardLexicon 編譯的那種原始資料格式。
 // 原始資料得是「全字庫中文碼對照表」與「全字庫屬性資料集對照表」，兩個資料夾得在同一目錄下。
 
 import Foundation

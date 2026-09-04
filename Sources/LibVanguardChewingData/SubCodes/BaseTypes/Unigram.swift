@@ -49,6 +49,7 @@ extension VCDataBuilder {
       case kanji = "KANJ"
       case bpmf = "BPMF"
       case cns = "CNS"
+      case gbex = "GBEX"
 
       // MARK: Internal
 
@@ -78,6 +79,7 @@ extension VCDataBuilder {
       case .custom: return nil
       case .misc: return nil
       case .cns: return nil
+      case .gbex: return nil
       }
       guard (1 ... 6).contains(keyCells.count) else { return nil }
       return Self.naturalE ** (Double(value.count) / 3.0 - 1.0) * Double(count)

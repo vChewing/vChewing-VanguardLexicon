@@ -45,8 +45,15 @@ GB 18030-2022 共收漢字 87,887 個，較 2005 版（70,244）新增約 1.7 �
   `Sources/LibVanguardChewingData/Resources/components/common/char-kanji-gbex.txt`
   （`char-kanji-core.txt` 已還原為原始內容），並再依指示將該檔分欄格式改為與
   `char-kanji-cns.txt` 相同之兩欄（字符＆對應讀音、單一空白分隔），詞頻欄位省略。
-  注意：截至本備忘撰寫時，尚無任何建置目標載入 `char-kanji-gbex.txt`，需另行
-  接線（如比照全字庫模組）。
+  後續（2026-09-05）已改為 **CNS／GBEX 分表處理**：`char-kanji-gbex.txt` 不再併入
+  CNS 載入器，而是由 Swift 端獨立讀取為 `tableKanjiGBEX` 表（category `.gbex`），
+  並在 trie／TextMap／Legacy SQL 各產物中賦予獨立編號（`VanguardTrie.Trie.EntryType.gbex
+  = 11`；CNS 仍為 7），避免唯音輸入法「以 CNS 讀音過濾原廠辭典」的功能誤把 GBEX
+  讀音當成全字庫讀音。字根反查（DATA_REV／反查 trie）則同時納入 CNS 與 GBEX。
+  建置目標（vanguardTextMap／vanguardTrieSQL／vanguardTriePlist／vanguardSQLLegacy）
+  仍以既有的 `cns:` 旗標一併啟用兩表。實機驗證（2026-09-05）：TextMap 產物中
+  僅存於 gbex 的字出現在 `>11` 行、僅存於 CNS 的字出現在 `>7` 行，互不混雜；
+  Legacy SQL 的 DATA_MAIN 新增 `theDataGBEX` 欄（1068 鍵），DATA_REV 亦含 gbex 字。
 
 ## 待辦／風險
 

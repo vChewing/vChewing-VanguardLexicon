@@ -128,6 +128,7 @@ extension VCDataBuilder.VanguardSQLLegacyDataBuilder {
       theDataMISC TEXT,
       theDataSYMB TEXT,
       theDataCHEW TEXT,
+      theDataGBEX TEXT,
       PRIMARY KEY (theKey)
     ) WITHOUT ROWID;
     CREATE TABLE DATA_REV (
@@ -197,6 +198,7 @@ extension VCDataBuilder.Collector {
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
+    reverseLookupTable4GBEX.keys.forEach { allKeys.insert($0) }
     var keysToHandle = allKeys.sorted()
     if VCDataBuilder.TestSampleFilter.isEnabled {
       let limit = VCDataBuilder.TestSampleFilter.revLookupSampleLimit
@@ -389,6 +391,19 @@ extension VCDataBuilder.Collector {
     NSLog(
       "|||_prepareLegacyGramFragments: CNS 寫入完成，來源鍵數=\(tableKanjiCNS.count)，耗時 %.2f 秒",
       Date().timeIntervalSince(cnsWriteStart)
+    )
+
+    // GB18030-2022 擴充字（GBEX，與 CNS 分開編號、獨立欄位）。
+    let gbexWriteStart = Date()
+    try await handleUnigramTableToSQLLegacy(
+      tableKanjiGBEX,
+      columnName: "theDataGBEX",
+      unigramStringBuilder: { unigram in unigram.value },
+      writer: appendFragment
+    )
+    NSLog(
+      "|||_prepareLegacyGramFragments: GBEX 寫入完成，來源鍵數=\(tableKanjiGBEX.count)，耗時 %.2f 秒",
+      Date().timeIntervalSince(gbexWriteStart)
     )
     try await flushBuffer(force: true)
     NSLog(

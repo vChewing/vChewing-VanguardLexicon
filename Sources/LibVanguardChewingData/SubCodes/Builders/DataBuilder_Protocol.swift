@@ -16,6 +16,7 @@ extension VanguardTrie.Trie.EntryType {
   public static let nonKanji = Self(rawValue: 8 << 0)
   public static let symbolPhrases = Self(rawValue: 9 << 0)
   public static let zhuyinwen = Self(rawValue: 10 << 0)
+  public static let gbex = Self(rawValue: 11 << 0)
 }
 
 extension VanguardTrie.Trie {
@@ -82,6 +83,7 @@ extension VCDataBuilder.Collector {
     reverseLookupTable.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4NonKanji.keys.forEach { allKeys.insert($0) }
     reverseLookupTable4CNS.keys.forEach { allKeys.insert($0) }
+    reverseLookupTable4GBEX.keys.forEach { allKeys.insert($0) }
 
     var allKeysToHandle = allKeys.sorted()
     if VCDataBuilder.TestSampleFilter.isEnabled {
@@ -101,6 +103,7 @@ extension VCDataBuilder.Collector {
       Array(reverseLookupTable[key] ?? []).sorted(),
       Array(reverseLookupTable4NonKanji[key] ?? []).sorted(),
       Array(reverseLookupTable4CNS[key] ?? []).sorted(),
+      Array(reverseLookupTable4GBEX[key] ?? []).sorted(),
     ]
     var handled = Set<String>()
     var result = [String]()
@@ -229,6 +232,13 @@ extension VCDataBuilder.TriePreparatorProtocol {
             }
             return (VanguardTrie.Trie.EntryType.cns.rawValue, insertions)
           }
+          subGroup.addTask {
+            // GB18030-2022 擴充字（GBEX），與 CNS 分開編號。
+            let insertions = await self.data.tableKanjiGBEX.values.flatMap { $0 }.compactMap {
+              $0.asPreparedTypingTrieInsertion(type: .gbex)
+            }
+            return (VanguardTrie.Trie.EntryType.gbex.rawValue, insertions)
+          }
           var insertionsByType = [Int32: [VCDataBuilder.PreparedTypingTrieInsertion]]()
           for await (typeID, insertions) in subGroup {
             insertionsByType[typeID, default: []].append(contentsOf: insertions)
@@ -241,6 +251,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
             VanguardTrie.Trie.EntryType.zhuyinwen.rawValue,
             VanguardTrie.Trie.EntryType.letterPunctuations.rawValue,
             VanguardTrie.Trie.EntryType.cns.rawValue,
+            VanguardTrie.Trie.EntryType.gbex.rawValue,
           ]
           for typeID in orderedTypeIDs {
             let sortedInsertions = (insertionsByType[typeID] ?? []).sorted { lhs, rhs in

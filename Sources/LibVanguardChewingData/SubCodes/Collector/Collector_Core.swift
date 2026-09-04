@@ -27,11 +27,13 @@ extension VCDataBuilder {
       var reverseLookupTable: [String: Set<String>] = [:]
       var reverseLookupTable4NonKanji: [String: Set<String>] = [:]
       var reverseLookupTable4CNS: [String: Set<String>] = [:]
+      var reverseLookupTable4GBEX: [String: Set<String>] = [:]
       var unigramsCHS: [Unigram.Category: [String: Unigram.GramSet]] = [:]
       var unigramsCHT: [Unigram.Category: [String: Unigram.GramSet]] = [:]
       var unigramsKanjiCHS: [Unigram.Category: [String: Unigram.GramSet]] = [:]
       var unigramsKanjiCHT: [Unigram.Category: [String: Unigram.GramSet]] = [:]
       var tableKanjiCNS: [String: Unigram.GramSet] = [:]
+      var tableKanjiGBEX: [String: Unigram.GramSet] = [:]
       try Unigram.prepareRawUnigramsForNonKanjis(
         unigramTable: &unigrams4NonKanji,
         reverseLookupTable: &reverseLookupTable4NonKanji,
@@ -64,11 +66,16 @@ extension VCDataBuilder {
         _ = isCHSLanguage ? { unigramsCHS = unigrams }() : { unigramsCHT = unigrams }()
         norms.append(temporaryNorm)
       }
-      // CNS 的內容放在最後處理。
+      // CNS 與 GBEX 的內容放在最後處理。兩者分表收錄（GBEX 為 GB18030-2022 擴充字，
+      // 自 2026-09-05 起與 CNS11643 全字庫分開編號），暫且共用同一 cns 旗標開關。
       if cns {
         try Unigram.prepareRawUnweightedUnigramsForCNSKanjis(
           table: &tableKanjiCNS,
           reverseLookupTable: &reverseLookupTable4CNS
+        )
+        try Unigram.prepareRawUnweightedUnigramsForGBEXKanjis(
+          table: &tableKanjiGBEX,
+          reverseLookupTable: &reverseLookupTable4GBEX
         )
       }
       self.unigramsCHS = unigramsCHS
@@ -77,16 +84,19 @@ extension VCDataBuilder {
       self.reverseLookupTable = reverseLookupTable
       self.reverseLookupTable4NonKanji = reverseLookupTable4NonKanji
       self.reverseLookupTable4CNS = reverseLookupTable4CNS
+      self.reverseLookupTable4GBEX = reverseLookupTable4GBEX
       self.norm = temporaryNormShared + (norms.max() ?? 0)
       self.compatibleMode = compatibleMode
       self.unigramsKanjiCHS = unigramsKanjiCHS
       self.unigramsKanjiCHT = unigramsKanjiCHT
       self.tableKanjiCNS = tableKanjiCNS
+      self.tableKanjiGBEX = tableKanjiGBEX
     }
 
     // MARK: Public
 
     public let tableKanjiCNS: [String: Unigram.GramSet]
+    public let tableKanjiGBEX: [String: Unigram.GramSet]
     public let unigramsKanjiCHS: [Unigram.Category: [String: Unigram.GramSet]]
     public let unigramsKanjiCHT: [Unigram.Category: [String: Unigram.GramSet]]
     public let unigramsCHS: [Unigram.Category: [String: Unigram.GramSet]]
@@ -95,6 +105,7 @@ extension VCDataBuilder {
     public let reverseLookupTable: [String: Set<String>]
     public let reverseLookupTable4NonKanji: [String: Set<String>]
     public let reverseLookupTable4CNS: [String: Set<String>]
+    public let reverseLookupTable4GBEX: [String: Set<String>]
     public let norm: Double
     public let compatibleMode: Bool
     public private(set) var weightPropagated: Bool = false
@@ -584,17 +595,47 @@ extension VCDataBuilder.Unigram {
     table: inout [String: VCDataBuilder.Unigram.GramSet],
     reverseLookupTable: inout [String: Set<String>]
   ) throws {
+    try Self.loadSupplementaryKanjiRows(
+      fromFileStem: "char-kanji-cns",
+      category: .cns,
+      logSuffix: "全字庫",
+      table: &table,
+      reverseLookupTable: &reverseLookupTable
+    )
+  }
+
+  static func prepareRawUnweightedUnigramsForGBEXKanjis(
+    table: inout [String: VCDataBuilder.Unigram.GramSet],
+    reverseLookupTable: inout [String: Set<String>]
+  ) throws {
+    try Self.loadSupplementaryKanjiRows(
+      fromFileStem: "char-kanji-gbex",
+      category: .gbex,
+      logSuffix: "GB18030-2022 擴充字",
+      table: &table,
+      reverseLookupTable: &reverseLookupTable
+    )
+  }
+
+  /// CNS（全字庫）與 GBEX（GB18030-2022 擴充字）共用的載入器：
+  /// 讀取單一檔案、每行兩個 Cell（字符＆對應讀音），以給定的類別分表收錄。
+  private static func loadSupplementaryKanjiRows(
+    fromFileStem fileStem: String,
+    category: VCDataBuilder.Unigram.Category,
+    logSuffix: String,
+    table: inout [String: VCDataBuilder.Unigram.GramSet],
+    reverseLookupTable: inout [String: Set<String>]
+  ) throws {
     var strRAW = ""
     // 讀取內容
     do {
-      let regexStr = "char-kanji-cns"
-      let fileURL = try Bundle.module.findFiles(matching: regexStr, extension: "txt").first
+      let fileURL = try Bundle.module.findFiles(matching: fileStem, extension: "txt").first
       guard let fileURL else {
-        preconditionFailure(" - Exception happened when getting cns data \(regexStr).")
+        preconditionFailure(" - Exception happened when getting \(fileStem) data.")
       }
       strRAW += try String(contentsOf: fileURL, encoding: .utf8)
     } catch {
-      NSLog(" - Exception happened when reading cns data.")
+      NSLog(" - Exception happened when reading \(fileStem) data.")
       throw error
     }
     let i18n = "通用"
@@ -613,7 +654,7 @@ extension VCDataBuilder.Unigram {
       guard !handledHashes.contains(lineData.hashValue) else { return }
       handledHashes.insert(lineData.hashValue)
       guard !lineData.isEmpty else { return }
-      // CNS 僅有兩個 Cell。
+      // CNS 與 GBEX 僅有兩個 Cell。
       let arrCells = lineData.components(separatedBy: " ").prefix(2)
       guard arrCells.count == 2 else { return }
       let phone = arrCells[1].description
@@ -627,11 +668,11 @@ extension VCDataBuilder.Unigram {
         value: phrase,
         score: -11,
         count: 0,
-        category: .cns
+        category: category
       )
       table[phone, default: []].insert(newUnigram)
     }
-    NSLog(" - \(i18n): 成功生成全字庫語料辭典（權重待計算）。")
+    NSLog(" - \(i18n): 成功生成\(logSuffix)語料辭典（權重待計算）。")
   }
 }
 

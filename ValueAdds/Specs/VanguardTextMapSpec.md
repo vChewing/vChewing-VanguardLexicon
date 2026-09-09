@@ -26,6 +26,7 @@ DEFAULT_PROB_7	-11
 DEFAULT_PROB_8	-13
 DEFAULT_PROB_9	-13
 DEFAULT_PROB_10	-1
+DEFAULT_PROB_11	-11
 ```
 
 | 欄位 | 說明 |
@@ -47,6 +48,7 @@ DEFAULT_PROB_10	-1
 >7	鎄|埃|锿|嗳|哎|㶼|𡉓 ...
 >4	，|。|、|！|？ ...
 >9	🌳
+>11	𪠠|𬎊
 ```
 
 格式：`>typeID\tencodedCell`。機率由 HEADER 中的 `DEFAULT_PROB_<typeID>` 提供。`encodedCell` 使用 escaped pipe 編碼：`|` 為分隔符，`\\` 表示反斜線、`\|` 表示字面 `|`、`\s` 表示空格、`\a` 表示 BEL (`\u{7}`)。
@@ -106,5 +108,6 @@ value\tprobability\ttypeID[\tprevious]
 | 8 | nonKanji | 非漢字條目 |
 | 9 | symbolPhrases | 符號短語 |
 | 10 | zhuyinwen | 注音文 |
+| 11 | gbex | GB18030-2022 擴充字（2026-09-05 起與 CNS 分開編號、獨立收錄；建置端與 CNS 同以 `cns:` 旗標啟用） |
 
 $ EOF.

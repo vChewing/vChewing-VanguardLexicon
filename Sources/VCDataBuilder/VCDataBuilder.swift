@@ -23,8 +23,6 @@ struct Main {
       VCDataBuilder all
 
     可用的辭典建置目標：
-      vanguardTrieSQL   - 先鋒引擎原廠辭典格式（Trie, SQLite）
-      vanguardTriePlist - 先鋒引擎原廠辭典格式（Trie, Plist）
       vanguardTextMap  - 先鋒引擎原廠辭典格式（Trie, TextMap）
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
@@ -32,7 +30,6 @@ struct Main {
       chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
       mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
       mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
-      vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite 格式）
 
     注意：
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成

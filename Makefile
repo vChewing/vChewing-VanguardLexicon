@@ -73,11 +73,6 @@ install: install-vchewing clean
 macv:
 	swift run VCDataBuilder vanguardTextMap
 
-vanguardSQLLegacy:
-ifeq ($(OS),Windows_NT)
-	/usr/bin/swift run VCDataBuilder vanguardSQLLegacy
-endif
-
 vanguardTextMap-macOS:
 ifeq ($(UNAME_S),Darwin)
 	/usr/bin/swift run VCDataBuilder vanguardTextMap
@@ -188,7 +183,7 @@ _remoteinstall-vchewing: macv
 ifeq ($(OS),Windows_NT)
 	@echo "Windows 不支援遠端安裝 vChewing 辭典。"
 else
-	@rsync -avx "$(BUILD_DIR)$(PATHSEP)Release$(PATHSEP)vanguardSQL-Legacy$(PATHSEP)vChewingFactoryDatabase.sqlite" $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
+	@rsync -avx "$(BUILD_DIR)$(PATHSEP)Release$(PATHSEP)vanguard-textmap$(PATHSEP)VanguardFactoryDict4Typing.txtMap" $(RHOST):"Library/Containers/org.atelierInmu.inputmethod.vChewing/Data/Library/Application Support/vChewingFactoryData/"
 	@$(TEST) "$(RHOST)" && ssh $(RHOST) "$(PKILL) vChewing || echo Remote vChewing is not running" || true
 endif
 

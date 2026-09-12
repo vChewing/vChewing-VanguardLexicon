@@ -156,7 +156,7 @@ extension VCDataBuilder.Collector {
       }
     }
     if !omitCNS, !tableKanjiCNS.isEmpty {
-      // 不用在此對 CNS 的內容做去重複的處理，因為相關內容會塞到單獨的 SQL 表內。
+      // 不用在此對 CNS 的內容做去重複的處理，序列化階段自會處理。
       grams += tableKanjiCNS.values.flatMap { $0.map { $0 } }
     }
     guard sorted else { return grams }

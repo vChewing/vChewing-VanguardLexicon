@@ -2,7 +2,6 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
 
-import CSQLite3
 import Foundation
 import VanguardTrieKit
 
@@ -432,115 +431,12 @@ extension VCDataBuilder.DataBuilderProtocol {
     }
     NSLog(" - 成功執行追加建置過程。")
   }
-
-  func compileSQLite(fileNameStem: String, outputFileNameStem: String? = nil) async throws {
-    let outputFileNameStem = outputFileNameStem ?? fileNameStem
-    NSLog("   > 正在透過 SQLite C API 準備組裝 SQLite 資料庫……")
-
-    let buildRoot = FileManager.urlCurrentFolder.appendingPathComponent("Build")
-    let sqlFolderURL = subFolderNameComponents.reduce(buildRoot) { partial, component in
-      partial.appendingPathComponent(component)
-    }
-    let sqlFileURL = sqlFolderURL.appendingPathComponent("\(fileNameStem).sql")
-
-    var dbFolderURL = FileManager.urlCurrentFolder
-    if ProcessInfo.processInfo.environment["VANGUARD_OUTPUT_DIR"] == nil {
-      dbFolderURL.appendPathComponent("Build")
-    }
-    dbFolderURL = subFolderNameComponentsAftermath.reduce(dbFolderURL) { partial, component in
-      partial.appendingPathComponent(component)
-    }
-    let dbFileURL = dbFolderURL.appendingPathComponent("\(outputFileNameStem).sqlite")
-
-    guard FileManager.default.fileExists(atPath: sqlFileURL.path) else {
-      throw VCDataBuilder.Exception
-        .errMsg("SQL file not found at expected path: \(sqlFileURL.path)")
-    }
-
-    try FileManager.default.createDirectory(
-      at: dbFolderURL,
-      withIntermediateDirectories: true,
-      attributes: nil
-    )
-
-    if FileManager.default.fileExists(atPath: dbFileURL.path) {
-      do {
-        try FileManager.default.removeItem(at: dbFileURL)
-        NSLog("   > 已移除既有的資料庫檔案。")
-      } catch {
-        NSLog("   > 警告：無法移除既有的資料庫檔案：\(error)")
-      }
-    }
-
-    var sqlData = try Data(contentsOf: sqlFileURL)
-    if sqlData.starts(with: [0xEF, 0xBB, 0xBF]) {
-      sqlData.removeFirst(3)
-    }
-    // sqlite3_exec 期望接收以 null 結尾的緩衝區。
-    if sqlData.last != 0 {
-      sqlData.append(0)
-    }
-
-    NSLog("   > 正在開啟位於 \(dbFileURL.path) 的 SQLite 資料庫。")
-
-    var database: OpaquePointer?
-    let openFlags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
-    let openResult = sqlite3_open_v2(dbFileURL.path, &database, openFlags, nil)
-    guard openResult == SQLITE_OK, let db = database else {
-      let message = database.flatMap { String(cString: sqlite3_errmsg($0)) } ?? "Unknown error"
-      if let database {
-        sqlite3_close(database)
-      }
-      throw VCDataBuilder.Exception.errMsg("Unable to open SQLite database: \(message)")
-    }
-
-    defer {
-      if sqlite3_close(db) != SQLITE_OK {
-        let closeMessage = String(cString: sqlite3_errmsg(db))
-        NSLog("   > 警告：sqlite3_close 傳回錯誤：\(closeMessage)")
-      }
-    }
-
-    NSLog("   > 正在透過 SQLite C API 執行 SQL 指令稿……")
-
-    var errorMessagePointer: UnsafeMutablePointer<CChar>?
-    let execResult = sqlData.withUnsafeBytes { rawBuffer -> Int32 in
-      let buffer = rawBuffer.bindMemory(to: CChar.self)
-      guard let baseAddress = buffer.baseAddress else { return SQLITE_OK }
-      return sqlite3_exec(db, baseAddress, nil, nil, &errorMessagePointer)
-    }
-
-    if execResult != SQLITE_OK {
-      let message = errorMessagePointer.map { String(cString: $0) }
-        ?? String(cString: sqlite3_errmsg(db))
-      if let errorMessagePointer {
-        sqlite3_free(errorMessagePointer)
-      }
-      throw VCDataBuilder.Exception
-        .errMsg("SQLite execution failed (code \(execResult)): \(message)")
-    }
-
-    if let errorMessagePointer {
-      sqlite3_free(errorMessagePointer)
-    }
-
-    NSLog("   > 已完成 SQL 指令稿的執行。")
-
-    if !FileManager.default.fileExists(atPath: dbFileURL.path) {
-      throw VCDataBuilder.Exception
-        .errMsg("Database file was not created at path: \(dbFileURL.path)")
-    }
-
-    NSLog("   > 已成功在 \(dbFileURL.path) 建立 SQLite 資料庫。")
-  }
 }
 
 // MARK: - VCDataBuilder.BuilderType
 
 extension VCDataBuilder {
   public enum BuilderType: String, CaseIterable, Sendable, Hashable, Codable {
-    case vanguardTrieSQL
-    case vanguardTriePlist
     case vanguardTextMap
     case chewingRustCHS
     case chewingRustCHT
@@ -548,15 +444,12 @@ extension VCDataBuilder {
     case chewingCBasedCHT
     case mcbopomofoCHS
     case mcbopomofoCHT
-    case vanguardSQLLegacy
   }
 }
 
 extension VCDataBuilder.BuilderType {
   public func getAssembler() async throws -> (VCDataBuilder.DataBuilderProtocol & Actor)? {
     switch self {
-    case .vanguardTrieSQL: try await VCDataBuilder.VanguardTrieSQLDataBuilder(isCHS: nil)
-    case .vanguardTriePlist: try await VCDataBuilder.VanguardTriePlistDataBuilder(isCHS: nil)
     case .vanguardTextMap: try await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil)
     case .chewingRustCHS: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: true)
     case .chewingRustCHT: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: false)
@@ -564,7 +457,6 @@ extension VCDataBuilder.BuilderType {
     case .chewingCBasedCHT: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: false)
     case .mcbopomofoCHS: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: true)
     case .mcbopomofoCHT: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: false)
-    case .vanguardSQLLegacy: try await VCDataBuilder.VanguardSQLLegacyDataBuilder(isCHS: nil)
     }
   }
 

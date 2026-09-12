@@ -32,7 +32,7 @@ Linux 系统的话，请注意两个先决条件：
 
 - `./verify_tiny_sample_determinism.sh`
 
-这道脚本会连续建置 `vanguardSQLLegacy`、`vanguardTriePlist`、`vanguardTrieSQL`、`vanguardTextMap` 各两次，并在比较时忽略 `_BUILD_TIMESTAMP` 这项刻意允许漂移的元资料；其余内容若有差异，会直接打印为 `DIFF`。
+这道脚本会连续建置 `vanguardTextMap` 各两次，并在比较时忽略 `_BUILD_TIMESTAMP` 这项刻意允许漂移的元资料；其余内容若有差异，会直接打印为 `DIFF`。
 
 在使用本仓库时，请在仓库根目录下运行 `swift run`，会出现类似下述格式的使用说明：
 
@@ -49,15 +49,13 @@ Linux 系统的话，请注意两个先决条件：
       VCDataBuilder all
 
     可用的辭典建置目標：
-      vanguardTrieSQL   - 先鋒引擎原廠辭典格式（Trie, SQLite）
-      vanguardTriePlist - 先鋒引擎原廠辭典格式（Trie, Plist）
+      vanguardTextMap  - 先鋒引擎原廠辭典格式（Trie, TextMap）
       chewingRustCHS    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，簡體中文）
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
       chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文，純 Swift 生成器）
       chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
       mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
       mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
-      vanguardSQLLegacy - vChewing 舊版格式（vChewing 3.x 後期 SQLite 格式）
 
     注意：
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
@@ -121,6 +119,6 @@ Linux 系统的话，请注意两个先决条件：
 
 注二：自 2026-04-14 起，`chewingCBasedCHS` 与 `chewingCBasedCHT` 所需的 `dictionary.dat` / `index_tree.dat` 由本仓库内的 Swift 产生器直接生成，已不再随附或依赖 `init_database` binary。
 
-注三：VanguardTrieKit 以 LGPLv3 释出。本仓库内的 VanguardTrieKit 是从 LibVanguard 复制出来的个别档案的副本、且不包含对 SQLite API 的直接交互之部分。
+注三：VanguardTrieKit 以 LGPLv3 释出。本仓库内的 VanguardTrieKit 是从 LibVanguard 复制出来的个别档案的副本。
 
 $ EOF.

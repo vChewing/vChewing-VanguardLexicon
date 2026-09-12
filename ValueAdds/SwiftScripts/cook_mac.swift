@@ -164,11 +164,6 @@ private let urlJSONBPMFReverseLookupCNS6: String =
 
 private var isReverseLookupDictionaryProcessed: Bool = false
 
-private let urlSQLite: String =
-  "\(urlCurrentFolder.path)/Build/Release/vChewingFactoryDatabase.sqlite"
-private let urlSQLScript: String =
-  "\(urlCurrentFolder.path)/Build/Release/vChewingFactoryDatabase.sql"
-
 private var mapReverseLookupForCheck: [String: [String]] = [:]
 private var exceptedChars: Set<String> = .init()
 
@@ -177,74 +172,6 @@ var rangeMapJSONCHT: [String: [String]] = [:]
 var rangeMapSymbols: [String: [String]] = [:]
 var rangeMapZhuyinwen: [String: [String]] = [:]
 var rangeMapCNS: [String: [String]] = [:]
-var rangeMapReverseLookup: [String: [String]] = [:]
-/// Also use mapReverseLookupForCheck.
-
-// MARK: - 準備資料庫
-
-func dumpSQL(_ insertData: @escaping () -> String) throws {
-  let strBuilder = NSMutableString(string: "")
-  let sqlHeader = #"""
-  PRAGMA synchronous=OFF;
-  PRAGMA journal_mode=OFF;
-  PRAGMA foreign_keys=OFF;
-  BEGIN TRANSACTION;
-  DROP TABLE IF EXISTS DATA_MAIN;
-  DROP TABLE IF EXISTS DATA_REV;
-  CREATE TABLE DATA_MAIN (
-    theKey TEXT NOT NULL,
-    theDataCHS TEXT,
-    theDataCHT TEXT,
-    theDataCNS TEXT,
-    theDataMISC TEXT,
-    theDataSYMB TEXT,
-    theDataCHEW TEXT,
-    PRIMARY KEY (theKey)
-  ) WITHOUT ROWID;
-  CREATE TABLE DATA_REV (
-    theChar TEXT NOT NULL,
-    theReadings TEXT NOT NULL,
-    PRIMARY KEY (theChar)
-  ) WITHOUT ROWID;
-  """#
-  strBuilder.append(sqlHeader)
-  strBuilder.append("\n")
-  strBuilder.append(insertData())
-  strBuilder.append("\nCOMMIT;\n")
-  try strBuilder.write(toFile: urlSQLScript, atomically: true, encoding: NSUTF8StringEncoding)
-}
-
-@discardableResult
-func writeMainMapToSQL(
-  _ theMap: [String: [String]],
-  column columnName: String
-)
-  -> String {
-  let script = NSMutableString(string: "")
-  for (encryptedKey, arrValues) in theMap {
-    // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
-    let safeKey = encryptedKey.replacingOccurrences(of: "'", with: "''")
-    let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
-    let sqlStmt =
-      "INSERT INTO DATA_MAIN (theKey, \(columnName)) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theKey) DO UPDATE SET \(columnName)='\(valueText)';"
-    script.append("\(sqlStmt)\n")
-  }
-  return script.description
-}
-
-@discardableResult
-func writeRevLookupMapToSQL(_ theMap: [String: [String]]) -> String {
-  let script = NSMutableString(string: "")
-  for (encryptedKey, arrValues) in theMap {
-    // SQL 語言需要對西文 ASCII 半形單引號做回退處理、變成「''」。
-    let safeKey = encryptedKey.replacingOccurrences(of: "'", with: "''")
-    let valueText = arrValues.joined(separator: "\t").replacingOccurrences(of: "'", with: "''")
-    let sqlStmt =
-      "INSERT INTO DATA_REV (theChar, theReadings) VALUES ('\(safeKey)', '\(valueText)') ON CONFLICT(theChar) DO UPDATE SET theReadings='\(valueText)';"
-    script.append("\(sqlStmt)\n")
-  }
-  return script.description
-}
 
 // MARK: - 載入詞組檔案且輸出陣列
 
@@ -736,7 +663,6 @@ func commonFileOutput() {
         mapCNS[encryptedKey, default: []].append(theValue)
         rangeMapCNS[encryptedKey, default: []].append(theValue)
         json: if !theKey.contains("_"), !theKey.contains("-") {
-          rangeMapReverseLookup[theValue, default: []].append(encryptedKey)
           if mapReverseLookupCNS1.keys.count <= 16_500 {
             mapReverseLookupCNS1[theValue, default: []].append(encryptedKey)
             break json
@@ -1113,7 +1039,6 @@ struct TaskFlags: OptionSet {
 // MARK: - 主執行緒
 
 var compileJSON = false
-var compileSQLite = true
 
 func main() {
   let arguments = CommandLine.arguments.compactMap { $0.lowercased() }
@@ -1121,11 +1046,9 @@ func main() {
   if jsonConditionMet {
     NSLog("// 接下來準備建置 JSON 格式的原廠辭典，同時生成用來偵錯的 TXT 副產物。")
     compileJSON = true
-    compileSQLite = false
   } else {
-    NSLog("// 接下來準備建置 SQLite 格式的原廠辭典，同時生成用來偵錯的 TXT 副產物。")
+    NSLog("// 接下來準備建置 TXT 副產物。")
     compileJSON = false
-    compileSQLite = true
   }
 
   var taskFlags: TaskFlags = [.common, .chs, .cht] {
@@ -1134,38 +1057,6 @@ func main() {
       NSLog("// 全部 TXT 辭典檔案建置完畢。")
       if compileJSON {
         NSLog("// 全部 JSON 辭典檔案建置完畢。")
-      }
-      if compileSQLite {
-        NSLog("// 開始整合反查資料。")
-        mapReverseLookupForCheck.forEach { key, values in
-          values.reversed().forEach { valueLiteral in
-            let value = cnvPhonabetToASCII(valueLiteral)
-            if !rangeMapReverseLookup[key, default: []].contains(value) {
-              rangeMapReverseLookup[key, default: []].insert(value, at: 0)
-            }
-          }
-        }
-        NSLog("// 反查資料整合完畢。")
-        NSLog("// 準備建置 SQL 資料庫指令腳本。")
-        var failed = false
-        do {
-          try dumpSQL {
-            writeMainMapToSQL(rangeMapJSONCHS, column: "theDataCHS")
-              + writeMainMapToSQL(rangeMapJSONCHT, column: "theDataCHT")
-              + writeMainMapToSQL(rangeMapSymbols, column: "theDataSYMB")
-              + writeMainMapToSQL(rangeMapZhuyinwen, column: "theDataCHEW")
-              + writeMainMapToSQL(rangeMapCNS, column: "theDataCNS")
-              + writeRevLookupMapToSQL(rangeMapReverseLookup)
-          }
-        } catch {
-          failed = true
-          NSLog(error.localizedDescription)
-        }
-        if failed {
-          NSLog("// SQLite 辭典傾印失敗。")
-        } else {
-          NSLog("// 全部 SQLite 辭典指令腳本檔案建置完畢。")
-        }
       }
     }
   }

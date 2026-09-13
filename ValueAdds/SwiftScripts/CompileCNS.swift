@@ -1,8 +1,8 @@
 #!/usr/bin/env swift
 
-// (c) 2021 and onwards The vChewing Project (BSD-3-Clause).
+// (c) 2021 and onwards The vChewing Project (MulanPSL-2.0 License).
 // ====================
-// This code is released under the SPDX-License-Identifier: `BSD-3-Clause`.
+// This code is released under the SPDX-License-Identifier: `MulanPSL-2.0`.
 
 // 該檔案用來將全字庫 OpenData 當中的資料轉成可以交給 vChewing-VanguardLexicon 編譯的那種原始資料格式。
 // 原始資料得是「全字庫中文碼對照表」與「全字庫屬性資料集對照表」，兩個資料夾得在同一目錄下。

@@ -113,7 +113,9 @@ Linux 系统的话，请注意两个先决条件：
 
 ## 授权
 
-3-Clause BSD License：https://opensource.org/licenses/BSD-3-Clause
+木兰宽松授权条款第 2 版（MulanPSL-2.0）：https://license.coscl.org.cn/MulanPSL2
+
+本仓库内由 vChewing 专案自行维护的内容均以木兰宽松授权条款第 2 版释出，全文见 `./LICENSE.txt`（英文正式文本）与其简体中文、繁体中文对应档案。
 
 注一：该仓库的 Swift 脚本编译系统虽有对新酷音词库格式的支持，却并未使用新酷音的字词库与频率语料，故不受其 LGPLv2 协议之约束。
 

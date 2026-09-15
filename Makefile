@@ -31,6 +31,7 @@ else
 endif
 
 .PHONY: format lint clean dockertest dockerrun \
+        build510 clean510 \
         install install-vchewing macv \
         mcbpmf-all mcbpmf-chs mcbpmf-cht \
         mcbpmf-install-fcitx5 \
@@ -65,6 +66,45 @@ dockertest:
 
 dockerrun:
 	docker run --rm -v "$(shell pwd)":/workspace -w /workspace swift:latest swift run
+
+# MARK: - Swift 5.10 (legacy path)
+
+# 用途：以 Swift 5.10 toolchain 驗本套件在該工具鏈下的 compilability（5.10 的 SwiftPM 會挑
+# `Package@swift-5.swift`，6.x 側則挑 `Package.swift`）。
+#
+# 本套件之產物是 host 工具與資料庫、跨系統通用，故**不指定 SDK、也不釘 triple**：deployment target 交由
+# manifest 之 `platforms` 決定（其為 nil 時即 SwiftPM 之該版本地板），編譯用的 SDK 亦交由當前開發環境決定。
+# 換言之，本靶與 vChewing-macOS 側那套「Xcode 15 ＋ MacOSX13.3.sdk ＋ x86_64-apple-macosx10.10」的配對無關
+# ——那套是為了把產物壓進 macOS 10.10 靜態庫，本套件不需要。
+#
+# 唯一仍須與 6.x 側分離的是 scratch path：5.10 的 SwiftPM 讀不懂新版 `workspace-state.json`（v7），共用即互踩。
+#
+# 另須把 **宿主** 的 `DEVELOPER_DIR` 指到一個 5.10 吃得下的 Xcode（預設 Xcode 15）。這不是本套件的 SDK 選擇，
+# 而是 5.10 的 Clang importer 吃不下 Xcode 27 的 macOS 27 SDK——實測會先炸 `unknown argument:
+# '-target-arch-variant'`，再於 `DarwinFoundation1.modulemap` 炸出成串 `could not build module
+# '_DarwinFoundation1' / 'CoreFoundation' / 'Darwin'`。宿主換 Xcode 即可（`LEGACY_XCODE` 可覆寫）。
+#
+# 機理見 vChewing-DevLogs/Research/Phase217_SOP.md §二／§三。
+
+# 5.10.1 工具鏈可能落在兩處：官方安裝器寫進 `/Library`，`swiftly` 則自管 `$HOME` 那份。兩者係同一
+# 發行版、識別子相同，並存會令 Xcode 拒絕註冊而所有 `xcodebuild` 於套件解析前即敗。故自動擇一：
+# 優先系統那份（不受 `swiftly uninstall` 影響），次取使用者空間那份。`?=` 仍可顯式覆寫。
+LEGACY_TOOLCHAIN ?= $(firstword $(wildcard \
+	/Library/Developer/Toolchains/swift-5.10.1-RELEASE.xctoolchain \
+	$(HOME)/Library/Developer/Toolchains/swift-5.10.1-RELEASE.xctoolchain \
+	))
+LEGACY_XCODE ?= /Applications/Xcode-15.app/Contents/Developer
+LEGACY_SCRATCH ?= .build/.legacy
+
+build510:
+	@export LC_ALL=C; export DEVELOPER_DIR="$(LEGACY_XCODE)"; \
+	echo "Building VanguardLexicon with Swift 5.10…"; \
+	"$(LEGACY_TOOLCHAIN)/usr/bin/swift" build \
+		--package-path . \
+		--scratch-path "$(LEGACY_SCRATCH)"
+
+clean510:
+	@$(RMDIR) "$(LEGACY_SCRATCH)"
 
 # MARK: - macOS (vChewing)
 

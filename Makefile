@@ -140,7 +140,7 @@ mcbpmf-cht:
 
 mcbpmf:
 	@$(eval LANG := $(shell echo $(LANG) | tr 'a-z' 'A-Z'))
-	swift run VCDataBuilder chewingRust$(LANG)
+	swift run VCDataBuilder mcbopomofo$(LANG)
 
 mcbpmf-install-fcitx5: mcbpmf
 	@$(eval DEPLOY_DIR_MCBPMF_LINUX_FCITX5 := "/usr/share/fcitx5/data/")

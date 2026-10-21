@@ -1,0 +1,26 @@
+[core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+        ignorecase = false
+        precomposeunicode = true
+[remote "origin"]
+        url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+        remote = origin
+        merge = refs/heads/main
+        vscode-merge-base = origin/main
+[submodule]
+        active = .
+[remote "github"]
+        url = https://github.com/vChewing/vChewing-VanguardLexicon/
+        fetch = +refs/heads/*:refs/remotes/github/*
+[remote "all"]
+        url = https://gitee.com/vChewing/vChewing-VanguardLexicon.git/
+        fetch = +refs/heads/*:refs/remotes/all/*
+        pushurl = https://gitee.com/vchewing/vChewing-VanguardLexicon.git/
+        pushurl = https://github.com/vChewing/vChewing-VanguardLexicon/
+[lfs]
+	repositoryformatversion = 0

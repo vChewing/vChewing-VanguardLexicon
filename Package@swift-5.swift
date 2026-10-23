@@ -13,9 +13,17 @@ let package = Package(
       name: "LibVanguardChewingData",
       targets: ["LibVanguardChewingData"]
     ),
+    .library(
+      name: "Yukuaki",
+      targets: ["Yukuaki"]
+    ),
     .executable(
       name: "VCDataBuilder",
       targets: ["VCDataBuilder"]
+    ),
+    .executable(
+      name: "VanguardLexiconDebugger",
+      targets: ["VanguardLexiconDebugger"]
     ),
     .plugin(
       name: "TextTemplateAssetInjectorPlugin",
@@ -34,11 +42,21 @@ let package = Package(
       ]
     ),
     .target(
+      name: "Yukuaki",
+      resources: [
+        .process("Licenses/"),
+      ]
+    ),
+    .target(
       name: "LibVanguardChewingData",
       dependencies: ["VanguardTrieKit"],
       resources: [
         .process("./Resources/"),
       ]
+    ),
+    .executableTarget(
+      name: "VanguardLexiconDebugger",
+      dependencies: ["Yukuaki"]
     ),
     .executableTarget(
       name: "VCDataBuilder",

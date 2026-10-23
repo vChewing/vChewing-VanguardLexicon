@@ -63,7 +63,8 @@ extension VCDataBuilder.Unigram {
   ///   - isCHS: `true` 只讀簡體檔、`false` 只讀繁體檔、`nil` 兩者皆讀。
   ///   - norm: 詞頻正規化基準（unigram 側的語料總量）。
   ///   - contextCounts: 各語系的「詞值 → 詞頻」對照表；用於把前驗詞的詞頻當作條件機率的分母。
-  ///   - classTables: 各語系的詞類清單（`<類名>` → 成員）；`nil` 代表自資源檔載入。
+  ///   - classTables: 各語系的詞類清單（`<TOKEN>` → 成員）；`nil` 代表自資源檔載入。
+  ///     類名一律為英文 token、繁簡共用，僅成員隨語系而異。
   ///   - readingsTables: 各語系的「詞值 → 讀音」對照表；詞類列展開時用來補成員的讀音。
   /// - Returns: 已折算權重、且依索引鍵排序的 n-gram 條目。
   static func prepareRawNgramRecords(
@@ -186,7 +187,8 @@ extension VCDataBuilder.Unigram {
 
   /// 讀取詞類清單（`phrases-ngram-classes-{chs,cht}.txt`）。
   ///
-  /// 行格式：`類名\t詞值（空格分隔）`；類名以角括號包住，供 n-gram 表以 `<類名>` 引用。
+  /// 行格式：`類名\t詞值（空格分隔）`；類名以角括號包住，供 n-gram 表以 `<TOKEN>` 引用。
+  /// 類名一律為英文 token（`<PLACE_NOUN>`、`<OBJECTIVE_VERB>`、`<SELF_VERB>`…），繁簡共用。
   /// 以 `#` 起首的行與空行一律忽略；檔案不存在時回傳空表。
   static func loadClassTable(isCHS: Bool) throws -> [String: [String]] {
     let suffix = isCHS ? "chs" : "cht"

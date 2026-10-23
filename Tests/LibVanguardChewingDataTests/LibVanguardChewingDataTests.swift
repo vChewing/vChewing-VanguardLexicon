@@ -140,10 +140,10 @@ struct NgramRecordsTests {
   @Test("詞類模板：詞值欄與前驗詞鏈欄都會展開成逐條成員")
   func classTemplateExpands() throws {
     let raw = """
-    <處所名詞>\t120\t-\t在
-    在\t120\tㄗㄞˋ\t<處所名詞>
+    <PLACE_NOUN>\t120\t-\t在
+    在\t120\tㄗㄞˋ\t<PLACE_NOUN>
     """
-    let classes = ["<處所名詞>": ["這裡", "那裡"]]
+    let classes = ["<PLACE_NOUN>": ["這裡", "那裡"]]
     let readings = [
       "這裡": ["ㄓㄜˋ", "ㄌㄧˇ"],
       "那裡": ["ㄋㄚˋ", "ㄌㄧˇ"],
@@ -181,11 +181,11 @@ struct NgramRecordsTests {
   @Test("詞類成員查無讀音時，該成員略過而不臆造讀音")
   func classMemberWithoutReadingsIsSkipped() throws {
     let records = VCDataBuilder.Unigram.parseNgramLines(
-      "<處所名詞>\t9\t-\t在",
+      "<PLACE_NOUN>\t9\t-\t在",
       isCHS: false,
       norm: Self.norm,
       counts: [:],
-      classTable: ["<處所名詞>": ["這裡", "查無此詞"]],
+      classTable: ["<PLACE_NOUN>": ["這裡", "查無此詞"]],
       readings: ["這裡": ["ㄓㄜˋ", "ㄌㄧˇ"]]
     )
     #expect(records.map(\.value) == ["這裡"])
@@ -193,11 +193,14 @@ struct NgramRecordsTests {
 
   @Test("詞類清單可自資源檔讀取")
   func loadsShippedClassTables() throws {
+    // 類名（token）繁簡共用，故兩檔查的是同一組鍵。
     let cht = try VCDataBuilder.Unigram.loadClassTable(isCHS: false)
-    #expect(cht["<處所名詞>"]?.contains("這裡") == true)
-    #expect(cht["<動詞>"]?.contains("說") == true)
+    #expect(cht["<PLACE_NOUN>"]?.contains("這裡") == true)
+    #expect(cht["<OBJECTIVE_VERB>"]?.contains("說") == true)
+    #expect(cht["<SELF_VERB>"]?.contains("來") == true)
     let chs = try VCDataBuilder.Unigram.loadClassTable(isCHS: true)
-    #expect(chs["<处所名词>"]?.contains("这里") == true)
-    #expect(chs["<动词>"]?.contains("说") == true)
+    #expect(chs["<PLACE_NOUN>"]?.contains("这里") == true)
+    #expect(chs["<OBJECTIVE_VERB>"]?.contains("说") == true)
+    #expect(chs["<SELF_VERB>"]?.contains("来") == true)
   }
 }

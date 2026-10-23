@@ -107,6 +107,8 @@ extension Yukuaki {
     }
 
     /// 該節點內最合適的前文 gram（trigram 優先；bigram 需嚴格更高分才勝出）。
+    /// - Note: 同一組前文可能對應多條 gram（例如同一詞值掛了不同的讀音或不同的覆寫來源），
+    ///   此時取機率最高者；同分時取排序在前者，與 Homa 的 `contextGram` 行為一致。
     public func contextGram(previous: String?, anterior: String? = nil) -> Yukuaki.Gram? {
       guard let previous, !previous.isEmpty else { return nil }
       var bestBigram: Yukuaki.Gram?
@@ -114,9 +116,13 @@ extension Yukuaki {
       for gram in grams {
         guard gram.previous == previous else { continue }
         if gram.anterior == nil {
-          bestBigram = gram
+          if bestBigram == nil || gram.probability > (bestBigram?.probability ?? -.infinity) {
+            bestBigram = gram
+          }
         } else if gram.anterior == anterior {
-          bestTrigram = gram
+          if bestTrigram == nil || gram.probability > (bestTrigram?.probability ?? -.infinity) {
+            bestTrigram = gram
+          }
         }
       }
       var best = bestTrigram
@@ -131,7 +137,7 @@ extension Yukuaki {
       }
       let unigramBaseline = unigramScore
       guard let previous, !previous.isEmpty else {
-        return evaluateWithoutContext(baseline: unigramBaseline)
+        return evaluateWithoutContext()
       }
       let bestBonus = contextGram(previous: previous, anterior: anterior)
       switch currentOverrideType {
@@ -143,9 +149,13 @@ extension Yukuaki {
           usedBackoff: false
         )
       case .withTopGramScore:
+        // 弱釘選：只把分數壓回 unigram 基線，**不動**當前選取。此型別由 POM 之自動套用端
+        // （`forceHighScoreOverride == false`）以 `selectOverrideGram` 設定，那時
+        // `currentGramIndex` 已指向 POM 建議的那條 gram；若在此把它撥回 `topUnigramGram`，
+        // 使用者在選字窗挑的詞就會被丟掉。（與 Homa 之 `targetIndex: nil` 同義。）
         return .init(
           score: unigramBaseline,
-          gram: topUnigramGram,
+          gram: currentGram ?? topUnigramGram,
           isExplicit: isExplicitlyOverridden,
           usedBackoff: false
         )
@@ -168,13 +178,23 @@ extension Yukuaki {
     }
 
     /// 瞄準給定前文的 gram 分數，但同時把節點的當前 gram 撥過去。
+    /// - Note: 這是「估值＋寫回」的合體版，只適合單一路徑的場合。
+    ///   需要同時評估多條假設時（例如 P325 之後的多狀態 DP），請改用 `evaluate` 取得
+    ///   純量結果，再於確定勝出路徑之後用 `adopt(gram:)` 寫回，否則節點狀態會被
+    ///   「最後一次估值」污染。
     @discardableResult
     public mutating func adopt(previous: String?, anterior: String? = nil) -> Double {
       let evaluation = evaluate(previous: previous, anterior: anterior)
-      if let gram = evaluation.gram, let index = grams.firstIndex(of: gram) {
-        currentGramIndex = index
-      }
+      if let gram = evaluation.gram { adopt(gram: gram) }
       return evaluation.score
+    }
+
+    /// 把節點的當前 gram 撥到指定的 gram。只改索引，不改覆寫狀態。
+    /// - Note: 以 `grams.firstIndex(of:)` 比對整條 gram（含前驗詞鏈），
+    ///   故同詞值、不同前文的兩條 gram 不會互相誤認。
+    public mutating func adopt(gram: Yukuaki.Gram) {
+      guard let index = grams.firstIndex(of: gram) else { return }
+      currentGramIndex = index
     }
 
     /// 強制該節點在此前文下選用指定的 gram。
@@ -215,8 +235,13 @@ extension Yukuaki {
     // MARK: Private
 
     /// 沒有前文時的估值。
-    private func evaluateWithoutContext(baseline: Double) -> Evaluation {
+    /// - Note: 這裡刻意不去讀 `currentGram`。組句的 DP 會在多條假設之間反覆估值，
+    ///   同一節點在不同假設下必須得到同一個「無前文分數」；若讓結果取決於
+    ///   `currentGramIndex`（也就是上一次組句寫回的殘留狀態），估值就不再是純函式，
+    ///   重複組句的結果也會開始漂移。
+    private func evaluateWithoutContext() -> Evaluation {
       let gram = topUnigramGram ?? grams[0]
+      let effectiveBaseline = topUnigramGram?.probability ?? gram.probability
       switch currentOverrideType {
       case .withSpecified:
         return .init(
@@ -226,23 +251,16 @@ extension Yukuaki {
           usedBackoff: false
         )
       case .withTopGramScore:
+        // 同上：弱釘選只改分數、不改選取。
         return .init(
-          score: gram.probability,
-          gram: gram,
+          score: effectiveBaseline,
+          gram: currentGram ?? gram,
           isExplicit: isExplicitlyOverridden,
           usedBackoff: false
         )
       case nil:
-        if let currentGram, currentGram.isUnigram {
-          return .init(
-            score: currentGram.probability,
-            gram: currentGram,
-            isExplicit: isExplicitlyOverridden,
-            usedBackoff: false
-          )
-        }
         return .init(
-          score: baseline == 0 ? gram.probability : baseline,
+          score: effectiveBaseline,
           gram: gram,
           isExplicit: isExplicitlyOverridden,
           usedBackoff: false

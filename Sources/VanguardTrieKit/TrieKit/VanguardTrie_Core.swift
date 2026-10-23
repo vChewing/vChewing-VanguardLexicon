@@ -61,16 +61,22 @@ public enum VanguardTrie {
     public struct Entry: Hashable, Sendable {
       // MARK: Lifecycle
 
+      /// 組建一筆辭典條目（帶 n-gram 前驗詞鏈）。
+      /// - Parameters:
+      ///   - value: 詞值。
+      ///   - typeID: 條目型別。
+      ///   - probability: 機率（本倉即 log10 權重，負值）。
+      ///   - context: 前驗詞鏈（由舊至新；最後一個元素是緊鄰的前一個詞）。
       public init(
         value: String,
         typeID: EntryType,
         probability: Double,
-        previous: String?
+        context: [String] = []
       ) {
         self.value = value
         self.typeID = typeID
         self.probability = probability
-        self.previous = previous
+        self.context = context
       }
 
       // MARK: Public
@@ -78,7 +84,18 @@ public enum VanguardTrie {
       public let value: String
       public let typeID: EntryType
       public let probability: Double
-      public let previous: String?
+
+      /// 前驗詞鏈（由舊至新）。空陣列代表 unigram。
+      public let context: [String]
+
+      /// 緊鄰的前一個詞（bigram／trigram 敘述用之）。
+      public var previous: String? { context.last }
+
+      /// 前前一個詞（trigram 敘述用之）。
+      public var anterior: String? {
+        guard context.count >= 2 else { return nil }
+        return context[context.count - 2]
+      }
     }
 
     public struct EntryType: OptionSet, Sendable, Codable, Hashable {

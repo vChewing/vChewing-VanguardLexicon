@@ -113,7 +113,7 @@ struct YukuakiAdvisorTests {
       ug("ㄗㄞˋ", "在", -3),
       ug("ㄗㄞˋ", "再", -4.5),
       ug("ㄓㄜˋ", "這", -3),
-      ug("ㄧㄤˋ", "樣", -3)
+      ug("ㄧㄤˋ", "樣", -3),
     ])
     #expect(try fixture.assembledText(of: ["ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ"]) == "在這樣")
     let report = try fixture.advisor()
@@ -133,7 +133,7 @@ struct YukuakiAdvisorTests {
       ug("ㄉㄧㄢˋ", "電", -3),
       ug("ㄋㄠˇ", "腦", -3),
       Yukuaki.Gram(keyArray: ["ㄉㄧㄢˋ", "ㄋㄠˇ"], current: "電腦", probability: -5),
-      ug("ㄋㄠˇ", "惱", -6)
+      ug("ㄋㄠˇ", "惱", -6),
     ])
     #expect(try fixture.assembledText(of: ["ㄉㄧㄢˋ", "ㄋㄠˇ"]) == "電腦")
     let report = try fixture.advisor().analyze(readingChain: ["ㄉㄧㄢˋ", "ㄋㄠˇ"], expected: "電惱")
@@ -148,7 +148,7 @@ struct YukuakiAdvisorTests {
       grams: [
         ug("ㄉㄧㄢˋ", "電", -3),
         ug("ㄋㄠˇ", "腦", -3),
-        ug("ㄋㄠˇ", "惱", -4.5)
+        ug("ㄋㄠˇ", "惱", -4.5),
       ],
       norm: nil
     )
@@ -170,7 +170,7 @@ struct YukuakiAdvisorTests {
     let norm = 1_000_000_000.0
     let value = "電腦"
     let probability = -3.0
-    let count = try #require(Yukuaki.GramSpec.invertedCount(probability: probability, value: value, norm: norm))
+    let count = try #require(Yukuaki.GramSpec.invertedCount(probability: probability, value: value, denominator: norm))
     /// score = log10(e^(len/3 - 1) × count / norm)
     let restored = log10(exp(Double(value.count) / 3 - 1) * count / norm)
     #expect(abs(restored - probability) < 1e-9)
@@ -202,7 +202,7 @@ struct YukuakiAdvisorTests {
     AdvisorFixture(grams: [
       ug("ㄉㄧㄢˋ", "電", -3),
       ug("ㄋㄠˇ", "腦", -3),
-      ug("ㄋㄠˇ", "惱", -4.5)
+      ug("ㄋㄠˇ", "惱", -4.5),
     ])
   }
 }

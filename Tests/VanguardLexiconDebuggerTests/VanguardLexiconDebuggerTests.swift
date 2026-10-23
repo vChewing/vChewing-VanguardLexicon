@@ -11,7 +11,7 @@ import Yukuaki
 
 private enum Fixture {
   static let simple = """
-  VERSION 1.1
+  VERSION 2.0
   TYPE TYPING
   READING_SEPARATOR -
   ENTRY_COUNT 3
@@ -27,7 +27,7 @@ private enum Fixture {
   """
 
   static let escaped = """
-  VERSION 1.1
+  VERSION 2.0
   TYPE TYPING
   READING_SEPARATOR -
   KEY_COUNT 2
@@ -41,7 +41,7 @@ private enum Fixture {
   """
 
   static let contextual = """
-  VERSION 1.1
+  VERSION 2.0
   TYPE TYPING
   READING_SEPARATOR -
   KEY_COUNT 1
@@ -53,9 +53,24 @@ private enum Fixture {
   ㄉㄠˋ\t0\t2
   """
 
+  /// trigram 測試用：型別 C 的第 4 欄是 escaped-pipe 編碼的前驗詞鏈（由舊至新）。
+  static let trigram = """
+  VERSION 2.0
+  TYPE TYPING
+  READING_SEPARATOR -
+  KEY_COUNT 1
+  DEFAULT_PROB_9 -13
+  #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+  @-3	到	到
+  到	-2.5	6	我
+  到	-2.2	6	我|你
+  #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+  ㄉㄠˋ	0	3
+  """
+
   /// 語系軌測試用：`@` 行分屬兩格、`>5`／`>6` 分屬兩語系。
   static let localized = """
-  VERSION 1.1
+  VERSION 2.0
   TYPE TYPING
   READING_SEPARATOR -
   KEY_COUNT 2
@@ -86,7 +101,7 @@ struct DebuggerOptionsTests {
   @Test("基本參數")
   func parsesBasicArguments() throws {
     let options = try DebuggerOptions(arguments: [
-      "--readingChain", "dian4-nao3", "--expected", "電腦", "--json", "--verbose", "--top", "5"
+      "--readingChain", "dian4-nao3", "--expected", "電腦", "--json", "--verbose", "--top", "5",
     ])
     #expect(options.readingChains == ["dian4-nao3"])
     #expect(options.expecteds == ["電腦"])
@@ -99,7 +114,7 @@ struct DebuggerOptionsTests {
   @Test("等號形式與短旗標")
   func parsesInlineValues() throws {
     let options = try DebuggerOptions(arguments: [
-      "--readingChain=ㄅㄚ-ㄅㄚ", "-e=八八", "-j", "-n", "2"
+      "--readingChain=ㄅㄚ-ㄅㄚ", "-e=八八", "-j", "-n", "2",
     ])
     #expect(options.readingChains == ["ㄅㄚ-ㄅㄚ"])
     #expect(options.expecteds == ["八八"])
@@ -111,7 +126,7 @@ struct DebuggerOptionsTests {
   @Test("可重複給定多個案例")
   func parsesRepeatedCases() throws {
     let options = try DebuggerOptions(arguments: [
-      "-k", "bu2-yao4-zai4-zhe4-yang4", "-k", "bu2-yao4-zai4-zhe4-li3", "-e", "不要再這樣", "-e", "不要在這裡"
+      "-k", "bu2-yao4-zai4-zhe4-yang4", "-k", "bu2-yao4-zai4-zhe4-li3", "-e", "不要再這樣", "-e", "不要在這裡",
     ])
     #expect(options.readingChains == ["bu2-yao4-zai4-zhe4-yang4", "bu2-yao4-zai4-zhe4-li3"])
     #expect(options.expecteds == ["不要再這樣", "不要在這裡"])
@@ -219,7 +234,7 @@ struct VanguardTextMapReaderTests {
   @Test("語系取捨：兩軌詞條都收，本軌排前")
   func localePreference() throws {
     let fixture = """
-    VERSION\t1.1
+    VERSION\t2.0
     READING_SEPARATOR\t-
     #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
     @-3\t电|脑\t電|腦
@@ -261,6 +276,83 @@ struct VanguardTextMapReaderTests {
     let bigram = try #require(grams.first { !$0.isUnigram })
     #expect(bigram.previous == "我")
     #expect(bigram.probability == -2.5)
+  }
+
+  @Test("型別 C 的前驗詞鏈可承載 trigram")
+  func readsTrigramContext() throws {
+    let url = try Fixture.write(Fixture.trigram, name: "trigram")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    let grams = reader.grams(forKeys: ["ㄉㄠˋ"])
+    #expect(grams.count == 3)
+    let bigram = try #require(grams.first { $0.isBigram })
+    #expect(bigram.previous == "我")
+    #expect(bigram.anterior == nil)
+    let trigram = try #require(grams.first { $0.isTrigram })
+    #expect(trigram.previous == "你")
+    #expect(trigram.anterior == "我")
+    #expect(trigram.probability == -2.2)
+  }
+
+  @Test("前文詞條會改變組句：在／再 由前文「要」決定")
+  func bigramFlipsAssembly() throws {
+    let fixture = """
+    VERSION 2.0
+    TYPE TYPING
+    READING_SEPARATOR -
+    KEY_COUNT 3
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    @-5.128\t不\t不
+    @-5.048\t要\t要
+    @-5.009\t在\t在
+    再\t-3.405\t6\t要
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    ㄅㄨˋ\t0\t1
+    ㄧㄠˋ\t1\t1
+    ㄗㄞˋ\t2\t2
+    """
+    let url = try Fixture.write(fixture, name: "zai")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    let assembler = Yukuaki.Assembler(
+      gramQuerier: { reader.grams(forKeys: $0.representativeKeys) },
+      gramAvailabilityChecker: { reader.hasGrams(forKeys: $0) },
+      config: Yukuaki.Config(maxSegLength: 6)
+    )
+    try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ"].map { Yukuaki.PossibleKey.singleKey($0) })
+    let outcome = try #require(assembler.assembleWithScore())
+    #expect(outcome.path.joinedSentence == "不要再")
+    let contextual = try #require(outcome.path.first { $0.value == "再" })
+    #expect(contextual.gram.previous == "要")
+  }
+
+  @Test("移除前文詞條後，同一條讀音鏈改選「在」")
+  func withoutContextTheUnigramWins() throws {
+    let fixture = """
+    VERSION 2.0
+    TYPE TYPING
+    READING_SEPARATOR -
+    KEY_COUNT 3
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    @-5.128\t不\t不
+    @-5.048\t要\t要
+    @-5.009\t在\t在
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    ㄅㄨˋ\t0\t1
+    ㄧㄠˋ\t1\t1
+    ㄗㄞˋ\t2\t1
+    """
+    let url = try Fixture.write(fixture, name: "zai-plain")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    let assembler = Yukuaki.Assembler(
+      gramQuerier: { reader.grams(forKeys: $0.representativeKeys) },
+      gramAvailabilityChecker: { reader.hasGrams(forKeys: $0) },
+      config: Yukuaki.Config(maxSegLength: 6)
+    )
+    try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ"].map { Yukuaki.PossibleKey.singleKey($0) })
+    let outcome = try #require(assembler.assembleWithScore())
+    #expect(outcome.path.joinedSentence == "不要在")
   }
 
   @Test("缺少區段標記時拋錯")
@@ -317,7 +409,7 @@ struct DebuggerRunnerTests {
   // MARK: Private
 
   private static let competing = """
-  VERSION 1.1
+  VERSION 2.0
   TYPE TYPING
   READING_SEPARATOR -
   ENTRY_COUNT 3

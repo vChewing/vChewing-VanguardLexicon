@@ -136,4 +136,68 @@ struct NgramRecordsTests {
     #expect(nodes.contains { $0.entries.contains { $0.context == ["要"] } })
     #expect(nodes.contains { $0.entries.contains { $0.context == ["不", "要"] } })
   }
+
+  @Test("詞類模板：詞值欄與前驗詞鏈欄都會展開成逐條成員")
+  func classTemplateExpands() throws {
+    let raw = """
+    <處所名詞>\t120\t-\t在
+    在\t120\tㄗㄞˋ\t<處所名詞>
+    """
+    let classes = ["<處所名詞>": ["這裡", "那裡"]]
+    let readings = [
+      "這裡": ["ㄓㄜˋ", "ㄌㄧˇ"],
+      "那裡": ["ㄋㄚˋ", "ㄌㄧˇ"],
+      "在": ["ㄗㄞˋ"],
+    ]
+    let records = VCDataBuilder.Unigram.parseNgramLines(
+      raw,
+      isCHS: false,
+      norm: Self.norm,
+      counts: ["在": 6_528],
+      classTable: classes,
+      readings: readings
+    )
+    // 兩條模板 × 兩名成員 ⇒ 四條 n-gram。
+    #expect(records.count == 4)
+    let here = try #require(records.first { $0.value == "這裡" && $0.context == ["在"] })
+    #expect(here.readings == ["ㄓㄜˋ", "ㄌㄧˇ"])
+    // 詞值為類名時，讀音取自 `readings`；分母取自前驗詞（在）的詞頻。
+    // 期望值一律由產製端 `weighten` 給出：語料側權重之規格（P324）係
+    // `log10(e^(len/3−1) × count / 分母)`，但常數不該在測試裡另立一份——
+    // POM 側才是野獸常數曲線（`kWeightMultiplier`），兩者不可混用。
+    let probe = VCDataBuilder.Unigram(
+      key: "ㄓㄜˋ-ㄌㄧˇ",
+      value: "這裡",
+      score: 0,
+      count: 120,
+      category: .custom
+    )
+    probe.weighten(norm: 6_528)
+    #expect(abs(here.score - probe.score) < 0.001)
+    let zai = try #require(records.first { $0.value == "在" && $0.context == ["這裡"] })
+    #expect(zai.readings == ["ㄗㄞˋ"])
+  }
+
+  @Test("詞類成員查無讀音時，該成員略過而不臆造讀音")
+  func classMemberWithoutReadingsIsSkipped() throws {
+    let records = VCDataBuilder.Unigram.parseNgramLines(
+      "<處所名詞>\t9\t-\t在",
+      isCHS: false,
+      norm: Self.norm,
+      counts: [:],
+      classTable: ["<處所名詞>": ["這裡", "查無此詞"]],
+      readings: ["這裡": ["ㄓㄜˋ", "ㄌㄧˇ"]]
+    )
+    #expect(records.map(\.value) == ["這裡"])
+  }
+
+  @Test("詞類清單可自資源檔讀取")
+  func loadsShippedClassTables() throws {
+    let cht = try VCDataBuilder.Unigram.loadClassTable(isCHS: false)
+    #expect(cht["<處所名詞>"]?.contains("這裡") == true)
+    #expect(cht["<動詞>"]?.contains("說") == true)
+    let chs = try VCDataBuilder.Unigram.loadClassTable(isCHS: true)
+    #expect(chs["<处所名词>"]?.contains("这里") == true)
+    #expect(chs["<动词>"]?.contains("说") == true)
+  }
 }

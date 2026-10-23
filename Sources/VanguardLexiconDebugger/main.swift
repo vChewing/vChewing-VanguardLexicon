@@ -621,7 +621,7 @@ enum TextMapLocator {
   static let defaultRelativePaths = [
     "Build/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap",
     "../Build/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap",
-    "../../Build/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap"
+    "../../Build/Release/vanguard-textmap/VanguardFactoryDict4Typing.txtMap",
   ]
 
   static func locate(override: String?) throws -> URL {

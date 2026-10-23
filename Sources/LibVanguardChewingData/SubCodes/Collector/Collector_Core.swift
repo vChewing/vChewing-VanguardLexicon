@@ -93,6 +93,10 @@ extension VCDataBuilder {
         contextCounts: [
           true: Unigram.makeCountTable([unigramsCHS, unigramsKanjiCHS, unigrams4NonKanji]),
           false: Unigram.makeCountTable([unigramsCHT, unigramsKanjiCHT, unigrams4NonKanji]),
+        ],
+        readingsTables: [
+          true: Unigram.makeReadingTable([unigramsCHS, unigramsKanjiCHS, unigrams4NonKanji]),
+          false: Unigram.makeReadingTable([unigramsCHT, unigramsKanjiCHT, unigrams4NonKanji]),
         ]
       )
       self.compatibleMode = compatibleMode

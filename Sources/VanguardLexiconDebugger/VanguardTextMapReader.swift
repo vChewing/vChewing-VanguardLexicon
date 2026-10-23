@@ -13,7 +13,7 @@ import Yukuaki
 /// 三個區段（HEADER／VALUES／KEY_LINE_MAP），其中 VALUES 有三種行型別：
 /// - 型別 A：`>typeID\tencodedCell`
 /// - 型別 B：`@probability\tchsCell\tchtCell`
-/// - 型別 C：`value\tprobability\ttypeID[\tprevious]`
+/// - 型別 C：`value\tprobability\ttypeID[\tcontextCell]`；`contextCell` 為 escaped-pipe 編碼的前驗詞鏈（由舊至新）
 final class VanguardTextMapReader {
   // MARK: Lifecycle
 
@@ -36,11 +36,14 @@ final class VanguardTextMapReader {
     // HEADER
     var separator = "-"
     var defaultProbs = [Int: Double]()
+    var versionCell: String?
     for line in lines[0 ..< valuesIndex] {
       /// 區段標頭的欄位以 TAB 分隔；此處對空白也寬容，方便手寫測資。
       let fields = line.split(whereSeparator: \.isWhitespace).map(String.init)
       guard fields.count >= 2 else { continue }
       switch fields[0] {
+      case "VERSION":
+        versionCell = fields[1]
       case "READING_SEPARATOR":
         separator = fields[1]
       default:
@@ -49,6 +52,13 @@ final class VanguardTextMapReader {
         guard let probability = Double(fields[1]) else { continue }
         defaultProbs[typeID] = probability
       }
+    }
+    // Phase 324 起只認 `2.x`：型別 C 的第 4 欄由「單一前驗詞」改為「前驗詞鏈」，
+    // 舊檔若仍以 1.x 標記讀入，其 bigram 語義會被錯解成另一種鏈長。
+    if let versionCell, !versionCell.hasPrefix("2.") {
+      throw DebuggerError.malformedTextMap(
+        "詞庫格式版本 \(versionCell) 不受支援（只接受 2.x）。"
+      )
     }
     self.readingSeparator = separator.isEmpty ? "-" : separator
     self.defaultProbs = defaultProbs
@@ -238,12 +248,16 @@ final class VanguardTextMapReader {
       guard let probability = Double(fields[1]) else { return [] }
       let value = decodeToken(fields[0])
       guard !value.isEmpty else { return [] }
-      let previous = fields.count >= 4 ? decodeToken(fields[3]) : ""
+      // n-gram 前驗詞鏈：由舊至新；Homa 語意只取最近的兩個（previous／anterior）。
+      let context = fields.count >= 4 ? decodeCell(fields[3]) : []
+      let previous = context.last
+      let anterior = context.count >= 2 ? context[context.count - 2] : nil
       return [
         .init(
           keyArray: keys,
           current: value,
-          previous: previous.isEmpty ? nil : previous,
+          previous: previous,
+          anterior: anterior,
           probability: probability
         ),
       ]

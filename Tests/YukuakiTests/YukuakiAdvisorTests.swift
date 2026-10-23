@@ -170,7 +170,7 @@ struct YukuakiAdvisorTests {
     let norm = 1_000_000_000.0
     let value = "電腦"
     let probability = -3.0
-    let count = try #require(Yukuaki.GramSpec.invertedCount(probability: probability, value: value, norm: norm))
+    let count = try #require(Yukuaki.GramSpec.invertedCount(probability: probability, value: value, denominator: norm))
     /// score = log10(e^(len/3 - 1) × count / norm)
     let restored = log10(exp(Double(value.count) / 3 - 1) * count / norm)
     #expect(abs(restored - probability) < 1e-9)

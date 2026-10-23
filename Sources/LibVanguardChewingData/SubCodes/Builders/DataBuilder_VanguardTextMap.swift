@@ -123,7 +123,8 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
   /// - VALUES 區段包含三種行型別：
   ///   - 型別 A：`>typeID\tencodedCell`。
   ///   - 型別 B：`@probability\tchsCell\tchtCell`。
-  ///   - 型別 C：`value\tprobability\ttypeID[\tprevious]`。
+  ///   - 型別 C：`value\tprobability\ttypeID[\tcontextCell]`；
+  ///     `contextCell` 為 escaped-pipe 編碼的前驗詞鏈（由舊至新），可承載任意層數的 n-gram。
   /// - KEY_LINE_MAP 區段：每行為一個讀音索引，格式為 `讀音\t起始行號\t筆數`。
   private func assembleTextMapFromTrie(
     _ trie: VanguardTrie.Trie
@@ -134,10 +135,12 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
       .filter { !$0.entries.isEmpty && !$0.readingKey.isEmpty }
       .sorted { $0.readingKey < $1.readingKey }
 
-    // 計算每個 typeID 的預設機率（排除 CHS/CHT，因其以 `@probability` 分組行另行處理）。
+    // 計算每個 typeID 的預設機率（排除 CHS/CHT，因其以 `@probability` 分組行另行處理；
+    // 帶前驗詞鏈的 n-gram 條目亦不參與，因其永不併入合併行）。
     var probsByType: [Int32: Set<Double>] = [:]
     for node in nodesWithEntries {
-      for entry in node.entries where entry.typeID != .chs && entry.typeID != .cht {
+      for entry in node.entries where entry.typeID != .chs && entry.typeID != .cht
+        && entry.context.isEmpty {
         probsByType[entry.typeID.rawValue, default: []].insert(entry.probability)
       }
     }
@@ -161,7 +164,7 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
     var result = ""
     // HEADER
     result += "#PRAGMA:VANGUARD_HOMA_LEXICON_HEADER\n"
-    result += "VERSION\t1.1\n"
+    result += "VERSION\t2.0\n"
     result += "TYPE\tTYPING\n"
     result += "READING_SEPARATOR\t\(trie.readingSeparator)\n"
     result += "ENTRY_COUNT\t\(valueLines.count)\n"
@@ -194,9 +197,12 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
     into lines: inout [String],
     defaultProbs: [Int32: Double]
   ) {
-    let chsEntries = node.entries.filter { $0.typeID == .chs }
-    let chtEntries = node.entries.filter { $0.typeID == .cht }
-    let otherEntries = node.entries.filter { $0.typeID != .chs && $0.typeID != .cht }
+    // 帶前驗詞鏈的 n-gram 條目一律走型別 C：合併行（`@` 與 `>`）承載不了 context。
+    let chsEntries = node.entries.filter { $0.typeID == .chs && $0.context.isEmpty }
+    let chtEntries = node.entries.filter { $0.typeID == .cht && $0.context.isEmpty }
+    let otherEntries = node.entries.filter {
+      ($0.typeID != .chs && $0.typeID != .cht) || !$0.context.isEmpty
+    }
 
     // CHS/CHT 按機率分組，同機率的 values 以 escaped grouped cell 形式輸出。
     var chsByProb: [Double: [String]] = [:]
@@ -215,7 +221,9 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
     var groupedByType: [Int32: [String]] = [:]
     var ungrouped: [VanguardTrie.Trie.Entry] = []
     for entry in otherEntries {
-      if let defaultProb = defaultProbs[entry.typeID.rawValue], entry.probability == defaultProb {
+      // 帶前驗詞鏈的 n-gram 條目一律走型別 C，不參與合併行（合併行承載不了 context）。
+      if entry.context.isEmpty,
+         let defaultProb = defaultProbs[entry.typeID.rawValue], entry.probability == defaultProb {
         groupedByType[entry.typeID.rawValue, default: []].append(entry.value)
       } else {
         ungrouped.append(entry)
@@ -225,9 +233,15 @@ extension VCDataBuilder.VanguardTextMapDataBuilder {
       lines.append(">\(typeID)\t\(Self.encodeGroupedValues(values))")
     }
     for entry in ungrouped {
-      lines.append(
-        "\(entry.value)\t\(Self.formatProbability(entry.probability))\t\(entry.typeID.rawValue)"
-      )
+      var cells = [
+        entry.value,
+        Self.formatProbability(entry.probability),
+        entry.typeID.rawValue.description,
+      ]
+      if !entry.context.isEmpty {
+        cells.append(Self.encodeGroupedValues(entry.context))
+      }
+      lines.append(cells.joined(separator: "\t"))
     }
   }
 }

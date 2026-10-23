@@ -85,7 +85,16 @@ extension VCDataBuilder {
       self.reverseLookupTable4NonKanji = reverseLookupTable4NonKanji
       self.reverseLookupTable4CNS = reverseLookupTable4CNS
       self.reverseLookupTable4GBEX = reverseLookupTable4GBEX
-      self.norm = temporaryNormShared + (norms.max() ?? 0)
+      let normValue = temporaryNormShared + (norms.max() ?? 0)
+      self.norm = normValue
+      self.ngrams = try Unigram.prepareRawNgramRecords(
+        isCHS: isCHS,
+        norm: normValue,
+        contextCounts: [
+          true: Unigram.makeCountTable([unigramsCHS, unigramsKanjiCHS, unigrams4NonKanji]),
+          false: Unigram.makeCountTable([unigramsCHT, unigramsKanjiCHT, unigrams4NonKanji]),
+        ]
+      )
       self.compatibleMode = compatibleMode
       self.unigramsKanjiCHS = unigramsKanjiCHS
       self.unigramsKanjiCHT = unigramsKanjiCHT
@@ -107,6 +116,8 @@ extension VCDataBuilder {
     public let reverseLookupTable4CNS: [String: Set<String>]
     public let reverseLookupTable4GBEX: [String: Set<String>]
     public let norm: Double
+    /// 所有 n-gram（帶前驗詞鏈）條目，已折算權重。
+    public let ngrams: [VCDataBuilder.NgramRecord]
     public let compatibleMode: Bool
     public private(set) var weightPropagated: Bool = false
     public private(set) var exceptedChars: Set<String> = .init()

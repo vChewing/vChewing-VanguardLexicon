@@ -201,6 +201,7 @@ extension Yukuaki {
               role: roleOf(spec, alignment: alignment),
               requiredProbability: baselineProbability(of: spec) + tightMargin,
               norm: norm,
+              contextCount: contextCount(of: spec),
               tier: tier(of: spec)
             )
           }
@@ -353,6 +354,23 @@ extension Yukuaki {
       let competitors = baseGrams(keys: spec.keyArray).filter { GramKey($0) != GramKey(spec) }
       let best = competitors.map(\.probability).max() ?? options.fallbackBaseline
       return max(best, options.fallbackBaseline)
+    }
+
+    /// 前驗詞在辭典裡的 count（由該詞的 unigram 分數逆推）。
+    ///
+    /// 帶前驗詞鏈的條目存的是條件機率 `p(詞｜前文)`，其分母是前驗詞的 count，
+    /// 故逆推所需的 count 也得以它為基準；取不到時回退至 `nil`（改用 `_NORM`）。
+    private func contextCount(of gram: Yukuaki.Gram) -> Double? {
+      guard gram.isBigram || gram.isTrigram else { return nil }
+      guard let previous = gram.previous, let norm, norm > 0 else { return nil }
+      let candidates = baseGrams(keys: [previous]).filter { $0.keyArray == [previous] }
+      guard let best = candidates.map(\.probability).max()
+      else { return nil }
+      return Yukuaki.GramSpec.invertedCount(
+        probability: best,
+        value: previous,
+        denominator: norm
+      )
     }
 
     /// 零頻次基線：`count = 0` 時 `Unigram.weighten` 給出的分數。

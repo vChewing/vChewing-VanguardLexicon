@@ -25,9 +25,13 @@ extension VanguardTrie.Trie {
 }
 
 extension VCDataBuilder.Unigram {
+  /// 將一筆 unigram 轉成 Trie 條目。
+  /// - Parameters:
+  ///   - type: 條目型別。
+  ///   - context: n-gram 前驗詞鏈（由舊至新）；空陣列代表 unigram。
   func asEntry(
     type: VanguardTrie.Trie.EntryType,
-    previous: String? = nil
+    context: [String] = []
   )
     -> (VanguardTrie.Trie.Entry, readingArray: [String])? {
     guard !VCDataBuilder.TestSampleFilter.shouldFilter(key) else { return nil }
@@ -35,7 +39,7 @@ extension VCDataBuilder.Unigram {
       value: value,
       typeID: type,
       probability: score,
-      previous: nil
+      context: context
     )
     return (entry, keyCells)
   }
@@ -130,8 +134,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
     let normEntry = VanguardTrie.Trie.Entry(
       value: normEntryKey,
       typeID: .meta,
-      probability: data.norm,
-      previous: nil
+      probability: data.norm
     )
     trie4Typing.insert(entry: normEntry, readings: [normEntryKey])
 
@@ -139,8 +142,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
     let dateEntry = VanguardTrie.Trie.Entry(
       value: dateEntryKey,
       typeID: .meta,
-      probability: Date().timeIntervalSince1970,
-      previous: nil
+      probability: Date().timeIntervalSince1970
     )
     trie4Typing.insert(entry: dateEntry, readings: [dateEntryKey])
     if shouldPrepareRevLookupTrie {
@@ -157,8 +159,7 @@ extension VCDataBuilder.TriePreparatorProtocol {
             let newEntry = VanguardTrie.Trie.Entry(
               value: arrValues.joined(separator: "\t").asEncryptedBopomofoKeyChain,
               typeID: .revLookup,
-              probability: 0,
-              previous: nil
+              probability: 0
             )
             mutexTrie4Rev.withLock {
               $0.insert(entry: newEntry, readings: [key])
@@ -266,12 +267,50 @@ extension VCDataBuilder.TriePreparatorProtocol {
               if lhs.entry.value != rhs.entry.value {
                 return lhs.entry.value < rhs.entry.value
               }
-              return (lhs.entry.previous ?? "") < (rhs.entry.previous ?? "")
+              return lhs.entry.context.joined(separator: "\u{1}")
+                < rhs.entry.context.joined(separator: "\u{1}")
             }
             for insertion in sortedInsertions {
               mutexTrie4Typing.withLock {
                 $0.insert(entry: insertion.entry, readingsEncrypted: insertion.readingArray)
               }
+            }
+          }
+
+          // n-gram（帶前驗詞鏈）條目一律最後插入：同一讀音索引鍵下可並存多筆僅前文不同的條目。
+          let ngramRecords = await self.data.ngrams
+          let ngramInsertions = ngramRecords.map { record -> VCDataBuilder.PreparedTypingTrieInsertion in
+            let encryptedReadingKey = record.readings
+              .map(\.asEncryptedBopomofoKeyChain).joined(separator: "-")
+            let entry = VanguardTrie.Trie.Entry(
+              value: record.value,
+              typeID: record.isCHS ? .chs : .cht,
+              probability: record.score,
+              context: record.context
+            )
+            return .init(
+              entry: entry,
+              readingArray: record.readings,
+              encryptedReadingKey: encryptedReadingKey,
+              orderToken: Double(record.count)
+            )
+          }
+          let sortedNgramInsertions = ngramInsertions.sorted { lhs, rhs in
+            if lhs.encryptedReadingKey != rhs.encryptedReadingKey {
+              return lhs.encryptedReadingKey < rhs.encryptedReadingKey
+            }
+            if lhs.entry.context.count != rhs.entry.context.count {
+              return lhs.entry.context.count < rhs.entry.context.count
+            }
+            if lhs.entry.context != rhs.entry.context {
+              return lhs.entry.context.joined(separator: "\u{1}")
+                < rhs.entry.context.joined(separator: "\u{1}")
+            }
+            return lhs.entry.value < rhs.entry.value
+          }
+          for insertion in sortedNgramInsertions {
+            mutexTrie4Typing.withLock {
+              $0.insert(entry: insertion.entry, readingsEncrypted: insertion.readingArray)
             }
           }
         }
@@ -575,6 +614,10 @@ extension VCDataBuilder {
       "ㄏㄨ-ㄑㄧˋ",
       "ㄑㄧˋ",
       "ㄎㄥ",
+      // 在／再 的著名歧義對：不要在這裡 / 不要再這樣。
+      "ㄅㄨˋ",
+      "ㄧㄠˋ",
+      "ㄗㄞˋ",
     ]
   }
 }

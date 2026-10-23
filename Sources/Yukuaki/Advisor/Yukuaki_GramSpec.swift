@@ -20,6 +20,7 @@ extension Yukuaki {
       requiredProbability: Double,
       requiredCount: Double? = nil,
       norm: Double? = nil,
+      denominator: Double? = nil,
       tier: Tier = .addUnigram
     ) {
       self.kind = kind
@@ -31,6 +32,7 @@ extension Yukuaki {
       self.requiredProbability = requiredProbability
       self.requiredCount = requiredCount
       self.norm = norm
+      self.denominator = denominator
       self.tier = tier
     }
 
@@ -40,9 +42,11 @@ extension Yukuaki {
       role: Role,
       requiredProbability: Double,
       norm: Double?,
+      contextCount: Double? = nil,
       tier: Tier = .addUnigram
     ) {
       let kind: Kind = gram.isTrigram ? .trigram : (gram.isBigram ? .bigram : .unigram)
+      let denominator = contextCount ?? norm
       self.init(
         kind: kind,
         keyArray: gram.keyArray,
@@ -54,9 +58,10 @@ extension Yukuaki {
         requiredCount: Self.invertedCount(
           probability: requiredProbability,
           value: gram.current,
-          norm: norm
+          denominator: denominator
         ),
         norm: norm,
+        denominator: denominator,
         tier: tier
       )
     }
@@ -143,6 +148,9 @@ extension Yukuaki {
     /// 逆推時採用的正規化基準。
     public let norm: Double?
 
+    /// 逆推時實際使用的分母：unigram 用 `_NORM`，帶前驗詞鏈的條目用前驗詞的 count。
+    public let denominator: Double?
+
     /// 該提案的證據等級。
     public let tier: Tier
 
@@ -172,13 +180,14 @@ extension Yukuaki {
     /// 逆推公式的反函式。
     ///
     /// 詞頻轉分數的公式（見 `Collector.Unigram.weighten`）是
-    /// `score = log10(e^(長度/3 - 1) × count / norm)`，
-    /// 故 `count = norm × 10^score / e^(長度/3 - 1)`。
-    public static func invertedCount(probability: Double, value: String, norm: Double?) -> Double? {
-      guard let norm, norm > 0 else { return nil }
+    /// `score = log10(e^(長度/3 - 1) × count / denominator)`。
+    /// unigram 的分母是 `_NORM`（語料總量）；帶前驗詞鏈的條目分母是前驗詞本身的 count，
+    /// 因為該分數是條件機率 `p(詞｜前文)`。反函式即 `count = denominator × 10^score / e^(長度/3 - 1)`。
+    public static func invertedCount(probability: Double, value: String, denominator: Double?) -> Double? {
+      guard let denominator, denominator > 0 else { return nil }
       let scale = exp(Double(value.count) / 3 - 1)
       guard scale > 0 else { return nil }
-      let count = norm * pow(10, probability) / scale
+      let count = denominator * pow(10, probability) / scale
       return count.isFinite ? count : nil
     }
 
@@ -197,10 +206,11 @@ extension Yukuaki {
       var pieces = ["[\(kind.rawValue)|\(role.rawValue)|\(tier.rawValue)] \(reading) → \(current)"]
       if let context { pieces.append(context) }
       pieces.append(String(format: "所需分數 %.4f", requiredProbability))
+      let basis = previous.map { denominator != nil ? "（以「\($0)」的 count 為基準）" : "" } ?? ""
       if let countThreshold {
-        pieces.append("count ≥ \(countThreshold)")
+        pieces.append("count ≥ \(countThreshold)\(basis)")
       } else if let requiredCount {
-        pieces.append(String(format: "所需 count %.2f（不足 1，現行基準無法達成）", requiredCount))
+        pieces.append(String(format: "所需 count %.2f\(basis)（不足 1，現行基準無法達成）", requiredCount))
       }
       pieces.append("證據等級：\(tier.label)")
       return pieces.joined(separator: "｜")

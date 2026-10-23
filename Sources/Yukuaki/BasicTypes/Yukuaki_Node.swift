@@ -125,8 +125,14 @@ extension Yukuaki {
           }
         }
       }
+      // 候選之間的取捨以「按鏈長計次之後的分數」為準：trigram 的增益算兩次（P326 計分模型），
+      // 故原始機率較低的 trigram 可能反而勝過 bigram。
+      let baseline = unigramScore
       var best = bestTrigram
-      if let bestBigram, bestBigram.probability > (best?.probability ?? -.infinity) { best = bestBigram }
+      if let bestBigram,
+         bestBigram.weightedScore(against: baseline) > (best?.weightedScore(against: baseline) ?? -.infinity) {
+        best = bestBigram
+      }
       return best
     }
 
@@ -162,7 +168,7 @@ extension Yukuaki {
       case nil:
         if let bestBonus, bestBonus.probability > unigramBaseline {
           return .init(
-            score: bestBonus.probability,
+            score: bestBonus.weightedScore(against: unigramBaseline),
             gram: bestBonus,
             isExplicit: isExplicitlyOverridden,
             usedBackoff: false

@@ -127,13 +127,16 @@ struct YukuakiIncomingContextTests {
     #expect(result.path.map(\.value) == ["不", "要", "在", "這樣"])
   }
 
+  /// 總分反映計分模型（P326）：`的` 節點以單元圖基線 −1.5 起算，T01 的增益
+  /// （原始機率 −0.5，較基線高 1.0）按鏈長 3 計兩次 ⇒ 節點分數 −1.5 + 2.0 = +0.5，
+  /// 總分因而由舊模型的 −19.209 提高 1.0 至 −18.209。
   @Test("案例 3：T01 用前前驗詞把「在」扳回來")
   func caseThreeRestoresZai4WithTrigram() throws {
     let assembler = IncomingContextLexicon.assembler()
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "在", "這樣", "的"])
-    #expect(abs(result.score - -19.209) < 1e-6)
+    #expect(abs(result.score - -18.209) < 1e-6)
   }
 
   @Test("案例 3 的負控：拿掉 T01 就退回「再」")
@@ -153,5 +156,33 @@ struct YukuakiIncomingContextTests {
     let third = assembler.assemble().map(\.value)
     #expect(second == first)
     #expect(third == second)
+  }
+
+  /// 計分模型（P326）：`baseline + (chainLength − 1) × (probability − baseline)`。
+  ///
+  /// - 雙元圖的結果恰為原始機率，與舊模型逐位元相同（既有語料的計分不會漂移）。
+  /// - 三元圖把增益算兩次；四階以上再由鏈長自然外推。
+  /// - 鏈長數的是「詞鏈」而非讀音：多音節詞的單元圖仍是 1。
+  @Test("計分模型：按鏈長計次")
+  func chainLengthWeighting() throws {
+    let baseline = -1.5
+    func gram(previous: String?, anterior: String?, probability: Double) -> Yukuaki.Gram {
+      .init(
+        keyArray: ["ㄉㄜ˙"],
+        current: "的",
+        previous: previous,
+        anterior: anterior,
+        probability: probability
+      )
+    }
+    let unigram = gram(previous: nil, anterior: nil, probability: -1.5)
+    let bigram = gram(previous: "這樣", anterior: nil, probability: -0.6)
+    let trigram = gram(previous: "這樣", anterior: "在", probability: -0.5)
+    #expect(unigram.chainLength == 1)
+    #expect(bigram.chainLength == 2)
+    #expect(trigram.chainLength == 3)
+    #expect(abs(unigram.weightedScore(against: baseline) - -1.5) < 1e-9)
+    #expect(abs(bigram.weightedScore(against: baseline) - -0.6) < 1e-9)
+    #expect(abs(trigram.weightedScore(against: baseline) - 0.5) < 1e-9)
   }
 }

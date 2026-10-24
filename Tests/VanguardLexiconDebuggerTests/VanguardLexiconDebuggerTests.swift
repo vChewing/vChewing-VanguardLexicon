@@ -479,3 +479,42 @@ struct VanguardTextMapReaderLocaleTests {
     return try VanguardTextMapReader(url: url, locale: locale)
   }
 }
+
+// MARK: - VerifyRunnerTests
+
+struct VerifyRunnerTests {
+  private func temporaryFile(_ content: String) throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("verify-\(UUID().uuidString).tsv")
+    try content.write(to: url, atomically: true, encoding: .utf8)
+    return url
+  }
+
+  @Test
+  func parsesBacklogRows() throws {
+    let url = try temporaryFile("""
+    再\t5\tㄗㄞˋ\t不 要
+    # 註解不算
+    大行星\t5557\tㄉㄚˋ ㄒㄧㄥˊ ㄒㄧㄥ\t八
+
+    """)
+    let rows = try VerifyRunner.loadBacklog(url)
+    #expect(rows.count == 2)
+    #expect(rows[0].value == "再")
+    #expect(rows[0].context == ["不", "要"])
+    #expect(rows[0].count == 5)
+    #expect(rows[1].reading == ["ㄉㄚˋ", "ㄒㄧㄥˊ", "ㄒㄧㄥ"])
+    try? FileManager.default.removeItem(at: url)
+  }
+
+  @Test
+  func analyticProbabilityMatchesCollector() {
+    // 與 P325 之測試值對齊：`再|要` 於 6528 個「要」的語料中出現 5 次 → −3.405。
+    let value = VerifyRunner.analyticProbability(
+      reading: ["ㄗㄞˋ"],
+      countText: "5",
+      denominator: 6528
+    )
+    #expect(abs(value - log10(5.0 / 6528.0)) < 1e-9)
+  }
+}

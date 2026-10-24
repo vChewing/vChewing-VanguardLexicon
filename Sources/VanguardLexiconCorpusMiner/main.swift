@@ -2,7 +2,12 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `MulanPSL-2.0`.
 
-import CryptoKit
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+#if canImport(WinSDK)
+  import WinSDK
+#endif
 import Foundation
 
 // MARK: - 常數
@@ -13,11 +18,11 @@ func minerMain() throws {
   var arguments = Array(CommandLine.arguments.dropFirst())
   guard let command = arguments.first else {
     printHelp()
-    exit(2)
+    terminateProcess(2)
   }
   if arguments.contains("-h") || arguments.contains("--help") {
     printHelp()
-    exit(0)
+    terminateProcess(0)
   }
   arguments.removeFirst()
   let options = ParsedArguments(arguments)
@@ -31,7 +36,7 @@ func minerMain() throws {
   default:
     FileHandle.standardError.write(Data("未知的子命令：\(command)\n\n".utf8))
     printHelp()
-    exit(2)
+    terminateProcess(2)
   }
 }
 
@@ -39,7 +44,7 @@ do {
   try minerMain()
 } catch {
   FileHandle.standardError.write(Data("錯誤：\(error)\n".utf8))
-  exit(1)
+  terminateProcess(1)
 }
 
 // MARK: - ParsedArguments
@@ -233,9 +238,18 @@ func runMine(_ options: ParsedArguments) throws {
 
 // MARK: - 輔助
 
+/// 跨平台結束行程：Windows 沒有 POSIX `exit`，得走 `ExitProcess`。
+func terminateProcess(_ code: Int32) -> Never {
+  #if canImport(WinSDK)
+    ExitProcess(UInt32(bitPattern: code))
+  #else
+    exit(code)
+  #endif
+}
+
 func sha256(of url: URL) throws -> String {
   let data = try Data(contentsOf: url)
-  return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+  return SHA256.hexDigest(data)
 }
 
 // MARK: - MinerError

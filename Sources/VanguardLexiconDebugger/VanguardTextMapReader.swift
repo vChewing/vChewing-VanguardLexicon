@@ -132,6 +132,20 @@ final class VanguardTextMapReader {
     return grams
   }
 
+  /// 反查：值 → 該值可用的讀音鏈（只收 `values` 內的值）。
+  ///
+  /// - Note: 需掃過整份 `_KEY_LINE_MAP`，故只建議在「批次驗證」時呼叫一次。
+  func readingsIndex(forValues values: Set<String>) -> [String: [[String]]] {
+    var result = [String: [[String]]]()
+    for (key, range) in keyTable {
+      let keys = key.components(separatedBy: readingSeparator)
+      for gram in decode(range, keys: keys, locale: locale) where values.contains(gram.current) {
+        result[gram.current, default: []].append(keys)
+      }
+    }
+    return result
+  }
+
   /// 某組讀音是否至少有一條詞條。
   func hasGrams(forKeys keys: [String]) -> Bool {
     keyTable[keys.joined(separator: readingSeparator)] != nil

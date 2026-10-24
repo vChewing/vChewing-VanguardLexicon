@@ -77,6 +77,22 @@ struct DebuggerOptions {
           throw DebuggerError.usage("`--maxChunkLength` 需要正整數。")
         }
         self.maxChunkLength = value
+      case "--verify":
+        self.verifyPath = try nextValue()
+      case "--corpus":
+        self.corpusPath = try nextValue()
+      case "--limit":
+        let raw = try nextValue()
+        guard let value = Int(raw), value > 0 else {
+          throw DebuggerError.usage("`--limit` 需要正整數。")
+        }
+        self.verifyLimit = value
+      case "--cases":
+        let raw = try nextValue()
+        guard let value = Int(raw), value > 0 else {
+          throw DebuggerError.usage("`--cases` 需要正整數。")
+        }
+        self.verifyCases = value
       case "--json", "-j":
         self.wantsJSON = true
       case "--verbose", "-v":
@@ -108,6 +124,12 @@ struct DebuggerOptions {
         混用會失敗；程式會自動判斷整條鏈屬於哪一種。
         可重複給定多次：每次一個案例，並依序與 `--expected` 配對。多案例
         之間會互相檢查提案是否衝突（見下）。
+
+  批次驗證（不給 `--readingChain` 時）：
+    --verify <path>        CorpusMiner 產出的 backlog.tsv。
+    --corpus <path>        CorpusMiner 產出的 corpus.jsonl（與 --verify 併用）。
+    --limit <n>            只驗前 n 列（預設 50）。
+    --cases <n>            每列最多取幾句語料（預設 5）。
 
   選項：
     --expected, -e <字串>
@@ -171,6 +193,10 @@ struct DebuggerOptions {
   var isVerbose = false
   var wantsAdvice = true
   var showsHelp = false
+  var verifyPath: String?
+  var corpusPath: String?
+  var verifyLimit = 50
+  var verifyCases = 5
 
   /// 對外的語系標籤。
   var langTag: String {
@@ -607,6 +633,23 @@ do {
   }
   let url = try TextMapLocator.locate(override: options.textMapPath)
   let reader = try VanguardTextMapReader(url: url, locale: options.locale)
+  if let verifyPath = options.verifyPath {
+    guard let corpusPath = options.corpusPath else {
+      throw DebuggerError.usage("`--verify` 需要同時給 `--corpus`。")
+    }
+    var verifyOptions = VerifyRunner.Options(
+      backlogURL: URL(fileURLWithPath: verifyPath).standardizedFileURL,
+      corpusURL: URL(fileURLWithPath: corpusPath).standardizedFileURL
+    )
+    verifyOptions.limit = options.verifyLimit
+    verifyOptions.caseLimit = options.verifyCases
+    verifyOptions.maxChunkLength = options.maxChunkLength
+    verifyOptions.showsJSON = options.wantsJSON
+    verifyOptions.isVerbose = options.isVerbose
+    let reports = try VerifyRunner.run(verifyOptions, reader: reader)
+    printVerifyReports(reports, showsJSON: options.wantsJSON)
+    exit(reports.contains { $0.verdict == .fixed } ? 0 : 2)
+  }
   let isMatched = try DebuggerRunner(options: options, reader: reader).run()
   exit(isMatched ? 0 : 2)
 } catch {
@@ -641,4 +684,44 @@ enum TextMapLocator {
     }
     throw DebuggerError.textMapNotFound(candidates)
   }
+}
+
+
+// MARK: - 批次驗證輸出
+
+func printVerifyReports(_ reports: [VerifyRunner.RowReport], showsJSON: Bool) {
+  if showsJSON {
+    let payload: [[String: Any]] = reports.map { report in
+      [
+        "candidate": report.context + [report.value],
+        "verdict": report.verdict.rawValue,
+        "cases": report.cases.map { item in
+          [
+            "expected": item.expected,
+            "before": item.before,
+            "after": item.after,
+            "verdict": item.verdict.rawValue,
+          ]
+        },
+      ]
+    }
+    if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+       let text = String(data: data, encoding: .utf8) {
+      print(text)
+    }
+    return
+  }
+  var counts = [VerifyRunner.Verdict: Int]()
+  for report in reports {
+    counts[report.verdict, default: 0] += 1
+    print("\((report.context + [report.value]).joined(separator: "·"))\t\(report.verdict.rawValue)\t\(report.cases.count) 句")
+    for item in report.cases where item.verdict != .unnecessary {
+      print("    \(item.verdict.rawValue)：\(item.before) → \(item.after)（期望 \(item.expected)）")
+    }
+  }
+  let order: [VerifyRunner.Verdict] = [.fixed, .affected, .regressed, .unnecessary, .ineffective]
+  let summary = order.compactMap { verdict in
+    counts[verdict].map { "\(verdict.rawValue) \($0)" }
+  }.joined(separator: "、")
+  print("—— 裁決：\(summary)")
 }

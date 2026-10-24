@@ -26,6 +26,10 @@ let package = Package(
       name: "VanguardLexiconDebugger",
       targets: ["VanguardLexiconDebugger"]
     ),
+    .executable(
+      name: "VanguardLexiconCorpusMiner",
+      targets: ["VanguardLexiconCorpusMiner"]
+    ),
     .plugin(
       name: "TextTemplateAssetInjectorPlugin",
       targets: ["TextTemplateAssetInjectorPlugin"]
@@ -64,6 +68,10 @@ let package = Package(
         name: "VCDataBuilder",
         dependencies: ["LibVanguardChewingData"]
       ),
+      .executableTarget(
+        name: "VanguardLexiconCorpusMiner",
+        dependencies: []
+      ),
       .plugin(
         name: "TextTemplateAssetInjectorPlugin",
         capability: .buildTool(),
@@ -90,6 +98,10 @@ let package = Package(
         .testTarget(
           name: "VanguardLexiconDebuggerTests",
           dependencies: ["VanguardLexiconDebugger", "Yukuaki"]
+        ),
+        .testTarget(
+          name: "VanguardLexiconCorpusMinerTests",
+          dependencies: ["VanguardLexiconCorpusMiner"]
         ),
       ]
     #else

@@ -265,6 +265,29 @@ struct VanguardTextMapReaderTests {
     #expect(piped.map(\.current) == ["甲|乙"])
   }
 
+  @Test("轉義空格後緊接組合符仍可解析")
+  func decodesEscapedSpaceBeforeCombiningMark() throws {
+    // 真詞庫第 115,279 行顏文字 `(\s͒˃⌂˂\s͒)` 的 `\s` 之後緊接 U+0352 COMBINING FERMATA；
+    // 逐 Character 迭代會把「s」與組合符併成單一字群，令合法跳脫被誤判為未知跳脫。
+    let combining = "\u{0352}"
+    let fixture = """
+    VERSION\t2.0
+    TYPE\tTYPING
+    READING_SEPARATOR\t-
+    KEY_COUNT\t1
+    DEFAULT_PROB_9\t-13
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    >9\t(\\s\(combining)˃⌂˂\\s\(combining)|甲
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    ㄅㄚ\t0\t1
+    """
+    let url = try Fixture.write(fixture, name: "combining-after-escaped-space")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    let grams = reader.grams(forKeys: ["ㄅㄚ"])
+    #expect(grams.map(\.current) == ["( \(combining)˃⌂˂ \(combining)", "甲"])
+  }
+
   @Test("ZWJ emoji 可存在於 grouped cell、裸詞值與前文")
   func decodesZWJEmoji() throws {
     let emoji = "🙅‍♀️"

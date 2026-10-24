@@ -116,14 +116,22 @@ func runFetch(_ options: ParsedArguments) throws {
   print("已抓取 \(pages.count) 篇（\(titles.count) 個標題）→ \(outputURL.path)")
 }
 
-// MARK: - segment
+// MARK: - MiningDefaults
 
 /// 分詞之最長詞長預設值：詞表實測最長詞遠長於此，交給 DAG 逐一試探只浪費時間；
 /// 六字已涵蓋成語與專名，亦與 `--max-token-length` 之 CLI 預設一致。
-let kDefaultMaximumTokenLength = 6
+///
+/// 此值必須是 `static let`、而非頂層 `let`：頂層宣告依檔案順序賦值，而本檔在
+/// `:43` 即以 `do { try minerMain() }` 分派子命令，分派當下本檔後段的頂層宣告
+/// 尚未執行、仍是零初值。P332 之前它就是頂層 `let`，於是分詞時讀到 0、
+/// `max(1, 0)` 令詞長上限為 1，整份語料被切成單字，而 `--help` 仍宣稱預設 6。
+/// `static let` 於首次存取時才初始化，不受檔案順序影響。
+enum MiningDefaults {
+  static let maximumTokenLength = 6
+}
 
 func makeSegmenter(index: TxtMapUnigramIndex, options: ParsedArguments) -> UnigramSegmenter {
-  let cap = options.int("max-token-length") ?? kDefaultMaximumTokenLength
+  let cap = options.int("max-token-length") ?? MiningDefaults.maximumTokenLength
   return UnigramSegmenter(index: index, maximumWordLength: max(1, cap))
 }
 
@@ -190,6 +198,7 @@ func runMine(_ options: ParsedArguments) throws {
   if let value = options.int("min-count") { miningOptions.minCount = value }
   if let value = options.int("min-context-count") { miningOptions.minContextCount = value }
   if let value = options.double("margin") { miningOptions.margin = value }
+  if let value = options.double("min-lower-bound") { miningOptions.minLowerBound = value }
   if let rawValue = options.string("ambiguous-readings"),
      let policy = CorpusMiner.AmbiguousReadings(rawValue: rawValue) {
     miningOptions.ambiguousReadings = policy
@@ -208,10 +217,12 @@ func runMine(_ options: ParsedArguments) throws {
 
   let ambiguous = result.ambiguous
     .map {
-      "\($0.value)\t\($0.occurrences)\t" + $0.readings.map { $0.joined(separator: " ") }.joined(separator: " / ")
+      "\($0.value)\t\($0.occurrences)\t"
+        + $0.readings.map { $0.joined(separator: " ") }.joined(separator: " / ")
+        + "\t\($0.reason)"
     }
     .joined(separator: "\n") + "\n"
-  try ("詞值\t出現次數\t各讀音\n" + ambiguous)
+  try ("詞值\t出現次數\t各讀音\t緣由\n" + ambiguous)
     .write(to: outputDirectory.appendingPathComponent("ambiguous.tsv"), atomically: true, encoding: .utf8)
 
   let stats: [String: Any] = [
@@ -314,16 +325,21 @@ func printHelp() {
       --min-count <n>         候選在語料中之最小出現次數（預設 5）。
       --min-context-count <n> 前文詞在語料中之最小出現次數（預設 5）。
       --margin <x>            候選機率須比同詞之單元圖分數高出之餘裕（預設 0.02）。
+      --min-lower-bound <x>   候選之條件機率 Wilson 95% 下界須達此值（預設 0，即不設限）。
+                              分子分母同出一批語料，分母小時比值會系統性誇大；
+                              設 0.05～0.3 可濾掉「觀察兩次就斷言必接」之列。
       --ambiguous-readings <skip|primary|all>
-                              多讀音詞條之處置（預設 skip；primary 取機率最高之讀音、
+                              多讀音詞條之處置（預設 skip；primary 取機率最高之讀音，
+                              惟最高頻並列時退回 skip 並記入 ambiguous.tsv；
                               all 逐讀音出列）。
       --max-token-length <n>  同 segment；僅在 --corpus 指向 raw.jsonl 時生效。
 
     mine 之輸出（均在 --out-dir 下）：
-      backlog.tsv      值\t次數\t讀音\t前驗詞鏈\t# lift=… corpus=… required=…
-                       （required 為「要壓過現行組句所需之最少量」，僅供決策參考）
+      backlog.tsv      值\t次數\t讀音\t前驗詞鏈\t# lift=… corpus=… required=… lb=…
+                       （required 為「要壓過現行組句所需之最少量」，僅供決策參考；
+                         lb 為條件機率之 Wilson 95% 下界）
       unknown-runs.tsv 詞表外之連續單字片段（單字多已列於字表，故此檔常為空）。
-      ambiguous.tsv    多讀音詞條及其所有讀音。
+      ambiguous.tsv    多讀音詞條及其所有讀音、跳過之緣由。
       stats.json       語料規模、txtMap 之 _NORM／建置時間／SHA-256、選項快照。
 
     範例：

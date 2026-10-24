@@ -375,30 +375,33 @@ final class VanguardTextMapReader {
       current = ""
     }
 
-    for character in cell {
+    // 必須逐 Unicode scalar 掃描，不可逐 Character：轉義空格 `\s` 若緊接組合符（真詞庫
+    // 第 115,279 行顏文字 `(\s͒˃⌂˂\s͒)` 的 U+0352 COMBINING FERMATA 即是），Character
+    // 迭代會把「s」與組合符併成單一字群，令合法跳脫被誤判為未知跳脫而整份詞庫載不進來。
+    // 產製端 `DataBuilder_VanguardTextMap.escapeGroupedValue` 本來就逐 scalar 掃描。
+    for scalar in cell.unicodeScalars {
       if escaping {
-        switch character {
-        case "\\": current.append("\\")
-        case "|": current.append("|")
-        case "s": current.append(" ")
-        case "a": current.append("\u{7}")
-        default: throw DebuggerError.malformedTextMap("未知跳脫：\\\(character)。")
+        switch scalar {
+        case "\\": current.unicodeScalars.append("\\")
+        case "|": current.unicodeScalars.append("|")
+        case "s": current.unicodeScalars.append(" ")
+        case "a": current.unicodeScalars.append("\u{7}")
+        default: throw DebuggerError.malformedTextMap("未知跳脫：\\\(scalar)。")
         }
         escaping = false
         continue
       }
-      switch character {
+      switch scalar {
       case "\\":
         escaping = true
       case "|":
         try finishToken()
       default:
-        if character.unicodeScalars.contains(where: {
-          ($0.isASCII && CharacterSet.whitespacesAndNewlines.contains($0)) || isStructuralControl($0)
-        }) {
+        if (scalar.isASCII && CharacterSet.whitespacesAndNewlines.contains(scalar))
+          || isStructuralControl(scalar) {
           throw DebuggerError.malformedTextMap("grouped cell 含未跳脫 ASCII 空白或裸控制字元。")
         }
-        current.append(character)
+        current.unicodeScalars.append(scalar)
       }
     }
     guard !escaping else { throw DebuggerError.malformedTextMap("跳脫字元後缺字。") }

@@ -201,6 +201,14 @@ struct TxtMapUnigramIndex {
     key.components(separatedBy: separator)
   }
 
+  /// 讀音鍵必須是注音。詞庫 key-line-map 段同時收錄 `_alt_punctuation_'`、`_shift_*`
+  /// 一類鍵位名（為符號鍵而設，並非任何字的讀音）；若混進多讀音判定，`一`、`的` 這類
+  /// 常用字會被假的讀音撐破音字數，`--ambiguous-readings` 的統計便不可信。
+  private static func isPhoneticReading(_ reading: [String]) -> Bool {
+    guard let head = reading.first, !head.isEmpty, !head.hasPrefix("_") else { return false }
+    return head.unicodeScalars.contains { (0x3105 ... 0x312F).contains($0.value) }
+  }
+
   private static func insert(
     value: String,
     probability: Double,
@@ -209,7 +217,8 @@ struct TxtMapUnigramIndex {
   ) {
     var unigram = table[value] ?? .init(probability: -Double.infinity, readings: [], count: 0)
     unigram.probability = max(unigram.probability, probability)
-    if let reading, !reading.isEmpty, !unigram.readings.contains(where: { $0.key == reading }) {
+    if let reading, Self.isPhoneticReading(reading),
+       !unigram.readings.contains(where: { $0.key == reading }) {
       unigram.readings.append((key: reading, probability: probability))
     }
     table[value] = unigram
@@ -220,23 +229,25 @@ struct TxtMapUnigramIndex {
     var values = [String]()
     var current = ""
     var escaping = false
-    for char in cell {
+    // 同 `VanguardTextMapReader.decodeCell`：逐 scalar 掃描，避免轉義空格與組合符被
+    // Character 迭代併成單一字群而吃錯跳脫。
+    for scalar in cell.unicodeScalars {
       if escaping {
-        switch char {
-        case "s": current.append(" ")
-        case "a": current.append("\u{7}")
-        case "\\": current.append("\\")
-        case "|": current.append("|")
-        default: current.append(char)
+        switch scalar {
+        case "s": current.unicodeScalars.append(" ")
+        case "a": current.unicodeScalars.append("\u{7}")
+        case "\\": current.unicodeScalars.append("\\")
+        case "|": current.unicodeScalars.append("|")
+        default: current.unicodeScalars.append(scalar)
         }
         escaping = false
-      } else if char == "\\" {
+      } else if scalar == "\\" {
         escaping = true
-      } else if char == "|" {
+      } else if scalar == "|" {
         values.append(current)
         current = ""
       } else {
-        current.append(char)
+        current.unicodeScalars.append(scalar)
       }
     }
     values.append(current)

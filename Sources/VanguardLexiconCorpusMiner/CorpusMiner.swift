@@ -30,6 +30,8 @@ struct CorpusMiner {
     var minCount = 5
     var minContextCount = 5
     var margin = 0.02
+    /// 條件機率之下界門檻（Wilson 95% 下界）。0 表示不設限。
+    var minLowerBound = 0.0
     var ambiguousReadings: AmbiguousReadings = .skip
   }
 
@@ -42,12 +44,28 @@ struct CorpusMiner {
     let contextCount: Int
     let requiredCount: Int
     let lift: Double
+    /// `corpusCount / contextCount` 的 Wilson 95% 下界。
+    let lowerBound: Double
     let assumedReading: Bool
   }
 
   /// 只統計含漢字的詞；純標點與純 ASCII 片段不參與 n-gram 統計。
   static func isWordlike(_ token: String) -> Bool {
     token.contains { $0.unicodeScalars.first.map { $0.properties.isIdeographic } ?? false }
+  }
+
+  /// `corpusCount / contextCount` 的 Wilson 95% 下界。
+  ///
+  /// 分子分母同出一批語料，比值是 MLE；`contextCount` 小的時候它系統性誇大——兩次觀察
+  /// 得 2/2 便斷言「必接」，正是 P332 之前無法直接收錄的原因。下界回答的是「至少這麼多」，
+  /// 讓 `--min-lower-bound` 能一刀切掉撐不起來的列，而不必逐列人眼複核。
+  static func wilsonLowerBound(successes: Int, trials: Int, z: Double = 1.96) -> Double {
+    guard trials > 0, successes >= 0, successes <= trials else { return 0 }
+    let n = Double(trials)
+    let p = Double(successes) / n
+    let z2 = z * z
+    let margin = z * (p * (1 - p) / n + z2 / (4 * n * n)).squareRoot()
+    return max(0, (p + z2 / (2 * n) - margin) / (1 + z2 / n))
   }
 
   private static func isBacklogValueSafe(_ value: String) -> Bool {
@@ -64,7 +82,7 @@ struct CorpusMiner {
 
   struct MiningResult {
     var candidates: [Candidate] = []
-    var ambiguous: [(value: String, occurrences: Int, readings: [[String]])] = []
+    var ambiguous: [(value: String, occurrences: Int, readings: [[String]], reason: String)] = []
     var unknownRuns: [String: Int] = [:]
     var stats: [(key: String, value: String)] = []
   }
@@ -109,7 +127,7 @@ struct CorpusMiner {
 
   func mine(index: TxtMapUnigramIndex, options: Options) -> MiningResult {
     var result = MiningResult()
-    var ambiguous = [String: (occurrences: Int, readings: [[String]])]()
+    var ambiguous = [String: (occurrences: Int, readings: [[String]], reason: String)]()
 
     func consider(chain: [String], corpusCount: Int) {
       guard corpusCount >= options.minCount, chain.count >= 2 else { return }
@@ -135,10 +153,26 @@ struct CorpusMiner {
       if readings.count > 1 {
         switch options.ambiguousReadings {
         case .skip:
-          ambiguous[value] = (occurrences: unigramCounts[value] ?? corpusCount, readings: readings.map(\.key))
+          ambiguous[value] = (
+            occurrences: unigramCounts[value] ?? corpusCount,
+            readings: readings.map(\.key),
+            reason: "多讀音"
+          )
           return
         case .primary:
-          chosen = [readings.max { $0.probability < $1.probability }!]
+          // 最高頻並列者不可抽籤。詞庫對 `和` 的 ㄏㄜˊ 與 ㄏㄢˋ 給同一個機率（`著`
+          // 三讀同分亦然），`max(by:)` 只會回傳先出現的那一條，等於憑檔案順序定讀音。
+          let best = readings.map(\.probability).max() ?? -Double.infinity
+          let top = readings.filter { $0.probability == best }
+          guard top.count == 1 else {
+            ambiguous[value] = (
+              occurrences: unigramCounts[value] ?? corpusCount,
+              readings: readings.map(\.key),
+              reason: "最高頻並列"
+            )
+            return
+          }
+          chosen = top
           assumedReading = true
         case .all:
           break
@@ -149,6 +183,8 @@ struct CorpusMiner {
       let probability = log10(scale * Double(corpusCount) / denominator)
       let gate = unigram.probability + options.margin
       guard probability > gate else { return }
+      let lowerBound = Self.wilsonLowerBound(successes: corpusCount, trials: contextCount)
+      guard lowerBound >= options.minLowerBound else { return }
       let required = Int((denominator * pow(10, gate) / scale).rounded(.up))
       for reading in chosen {
         guard reading.key.allSatisfy(Self.isBacklogTokenSafe) else { continue }
@@ -161,6 +197,7 @@ struct CorpusMiner {
             contextCount: contextCount,
             requiredCount: max(required, options.minCount),
             lift: probability - unigram.probability,
+            lowerBound: lowerBound,
             assumedReading: assumedReading
           )
         )
@@ -176,7 +213,14 @@ struct CorpusMiner {
       return $0.value < $1.value
     }
     result.ambiguous = ambiguous
-      .map { (value: $0.key, occurrences: $0.value.occurrences, readings: $0.value.readings) }
+      .map {
+        (
+          value: $0.key,
+          occurrences: $0.value.occurrences,
+          readings: $0.value.readings,
+          reason: $0.value.reason
+        )
+      }
       .sorted { $0.occurrences > $1.occurrences }
     result.unknownRuns = unknownRuns
     return result
@@ -194,9 +238,11 @@ extension CorpusMiner.Candidate {
     else { return nil }
     let reading = reading.joined(separator: " ")
     var comment =
-      "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) context=\(contextCount) required=\(requiredCount)"
+      "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) context=\(contextCount) required=\(requiredCount) lb=\(String(format: "%.3f", lowerBound))"
     if assumedReading { comment += " assumed-reading" }
     let contextCell = context.joined(separator: " ")
-    return "\(value)\t\(max(requiredCount, corpusCount))\t\(reading)\t\(contextCell)\t\(contextCount)\t\(comment)"
+    // 第 2 欄寫真實共現次數：載入端以 `count(c, w) / count(c)` 復算機率，若在此處灌水，
+    // 復算結果便與本行宣稱的 lift 不符。
+    return "\(value)\t\(corpusCount)\t\(reading)\t\(contextCell)\t\(contextCount)\t\(comment)"
   }
 }

@@ -286,7 +286,125 @@ struct CorpusMinerBacklogSafetyTests {
       contextCount: 5,
       requiredCount: 5,
       lift: 1,
+      lowerBound: 0.4,
       assumedReading: false
     )
+  }
+}
+
+// MARK: - P332ReadingsAndEvidenceTests
+
+struct P332ReadingsAndEvidenceTests {
+  @Test
+  func pseudoReadingsAreNotPronunciations() {
+    // 詞庫的 key-line-map 段另有 `_alt_punctuation_*` 一類鍵位名（為符號鍵而設），
+    // 若把它們算成讀音，`一`、`的` 這類常用字會被假的讀音撐破音字數。
+    let index = TxtMapUnigramIndex(
+      norm: 1_000,
+      entries: [
+        ("一", -2.0, ["ㄧ"]),
+        ("一", -2.0, ["_alt_punctuation_1"]),
+      ]
+    )
+    #expect(index.unigram("一")?.readings.count == 1)
+    #expect(index.unigram("一")?.readings.first?.key == ["ㄧ"])
+  }
+
+  @Test
+  func tiedTopProbabilityIsNotGuessed() {
+    // 真詞庫對同一詞的各讀音寫入同一個機率（`和` 的 ㄏㄜˊ 與 ㄏㄢˋ 皆 -5.042），
+    // 故 primary 若照樣取一條，等於憑檔案順序定讀音。
+    let index = TxtMapUnigramIndex(
+      norm: 10_000,
+      entries: [
+        ("和", -5.042, ["ㄏㄜˊ"]),
+        ("和", -5.042, ["ㄏㄢˋ"]),
+        ("很", -2.0, ["ㄏㄣˇ"]),
+      ]
+    )
+    var miner = CorpusMiner()
+    var options = CorpusMiner.Options()
+    options.minCount = 1
+    options.minContextCount = 1
+    options.margin = -100
+    options.ambiguousReadings = .primary
+    miner.ingest(words: ["很", "和"])
+    let result = miner.mine(index: index, options: options)
+    #expect(result.candidates.isEmpty)
+    #expect(result.ambiguous.first?.value == "和")
+    #expect(result.ambiguous.first?.reason == "最高頻並列")
+    #expect(result.ambiguous.first?.readings.count == 2)
+  }
+
+  @Test
+  func distinctTopProbabilityStillResolves() {
+    let index = TxtMapUnigramIndex(
+      norm: 10_000,
+      entries: [
+        ("和", -5.042, ["ㄏㄜˊ"]),
+        ("和", -4.0, ["ㄏㄢˋ"]),
+        ("很", -2.0, ["ㄏㄣˇ"]),
+      ]
+    )
+    var miner = CorpusMiner()
+    var options = CorpusMiner.Options()
+    options.minCount = 1
+    options.minContextCount = 1
+    options.margin = -100
+    options.ambiguousReadings = .primary
+    miner.ingest(words: ["很", "和"])
+    let result = miner.mine(index: index, options: options)
+    #expect(result.ambiguous.isEmpty)
+    #expect(result.candidates.first?.reading == ["ㄏㄢˋ"])
+    #expect(result.candidates.first?.assumedReading == true)
+  }
+
+  @Test
+  func wilsonLowerBoundPenalisesSmallDenominators() {
+    // 2/2 的原始比值是 1.0，但下界只有 0.342：兩次觀察撐不起「必接」的斷言。
+    #expect(abs(CorpusMiner.wilsonLowerBound(successes: 2, trials: 2) - 0.342) < 0.005)
+    #expect(abs(CorpusMiner.wilsonLowerBound(successes: 500, trials: 1_000) - 0.469) < 0.005)
+    #expect(CorpusMiner.wilsonLowerBound(successes: 0, trials: 0) == 0)
+  }
+
+  @Test
+  func minLowerBoundGatesCandidates() {
+    let index = TxtMapUnigramIndex(
+      norm: 10_000,
+      entries: [("北京", -2.0, ["ㄅㄟˇ", "ㄐㄧㄥ"]), ("很", -2.0, ["ㄏㄣˇ"])]
+    )
+    var miner = CorpusMiner()
+    var options = CorpusMiner.Options()
+    options.minCount = 1
+    options.minContextCount = 1
+    options.margin = -100
+    miner.ingest(words: ["很", "北京"])
+    #expect(miner.mine(index: index, options: options).candidates.count == 1)
+    options.minLowerBound = 0.5
+    #expect(miner.mine(index: index, options: options).candidates.isEmpty)
+  }
+
+  @Test
+  func renderedLineWritesTrueCorpusCount() {
+    let candidate = CorpusMiner.Candidate(
+      context: ["很"],
+      value: "北京",
+      reading: ["ㄅㄟˇ", "ㄐㄧㄥ"],
+      corpusCount: 7,
+      contextCount: 9,
+      requiredCount: 5,
+      lift: 1.2,
+      lowerBound: 0.321,
+      assumedReading: false
+    )
+    let fields = (candidate.renderedLine() ?? "").components(separatedBy: "\t")
+    #expect(fields[1] == "7")
+    #expect(fields[5].contains("lb=0.321"))
+  }
+
+  @Test
+  func maximumTokenLengthDefaultIsSix() {
+    // 頂層 `let` 在本檔分派子命令之後才賦值，曾令預設值實際為 0、整份語料被切成單字。
+    #expect(MiningDefaults.maximumTokenLength == 6)
   }
 }

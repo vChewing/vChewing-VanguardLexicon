@@ -178,3 +178,111 @@ struct SHA256Tests {
     #expect(SHA256.hexDigest(data) == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0")
   }
 }
+
+// MARK: - TxtMapVersionAndTypeDTests
+
+struct TxtMapVersionAndTypeDTests {
+  // MARK: Internal
+
+  @Test
+  func typeDDoesNotEnterUnigramIndex() throws {
+    let contents = """
+    VERSION\t2.0
+    READING_SEPARATOR\t-
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    _NORM\t1000\t2
+    北京\t-2\t1
+    !北京\t1\t-1\t北\t-0.5\t京
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    _norm\t0\t1
+    ㄅㄟˇ-ㄐㄧㄥ\t1\t2
+    """
+    let url = try write(contents)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let index = try TxtMapUnigramIndex(url: url)
+    #expect(index.valueCount == 1)
+    #expect(index.probability(of: "北京") == -2)
+  }
+
+  @Test
+  func versionMustBeExplicit20() throws {
+    for version in [nil, "VERSION\t2.1"] {
+      var lines = [String]()
+      if let version { lines.append(version) }
+      lines.append("READING_SEPARATOR\t-")
+      lines.append("#PRAGMA:VANGUARD_HOMA_LEXICON_VALUES")
+      lines.append("_NORM\t1000\t2")
+      lines.append("#PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP")
+      let url = try write(lines.joined(separator: "\n"))
+      defer { try? FileManager.default.removeItem(at: url) }
+      #expect(throws: TxtMapUnigramIndexError.self) {
+        try TxtMapUnigramIndex(url: url)
+      }
+    }
+  }
+
+  // MARK: Private
+
+  private func write(_ contents: String) throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("txtmap-index-\(UUID().uuidString).txtMap")
+    try contents.write(to: url, atomically: true, encoding: .utf8)
+    return url
+  }
+}
+
+// MARK: - CorpusMinerBacklogSafetyTests
+
+struct CorpusMinerBacklogSafetyTests {
+  // MARK: Internal
+
+  @Test
+  func renderedLineRejectsStructuralCharacters() {
+    for candidate in [
+      makeCandidate(value: "北\n京"),
+      makeCandidate(value: "北\t京"),
+      makeCandidate(context: ["很\n"]),
+      makeCandidate(reading: ["ㄅㄟˇ\t"]),
+    ] {
+      #expect(candidate.renderedLine() == nil)
+    }
+    #expect(makeCandidate().renderedLine() != nil)
+    #expect(makeCandidate(value: "北🙅‍♀️京").renderedLine() != nil)
+  }
+
+  @Test
+  func miningRejectsControlCharactersBeforeBacklog() {
+    for badValue in ["北\n京", "北\t京"] {
+      let index = TxtMapUnigramIndex(
+        norm: 10_000,
+        entries: [(badValue, -2, ["ㄅㄟˇ"]), ("很", -2, ["ㄏㄣˇ"])]
+      )
+      var miner = CorpusMiner()
+      var options = CorpusMiner.Options()
+      options.minCount = 1
+      options.minContextCount = 1
+      options.margin = -100
+      miner.ingest(words: ["很", badValue])
+      #expect(miner.mine(index: index, options: options).candidates.isEmpty)
+    }
+  }
+
+  // MARK: Private
+
+  private func makeCandidate(
+    value: String = "北京",
+    context: [String] = ["很"],
+    reading: [String] = ["ㄅㄟˇ", "ㄐㄧㄥ"]
+  )
+    -> CorpusMiner.Candidate {
+    .init(
+      context: context,
+      value: value,
+      reading: reading,
+      corpusCount: 5,
+      requiredCount: 5,
+      lift: 1,
+      assumedReading: false
+    )
+  }
+}

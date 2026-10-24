@@ -9,8 +9,7 @@ import Foundation
 extension VCDataBuilder {
   /// 一筆「附帶前驗詞鏈」的 n-gram 條目。
   ///
-  /// 與 `Unigram` 不同之處在於：`context` 可承載任意層數的前驗詞鏈（由舊至新），
-  /// 故同一個讀音索引鍵下可以並存多筆僅前文不同的條目。
+  /// `context` 由舊至新，v2.0 最多兩層；同一讀音索引鍵下可並存多筆僅前文不同的條目。
   public struct NgramRecord: Sendable, Hashable {
     // MARK: Lifecycle
 
@@ -42,8 +41,8 @@ extension VCDataBuilder {
     public let count: Int
     /// log10 權重（負值）。
     ///
-    /// 帶前驗詞鏈的條目存的是條件機率 `p(詞｜前文)`：分母是前驗詞本身的詞頻，
-    /// 而不是語料總量。取不到前驗詞的詞頻時，退回以 `Collector.norm` 折算的無條件機率。
+    /// 分母固定為緊鄰前一詞（`context.last`）的詞頻，不是整條前文鏈的聯合詞頻；
+    /// 取不到或為 0 時，退回以 `Collector.norm` 折算的無條件機率。
     public let score: Double
     /// 所屬語系：`true` 為簡體、`false` 為繁體。
     public let isCHS: Bool
@@ -88,7 +87,7 @@ extension VCDataBuilder.Unigram {
       let classTable = try classTables.map { $0[isCHSLanguage] ?? [:] }
         ?? loadClassTable(isCHS: isCHSLanguage)
       records.append(
-        contentsOf: parseNgramLines(
+        contentsOf: try parseNgramLines(
           strRAW,
           isCHS: isCHSLanguage,
           norm: norm,
@@ -121,28 +120,35 @@ extension VCDataBuilder.Unigram {
     classTable: [String: [String]] = [:],
     readings: [String: [String]] = [:]
   )
-    -> [VCDataBuilder.NgramRecord] {
+    throws -> [VCDataBuilder.NgramRecord] {
     var bucketed: [String: VCDataBuilder.NgramRecord] = [:]
-    raw.components(separatedBy: .newlines).forEach { lineData in
+    for lineData in raw.components(separatedBy: .newlines) {
       let line = lineData.hasSuffix("\r") ? String(lineData.dropLast()) : lineData
-      guard !line.isEmpty, !line.hasPrefix("#") else { return }
+      guard !line.isEmpty, !line.hasPrefix("#") else { continue }
       let cells = line.components(separatedBy: "\t")
-      guard cells.count >= 4 else { return }
+      guard cells.count >= 4 else { continue }
       let valueCell = cells[0].trimmingCharacters(in: .whitespaces)
       let count = Int(cells[1].trimmingCharacters(in: .whitespaces)) ?? 0
       let literalReadings = cells[2].split(separator: " ").map(\.description).filter { !$0.isEmpty }
       let rawContext = cells[3].split(separator: " ").map(\.description).filter { !$0.isEmpty }
-      guard !valueCell.isEmpty, !rawContext.isEmpty else { return }
+      guard !valueCell.isEmpty, !rawContext.isEmpty else { continue }
+      guard rawContext.count <= 2 else {
+        throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
+      }
       let valueIsClass = classTable[valueCell] != nil
-      // 非類別的詞值仍須自帶讀音；類別列的讀音則逐成員補。
-      guard valueIsClass || !literalReadings.isEmpty else { return }
+      guard valueIsClass || !literalReadings.isEmpty else { continue }
       let contextVariants = expandTokens(rawContext, classTable: classTable)
       let valueVariants = valueIsClass ? (classTable[valueCell] ?? []) : [valueCell]
-      valueVariants.forEach { value in
+      for value in valueVariants {
+        try validateNgramToken(value)
         let readings4ThisValue = valueIsClass ? (readings[value] ?? []) : literalReadings
-        guard !readings4ThisValue.isEmpty else { return }
-        contextVariants.forEach { context in
-          // 條件機率的分母是緊鄰前一個詞的詞頻；取不到（或為 0）才退回語料總量。
+        guard !readings4ThisValue.isEmpty else { continue }
+        for context in contextVariants {
+          guard (1 ... 2).contains(context.count) else {
+            throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
+          }
+          for token in context { try validateNgramToken(token) }
+          // 分母仍是緊鄰前一詞的詞頻，不因前文鏈較長而改取整鏈詞頻。
           let denominator: Double = context.last.flatMap { counts[$0] }.flatMap { $0 > 0 ? Double($0) : nil }
             ?? norm
           let probe = VCDataBuilder.Unigram(
@@ -163,12 +169,25 @@ extension VCDataBuilder.Unigram {
           )
           let identityKey =
             "\(isCHS ? "chs" : "cht")|\(readings4ThisValue.joined(separator: "-"))|\(context.joined(separator: "-"))|\(value)"
-          if let existing = bucketed[identityKey], existing.count >= record.count { return }
+          if let existing = bucketed[identityKey], existing.count >= record.count { continue }
           bucketed[identityKey] = record
         }
       }
     }
     return Array(bucketed.values)
+  }
+
+  private static func validateNgramToken(_ token: String) throws {
+    guard !token.isEmpty else {
+      throw VCDataBuilder.Exception.errMsg("n-gram values and context tokens must not be empty.")
+    }
+    for scalar in token.unicodeScalars {
+      let isStructuralControl = scalar.properties.generalCategory == .control
+        || CharacterSet.newlines.contains(scalar)
+      guard !isStructuralControl else {
+        throw VCDataBuilder.Exception.errMsg("n-gram values and context tokens reject control characters.")
+      }
+    }
   }
 
   /// 把一組詞（詞值欄或前驗詞鏈）中的類名展開成逐一成員的所有組合。

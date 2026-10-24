@@ -9,11 +9,8 @@ import Yukuaki
 
 /// `.txtMap` 詞庫的唯讀存取器。
 ///
-/// 檔案格式見 `VCDataBuilder.VanguardTextMapDataBuilder`：
-/// 三個區段（HEADER／VALUES／KEY_LINE_MAP），其中 VALUES 有三種行型別：
-/// - 型別 A：`>typeID\tencodedCell`
-/// - 型別 B：`@probability\tchsCell\tchtCell`
-/// - 型別 C：`value\tprobability\ttypeID[\tcontextCell]`；`contextCell` 為 escaped-pipe 編碼的前驗詞鏈（由舊至新）
+/// VALUES 支援 A／B／C／D 四種行型別；C 為單筆詞條，D 為同值同型別的
+/// 2～16 筆前文詞條。兩者的 `contextCell` 都最多承載兩層前文。
 final class VanguardTextMapReader {
   // MARK: Lifecycle
 
@@ -33,12 +30,11 @@ final class VanguardTextMapReader {
       throw DebuggerError.malformedTextMap("找不到 `\(valuesPragma)` 或 `\(keyMapPragma)` 區段標記。")
     }
 
-    // HEADER
     var separator = "-"
     var defaultProbs = [Int: Double]()
     var versionCell: String?
     for line in lines[0 ..< valuesIndex] {
-      /// 區段標頭的欄位以 TAB 分隔；此處對空白也寬容，方便手寫測資。
+      // 手寫 Debugger 測資的 HEADER 可用空白分隔；VALUES 仍嚴格使用 TAB。
       let fields = line.split(whereSeparator: \.isWhitespace).map(String.init)
       guard fields.count >= 2 else { continue }
       switch fields[0] {
@@ -53,20 +49,14 @@ final class VanguardTextMapReader {
         defaultProbs[typeID] = probability
       }
     }
-    // Phase 324 起只認 `2.x`：型別 C 的第 4 欄由「單一前驗詞」改為「前驗詞鏈」，
-    // 舊檔若仍以 1.x 標記讀入，其 bigram 語義會被錯解成另一種鏈長。
-    if let versionCell, !versionCell.hasPrefix("2.") {
-      throw DebuggerError.malformedTextMap(
-        "詞庫格式版本 \(versionCell) 不受支援（只接受 2.x）。"
-      )
+    guard versionCell == "2.0" else {
+      throw DebuggerError.malformedTextMap("詞庫必須明確標記 VERSION 2.0。")
     }
     self.readingSeparator = separator.isEmpty ? "-" : separator
     self.defaultProbs = defaultProbs
 
-    // VALUES
     self.valueLines = Array(lines[(valuesIndex + 1) ..< keyMapIndex])
 
-    // KEY_LINE_MAP
     var table = [String: (start: Int, count: Int)]()
     for line in lines[(keyMapIndex + 1)...] {
       let fields = line.split(whereSeparator: \.isWhitespace).map(String.init)
@@ -76,7 +66,6 @@ final class VanguardTextMapReader {
     }
     self.keyTable = table
 
-    // 附帶統計：正規化基準與是否含有前文詞條。
     var detectedNorm: Double?
     var contextual = false
     for line in valueLines {
@@ -90,6 +79,7 @@ final class VanguardTextMapReader {
     }
     self.norm = detectedNorm
     self.hasContextualEntries = contextual
+    try validateAllValueLines()
   }
 
   // MARK: Internal
@@ -223,20 +213,41 @@ final class VanguardTextMapReader {
     return log10(exp(Double(value.count) / 3 - 1) * 0.25 / norm)
   }
 
+  private func validateAllValueLines() throws {
+    for (index, line) in valueLines.enumerated() {
+      do {
+        _ = try parseValidatedValueLine(line, keys: [], locale: .both)
+      } catch {
+        throw DebuggerError.malformedTextMap("VALUES 第 \(index + 1) 行無效：\(error.localizedDescription)")
+      }
+    }
+  }
+
   private func parseValueLine(
     _ line: String,
     keys: [String],
     locale: Locale
   )
     -> [Yukuaki.Gram] {
+    (try? parseValidatedValueLine(line, keys: keys, locale: locale)) ?? []
+  }
+
+  private func parseValidatedValueLine(
+    _ line: String,
+    keys: [String],
+    locale: Locale
+  )
+    throws -> [Yukuaki.Gram] {
     let fields = line.components(separatedBy: "\t")
-    guard let first = fields.first, let head = first.first else { return [] }
-    switch head {
-    case "@":
-      guard fields.count >= 3 else { return [] }
-      guard let probability = Double(first.dropFirst()) else { return [] }
-      let chsValues = decodeCell(fields[1])
-      let chtValues = decodeCell(fields[2])
+    guard let first = fields.first, !first.isEmpty else {
+      throw DebuggerError.malformedTextMap("空 VALUES 行。")
+    }
+
+    // `@` 後不是有限機率時，仍可能是以 `@` 起首的 C 裸詞值。
+    if fields.count == 3, first.hasPrefix("@"),
+       let probability = Double(first.dropFirst()), probability.isFinite {
+      let chsValues = try decodeCell(fields[1], allowsEmptyCell: true)
+      let chtValues = try decodeCell(fields[2], allowsEmptyCell: true)
       switch locale {
       case .cht:
         return grams(own: chtValues, other: chsValues, probability: probability, keys: keys)
@@ -246,46 +257,133 @@ final class VanguardTextMapReader {
         let values = chtValues + chsValues.filter { !chtValues.contains($0) }
         return values.map { Yukuaki.Gram(keyArray: keys, current: $0, probability: probability) }
       }
+    }
 
-    case ">":
-      guard fields.count >= 2 else { return [] }
-      guard let typeID = Int(first.dropFirst()) else { return [] }
-      guard accepts(typeID: typeID) else { return [] }
-      guard let probability = defaultProbs[typeID] else { return [] }
-      return decodeCell(fields[1]).map {
-        Yukuaki.Gram(keyArray: keys, current: $0, probability: probability)
+    // 三／四欄仍可能是以 `>` 起首的 C 裸詞值。
+    if first.hasPrefix(">"), fields.count == 2 {
+      guard let typeID = Int(first.dropFirst()),
+            let probability = defaultProbs[typeID], probability.isFinite
+      else {
+        throw DebuggerError.malformedTextMap("型別 A 必須引用有效 DEFAULT_PROB。")
       }
+      let values = try decodeCell(fields[1])
+      guard accepts(typeID: typeID) else { return [] }
+      return values.map { Yukuaki.Gram(keyArray: keys, current: $0, probability: probability) }
+    }
 
-    default:
-      guard fields.count >= 3 else { return [] }
-      guard let typeID = Int(fields[2]), accepts(typeID: typeID) else { return [] }
-      guard let probability = Double(fields[1]) else { return [] }
-      let value = decodeToken(fields[0])
-      guard !value.isEmpty else { return [] }
-      // n-gram 前驗詞鏈：由舊至新；Homa 語意只取最近的兩個（previous／anterior）。
-      let context = fields.count >= 4 ? decodeCell(fields[3]) : []
-      let previous = context.last
-      let anterior = context.count >= 2 ? context[context.count - 2] : nil
-      return [
-        .init(
-          keyArray: keys,
-          current: value,
-          previous: previous,
-          anterior: anterior,
-          probability: probability
-        ),
-      ]
+    if first.hasPrefix("!"), fields.count > 4 {
+      guard fields.count % 2 == 0 else {
+        throw DebuggerError.malformedTextMap("型別 D 必須是 2 + 2n 欄。")
+      }
+      let pairCount = (fields.count - 2) / 2
+      guard (2 ... 16).contains(pairCount) else {
+        throw DebuggerError.malformedTextMap("型別 D 每行須含 2～16 筆詞條。")
+      }
+      let value = String(first.dropFirst())
+      try validateBareValue(value)
+      guard let typeID = Int(fields[1]) else {
+        throw DebuggerError.malformedTextMap("型別 D 的 typeID 無效。")
+      }
+      var pairs: [(probability: Double, context: [String])] = []
+      for pairIndex in 0 ..< pairCount {
+        let probabilityIndex = 2 + pairIndex * 2
+        let probability = try finiteProbability(fields[probabilityIndex])
+        let context = try decodeCell(fields[probabilityIndex + 1])
+        guard (1 ... 2).contains(context.count) else {
+          throw DebuggerError.malformedTextMap("v2.0 前文須為一或兩層。")
+        }
+        pairs.append((probability, context))
+      }
+      guard accepts(typeID: typeID) else { return [] }
+      return pairs.map { pair in
+        makeGram(value: value, probability: pair.probability, context: pair.context, keys: keys)
+      }
+    }
+
+    guard fields.count == 3 || fields.count == 4,
+          let typeID = Int(fields[2])
+    else {
+      throw DebuggerError.malformedTextMap("型別 C 必須恰好三或四欄。")
+    }
+    let probability = try finiteProbability(fields[1])
+    let value = fields[0]
+    try validateBareValue(value)
+    let context = try fields.count == 4 ? decodeCell(fields[3]) : []
+    guard context.count <= 2, fields.count == 3 || !context.isEmpty else {
+      throw DebuggerError.malformedTextMap("型別 C 有前文欄時，須含一或兩個 token。")
+    }
+    guard accepts(typeID: typeID) else { return [] }
+    return [makeGram(value: value, probability: probability, context: context, keys: keys)]
+  }
+
+  private func makeGram(
+    value: String,
+    probability: Double,
+    context: [String],
+    keys: [String]
+  )
+    -> Yukuaki.Gram {
+    Yukuaki.Gram(
+      keyArray: keys,
+      current: value,
+      previous: context.last,
+      anterior: context.count == 2 ? context[0] : nil,
+      probability: probability
+    )
+  }
+
+  private func finiteProbability(_ rawValue: String) throws -> Double {
+    guard let probability = Double(rawValue), probability.isFinite else {
+      throw DebuggerError.malformedTextMap("機率必須是有限 Double。")
+    }
+    return probability
+  }
+
+  private func validateBareValue(_ value: String) throws {
+    guard !value.isEmpty else { throw DebuggerError.malformedTextMap("詞值不得為空。") }
+    for scalar in value.unicodeScalars {
+      guard !isStructuralControl(scalar) else {
+        throw DebuggerError.malformedTextMap("裸詞值不得含控制字元。")
+      }
     }
   }
 
-  /// 解開 `|` 分隔的欄位（含跳脫）。
-  private func decodeCell(_ cell: String) -> [String] {
+  /// 只拒絕會破壞文字格式的 Cc／換行；ZWJ 等 Cf 是合法詞值成分。
+  private func isStructuralControl(_ scalar: UnicodeScalar) -> Bool {
+    scalar.properties.generalCategory == .control || CharacterSet.newlines.contains(scalar)
+  }
+
+  /// 嚴格解開 escaped-pipe cell；只有 B 的任一侧允許以空字串表示空集合。
+  private func decodeCell(
+    _ cell: String,
+    allowsEmptyCell: Bool = false
+  )
+    throws -> [String] {
+    if cell.isEmpty {
+      if allowsEmptyCell { return [] }
+      throw DebuggerError.malformedTextMap("空 grouped cell。")
+    }
+    if cell == "\u{7}" { return [] }
+
     var tokens = [String]()
     var current = ""
     var escaping = false
+
+    func finishToken() throws {
+      guard !current.isEmpty else { throw DebuggerError.malformedTextMap("grouped cell 不得含空 token。") }
+      tokens.append(current)
+      current = ""
+    }
+
     for character in cell {
       if escaping {
-        current.append(unescape(character))
+        switch character {
+        case "\\": current.append("\\")
+        case "|": current.append("|")
+        case "s": current.append(" ")
+        case "a": current.append("\u{7}")
+        default: throw DebuggerError.malformedTextMap("未知跳脫：\\\(character)。")
+        }
         escaping = false
         continue
       }
@@ -293,39 +391,18 @@ final class VanguardTextMapReader {
       case "\\":
         escaping = true
       case "|":
-        tokens.append(current)
-        current = ""
+        try finishToken()
       default:
+        if character.unicodeScalars.contains(where: {
+          ($0.isASCII && CharacterSet.whitespacesAndNewlines.contains($0)) || isStructuralControl($0)
+        }) {
+          throw DebuggerError.malformedTextMap("grouped cell 含未跳脫 ASCII 空白或裸控制字元。")
+        }
         current.append(character)
       }
     }
-    tokens.append(current)
-    return tokens.filter { !$0.isEmpty && $0 != "\u{7}" }
-  }
-
-  private func decodeToken(_ token: String) -> String {
-    var result = ""
-    var escaping = false
-    for character in token {
-      if escaping {
-        result.append(unescape(character))
-        escaping = false
-        continue
-      }
-      if character == "\\" {
-        escaping = true
-        continue
-      }
-      result.append(character)
-    }
-    return result == "\u{7}" ? "" : result
-  }
-
-  private func unescape(_ character: Character) -> Character {
-    switch character {
-    case "s": return " "
-    case "a": return "\u{7}"
-    default: return character
-    }
+    guard !escaping else { throw DebuggerError.malformedTextMap("跳脫字元後缺字。") }
+    try finishToken()
+    return tokens
   }
 }

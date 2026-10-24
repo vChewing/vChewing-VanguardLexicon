@@ -41,9 +41,14 @@ struct TxtMapUnigramIndex {
     }
 
     var separator = "-"
+    var versionCell: String?
     for line in lines[0 ..< valuesIndex] {
       let fields = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
       if fields.first == "READING_SEPARATOR", fields.count > 1 { separator = fields[1] }
+      if fields.first == "VERSION", fields.count == 2 { versionCell = fields[1] }
+    }
+    guard versionCell == "2.0" else {
+      throw TxtMapUnigramIndexError(description: "`.txtMap` 必須明確標記 VERSION 2.0。")
     }
 
     // 讀音：KEY_LINE_MAP 之每一行對應 VALUES 區段中的同一行序。
@@ -76,16 +81,21 @@ struct TxtMapUnigramIndex {
         var cells = [String]()
         if locale.includesCHS { cells.append(fields[1]) }
         if locale.includesCHT { cells.append(fields.count > 2 ? fields[2] : "") }
-        for value in cells.flatMap(Self.decodeGroupedCell) where Self.isSegmentationEligible(value) {
+        for value in cells.flatMap(Self.decodeGroupedCell)
+          where Self.isSegmentationEligible(value) {
           Self.insert(value: value, probability: probability, reading: reading, into: &table)
         }
       } else if head.hasPrefix(">") {
         // 型別 A：`>typeID\tencodedCell`（合併行，機率為該 typeID 之預設值；見 DEFAULT_PROB）
         guard fields.count >= 2, let typeID = Int32(head.dropFirst()) else { continue }
         let probability = defaultProbabilities[typeID] ?? -13
-        for value in Self.decodeGroupedCell(fields[1]) where Self.isSegmentationEligible(value) {
+        for value in Self.decodeGroupedCell(fields[1])
+          where Self.isSegmentationEligible(value) {
           Self.insert(value: value, probability: probability, reading: reading, into: &table)
         }
+      } else if head.hasPrefix("!"), fields.count > 4 {
+        // 型別 D 全部攜帶前文，不得進入單元圖索引。
+        continue
       } else if tabCount >= 2, fields.count >= 3, let probability = Double(fields[1]) {
         // 型別 C：`value\tprobability\ttypeID[\tcontextCell]`
         guard tabCount == 2 else { continue } // 帶前驗詞鏈者不是單元圖。

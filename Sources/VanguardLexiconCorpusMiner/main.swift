@@ -198,7 +198,7 @@ func runMine(_ options: ParsedArguments) throws {
   let result = miner.mine(index: index, options: miningOptions)
 
   let backlogHeader = "# 由 VanguardLexiconCorpusMiner 產生；行格式：值\t次數\t讀音（空格分隔）\t前驗詞鏈（空格分隔、由舊至新）。\n"
-  let backlog = backlogHeader + result.candidates.map { $0.renderedLine() }.joined(separator: "\n") + "\n"
+  let backlog = backlogHeader + result.candidates.compactMap { $0.renderedLine() }.joined(separator: "\n") + "\n"
   try backlog.write(to: outputDirectory.appendingPathComponent("backlog.tsv"), atomically: true, encoding: .utf8)
 
   let unknownRuns = result.unknownRuns.sorted { $0.value > $1.value }

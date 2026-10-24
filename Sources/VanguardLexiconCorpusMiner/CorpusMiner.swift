@@ -44,6 +44,18 @@ struct CorpusMiner {
     token.contains { $0.unicodeScalars.first.map { $0.properties.isIdeographic } ?? false }
   }
 
+  private static func isBacklogValueSafe(_ value: String) -> Bool {
+    !value.isEmpty && !value.unicodeScalars.contains {
+      $0.properties.generalCategory == .control || CharacterSet.newlines.contains($0)
+    }
+  }
+
+  private static func isBacklogTokenSafe(_ token: String) -> Bool {
+    isBacklogValueSafe(token) && !token.unicodeScalars.contains {
+      $0.isASCII && CharacterSet.whitespacesAndNewlines.contains($0)
+    }
+  }
+
   struct MiningResult {
     var candidates: [Candidate] = []
     var ambiguous: [(value: String, occurrences: Int, readings: [[String]])] = []
@@ -90,7 +102,10 @@ struct CorpusMiner {
       let context = Array(chain.dropLast())
       guard let lastContext = context.last else { return }
       let value = chain[chain.count - 1]
-      guard Self.isWordlike(value), Self.isWordlike(lastContext) else { return }
+      guard Self.isWordlike(value), Self.isWordlike(lastContext),
+            Self.isBacklogValueSafe(value),
+            context.allSatisfy(Self.isBacklogTokenSafe)
+      else { return }
       guard let unigram = index.unigram(value) else { return }
       let denominator = index.count(of: lastContext)
       guard denominator >= Double(options.minContextCount) else { return }
@@ -118,6 +133,7 @@ struct CorpusMiner {
       guard probability > gate else { return }
       let required = Int((denominator * pow(10, gate) / scale).rounded(.up))
       for reading in chosen {
+        guard reading.key.allSatisfy(Self.isBacklogTokenSafe) else { continue }
         result.candidates.append(
           .init(
             context: context,
@@ -151,8 +167,12 @@ struct CorpusMiner {
 // MARK: - CorpusMiner.Row rendering
 
 extension CorpusMiner.Candidate {
-  /// 可直接黏進 `phrases-ngram-*.txt` 之一列。
-  func renderedLine() -> String {
+  /// 可直接黏進 `phrases-ngram-*.txt` 之一列；含會破壞 TSV 結構的字元時不輸出。
+  func renderedLine() -> String? {
+    guard CorpusMiner.isBacklogValueSafe(value),
+          context.allSatisfy(CorpusMiner.isBacklogTokenSafe),
+          reading.allSatisfy(CorpusMiner.isBacklogTokenSafe)
+    else { return nil }
     let reading = reading.joined(separator: " ")
     var comment = "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) required=\(requiredCount)"
     if assumedReading { comment += " assumed-reading" }

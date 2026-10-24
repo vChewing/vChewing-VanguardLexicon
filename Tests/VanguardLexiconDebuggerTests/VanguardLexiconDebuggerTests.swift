@@ -265,6 +265,54 @@ struct VanguardTextMapReaderTests {
     #expect(piped.map(\.current) == ["甲|乙"])
   }
 
+  @Test("ZWJ emoji 可存在於 grouped cell、裸詞值與前文")
+  func decodesZWJEmoji() throws {
+    let emoji = "🙅‍♀️"
+    let fixture = """
+    VERSION\t2.0
+    TYPE\tTYPING
+    READING_SEPARATOR\t-
+    ENTRY_COUNT\t2
+    KEY_COUNT\t2
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    @-3\t\(emoji)\t\(emoji)
+    !\(emoji)\t6\t-2\t要\t-2.5\t\(emoji)
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    ㄅㄚ\t0\t1
+    ㄉㄠˋ\t1\t1
+    """
+    let url = try Fixture.write(fixture, name: "zwj-emoji")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    #expect(reader.grams(forKeys: ["ㄅㄚ"]).map(\.current) == [emoji])
+    let contextual = reader.grams(forKeys: ["ㄉㄠˋ"])
+    #expect(contextual.map(\.current) == [emoji, emoji])
+    #expect(contextual.compactMap(\.previous) == ["要", emoji])
+  }
+
+  @Test("型別 C 裸詞值可使用三種行首標記")
+  func decodesReservedMarkersInBareValues() throws {
+    let fixture = """
+    VERSION 2.0
+    TYPE TYPING
+    READING_SEPARATOR -
+    ENTRY_COUNT 3
+    KEY_COUNT 1
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    !詞\t-1\t6\t甲
+    @詞\t-2\t6\t乙
+    >詞\t-3\t6\t丙
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    ㄅㄚ\t0\t3
+    """
+    let url = try Fixture.write(fixture, name: "reserved-marker-values")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let reader = try VanguardTextMapReader(url: url)
+    let grams = reader.grams(forKeys: ["ㄅㄚ"])
+    #expect(grams.map(\.current) == ["!詞", "@詞", ">詞"])
+    #expect(grams.compactMap(\.previous) == ["甲", "乙", "丙"])
+  }
+
   @Test("含前文的詞條會被標記，且 previous 會被解出")
   func detectsContextualEntries() throws {
     let url = try Fixture.write(Fixture.contextual, name: "contextual")
@@ -320,7 +368,7 @@ struct VanguardTextMapReaderTests {
       config: Yukuaki.Config(maxSegLength: 6)
     )
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ"].map { Yukuaki.PossibleKey.singleKey($0) })
-    let outcome = try #require(assembler.assembleWithScore())
+    let outcome = assembler.assembleWithScore()
     #expect(outcome.path.joinedSentence == "不要再")
     let contextual = try #require(outcome.path.first { $0.value == "再" })
     #expect(contextual.gram.previous == "要")
@@ -351,7 +399,7 @@ struct VanguardTextMapReaderTests {
       config: Yukuaki.Config(maxSegLength: 6)
     )
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ"].map { Yukuaki.PossibleKey.singleKey($0) })
-    let outcome = try #require(assembler.assembleWithScore())
+    let outcome = assembler.assembleWithScore()
     #expect(outcome.path.joinedSentence == "不要在")
   }
 
@@ -361,6 +409,101 @@ struct VanguardTextMapReaderTests {
     defer { try? FileManager.default.removeItem(at: url) }
     #expect(throws: DebuggerError.self) {
       try VanguardTextMapReader(url: url)
+    }
+  }
+
+  @Test("型別 D 與 C 展開等價，且組句選用正確前文")
+  func typeDMatchesCAndAssembly() throws {
+    func fixture(_ lines: String, zaiCount: Int) -> String {
+      """
+      VERSION 2.0
+      TYPE TYPING
+      READING_SEPARATOR -
+      KEY_COUNT 3
+      #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+      @-5.128\t不\t不
+      @-5.048\t要\t要
+      @-5.009\t在\t在
+      \(lines)
+      #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+      ㄅㄨˋ\t0\t1
+      ㄧㄠˋ\t1\t1
+      ㄗㄞˋ\t2\t\(zaiCount)
+      """
+    }
+
+    let cURL = try Fixture.write(
+      fixture("再\t-3.405\t6\t要\n再\t-3.502\t6\t不|要", zaiCount: 3),
+      name: "context-c"
+    )
+    let dURL = try Fixture.write(
+      fixture("!再\t6\t-3.405\t要\t-3.502\t不|要", zaiCount: 2),
+      name: "context-d"
+    )
+    defer {
+      try? FileManager.default.removeItem(at: cURL)
+      try? FileManager.default.removeItem(at: dURL)
+    }
+    let cReader = try VanguardTextMapReader(url: cURL)
+    let dReader = try VanguardTextMapReader(url: dURL)
+
+    func signatures(_ reader: VanguardTextMapReader) -> [String] {
+      reader.grams(forKeys: ["ㄗㄞˋ"]).map {
+        [$0.current, $0.previous ?? "nil", $0.anterior ?? "nil", $0.probability.description]
+          .joined(separator: "|")
+      }
+    }
+    #expect(signatures(cReader) == signatures(dReader))
+    #expect(dReader.hasContextualEntries)
+
+    let assembler = Yukuaki.Assembler(
+      gramQuerier: { dReader.grams(forKeys: $0.representativeKeys) },
+      gramAvailabilityChecker: { dReader.hasGrams(forKeys: $0) },
+      config: Yukuaki.Config(maxSegLength: 6)
+    )
+    try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ"].map { Yukuaki.PossibleKey.singleKey($0) })
+    let outcome = assembler.assembleWithScore()
+    #expect(outcome.path.joinedSentence == "不要再")
+    let contextual = try #require(outcome.path.first { $0.value == "再" })
+    #expect(contextual.gram.previous == "要")
+    #expect(contextual.gram.anterior == "不")
+  }
+
+  @Test("缺版本、非 2.0 與畸形 VALUES 都在載入時拋錯")
+  func strictValidationRejectsMalformedFiles() throws {
+    func textMap(version: String?, valueLine: String) -> String {
+      var lines = [String]()
+      if let version { lines.append(version) }
+      lines.append("TYPE TYPING")
+      lines.append("READING_SEPARATOR -")
+      lines.append("KEY_COUNT 0")
+      lines.append("#PRAGMA:VANGUARD_HOMA_LEXICON_VALUES")
+      lines.append(valueLine)
+      lines.append("#PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP")
+      return lines.joined(separator: "\n")
+    }
+
+    let d17 = "!再\t6\t" + (0 ..< 17).map { "-1\tP\($0)" }.joined(separator: "\t")
+    let cases = [
+      textMap(version: nil, valueLine: "再\t-1\t6"),
+      textMap(version: "VERSION 2.1", valueLine: "再\t-1\t6"),
+      textMap(version: "VERSION 2.0", valueLine: "!再\t6\t-1\t要\t-2"),
+      textMap(version: "VERSION 2.0", valueLine: d17),
+      textMap(version: "VERSION 2.0", valueLine: "再\t-1\t6\t甲|乙|丙"),
+      textMap(version: "VERSION 2.0", valueLine: "再\t-1\t6\t要\\q"),
+      textMap(version: "VERSION 2.0", valueLine: "再\tnan\t6\t要"),
+      textMap(version: "VERSION 2.0", valueLine: "再\t-1\t6\t要\textra"),
+      textMap(version: "VERSION 2.0", valueLine: "@-1\t甲\t乙\textra"),
+      textMap(version: "VERSION 2.0", valueLine: ">6\t甲\textra"),
+      textMap(version: "VERSION 2.0", valueLine: "再\t-1\t6\t"),
+      textMap(version: "VERSION 2.0", valueLine: "再\t-1\t6\t甲||乙"),
+    ]
+    for (index, contents) in cases.enumerated() {
+      let url = try Fixture.write(contents, name: "strict-\(index)")
+      defer { try? FileManager.default.removeItem(at: url) }
+      #expect(throws: DebuggerError.self) {
+        try VanguardTextMapReader(url: url)
+      }
     }
   }
 }

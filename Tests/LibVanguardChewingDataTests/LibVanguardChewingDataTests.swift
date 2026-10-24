@@ -149,7 +149,7 @@ struct NgramRecordsTests {
       "那裡": ["ㄋㄚˋ", "ㄌㄧˇ"],
       "在": ["ㄗㄞˋ"],
     ]
-    let records = VCDataBuilder.Unigram.parseNgramLines(
+    let records = try VCDataBuilder.Unigram.parseNgramLines(
       raw,
       isCHS: false,
       norm: Self.norm,
@@ -180,7 +180,7 @@ struct NgramRecordsTests {
 
   @Test("詞類成員查無讀音時，該成員略過而不臆造讀音")
   func classMemberWithoutReadingsIsSkipped() throws {
-    let records = VCDataBuilder.Unigram.parseNgramLines(
+    let records = try VCDataBuilder.Unigram.parseNgramLines(
       "<PLACE_NOUN>\t9\t-\t在",
       isCHS: false,
       norm: Self.norm,
@@ -202,5 +202,156 @@ struct NgramRecordsTests {
     #expect(chs["<PLACE_NOUN>"]?.contains("这里") == true)
     #expect(chs["<OBJECTIVE_VERB>"]?.contains("说") == true)
     #expect(chs["<SELF_VERB>"]?.contains("来") == true)
+  }
+}
+
+// MARK: - VanguardTextMapBuilderContextualTests
+
+@Suite("TextMap 產製：C／D 與分段")
+struct VanguardTextMapBuilderContextualTests {
+  // MARK: Internal
+
+  @Test("同值同語系才組 D，且 17 筆拆成 15＋2")
+  func buildsGroupedContextualLines() async throws {
+    let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
+    let trie = builder.mutexTrie4Typing.value
+
+    func render() async throws -> String {
+      let iterator = try await builder.getIteratorForLexiconAssemblyTask()
+      var data = Data()
+      for try await chunk in iterator { data.append(chunk.data) }
+      return try #require(String(data: data, encoding: .utf8))
+    }
+
+    trie.clearAllContents()
+    trie.insert(
+      entry: .init(value: "再", typeID: .init(rawValue: 6), probability: -3.405, context: ["要"]),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "再", typeID: .init(rawValue: 6), probability: -3.502, context: ["不", "要"]),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "再", typeID: .init(rawValue: 5), probability: -2, context: ["要"]),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "在", typeID: .init(rawValue: 6), probability: -4, context: ["要"]),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "再", typeID: .init(rawValue: 6), probability: -1, context: ["呢"]),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "再", typeID: .init(rawValue: 6), probability: -7, context: ["要"]),
+      readingsEncrypted: ["ㄧㄤˋ"]
+    )
+    trie.insert(
+      entry: .init(value: "( ͒˃⌂˂ ͒)", typeID: .init(rawValue: 9), probability: -9),
+      readingsEncrypted: ["ㄗㄞˋ"]
+    )
+
+    let textMap = try await render()
+    #expect(textMap.contains("ENTRY_COUNT\t5\n"))
+    #expect(textMap.contains("KEY_COUNT\t2\n"))
+    #expect(valueLines(from: textMap).count == 5)
+    #expect(valueLines(from: textMap, forKey: "ㄗㄞˋ") == [
+      ">9\t(\\s͒˃⌂˂\\s͒)",
+      "!再\t6\t-3.405\t要\t-3.502\t不|要\t-1\t呢",
+      "再\t-2\t5\t要",
+      "在\t-4\t6\t要",
+    ])
+    #expect(valueLines(from: textMap, forKey: "ㄧㄤˋ") == ["再\t-7\t6\t要"])
+
+    trie.clearAllContents()
+    for index in 0 ..< 17 {
+      trie.insert(
+        entry: .init(
+          value: "再",
+          typeID: .init(rawValue: 6),
+          probability: -1,
+          context: ["P\(index)"]
+        ),
+        readingsEncrypted: ["ㄗㄞˋ"]
+      )
+    }
+    let chunked = try await render()
+    let lines = valueLines(from: chunked)
+    #expect(lines.map { ($0.components(separatedBy: "\t").count - 2) / 2 } == [15, 2])
+    #expect(chunked.contains("ENTRY_COUNT\t2\n"))
+    #expect(keyMapLine(from: chunked, forKey: "ㄗㄞˋ") == "ㄗㄞˋ\t0\t2")
+  }
+
+  // MARK: Private
+
+  private func valueLines(from textMap: String) -> [String] {
+    guard let values = textMap.range(of: "#PRAGMA:VANGUARD_HOMA_LEXICON_VALUES\n"),
+          let keyMap = textMap.range(of: "#PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP")
+    else { return [] }
+    return textMap[values.upperBound ..< keyMap.lowerBound].split(whereSeparator: \.isNewline).map(String.init)
+  }
+
+  private func valueLines(from textMap: String, forKey key: String) -> [String] {
+    let lines = valueLines(from: textMap)
+    guard let mapLine = keyMapLine(from: textMap, forKey: key) else { return [] }
+    let fields = mapLine.components(separatedBy: "\t")
+    guard fields.count == 3, let start = Int(fields[1]), let count = Int(fields[2]),
+          start >= 0, start + count <= lines.count
+    else { return [] }
+    return Array(lines[start ..< (start + count)])
+  }
+
+  private func keyMapLine(from textMap: String, forKey key: String) -> String? {
+    guard let keyMap = textMap.range(of: "#PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP\n") else { return nil }
+    return textMap[keyMap.upperBound...].split(whereSeparator: \.isNewline).map(String.init).first {
+      $0.components(separatedBy: "\t").first == key
+    }
+  }
+}
+
+// MARK: - NgramInputValidationTests
+
+@Suite("n-gram：v2.0 輸入限制")
+struct NgramInputValidationTests {
+  @Test("三層以上前文會報錯")
+  func rejectsLongContext() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "再\t5\tㄗㄞˋ\t甲 乙 丙",
+        isCHS: false,
+        norm: 1_000,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("ZWJ emoji 是合法詞值與前文成分")
+  func acceptsZWJEmoji() throws {
+    let emoji = "🙅‍♀️"
+    let records = try VCDataBuilder.Unigram.parseNgramLines(
+      "\(emoji)\t5\tㄗㄞˋ\t要 \(emoji)",
+      isCHS: false,
+      norm: 1_000,
+      counts: [:]
+    )
+    #expect(records.count == 1)
+    #expect(records.first?.value == emoji)
+    #expect(records.first?.context == ["要", emoji])
+  }
+
+  @Test("詞值與前文中的控制字元會報錯")
+  func rejectsControlCharacters() {
+    for raw in ["再\u{1}\t5\tㄗㄞˋ\t要", "再\t5\tㄗㄞˋ\t要\u{7}"] {
+      #expect(throws: VCDataBuilder.Exception.self) {
+        try VCDataBuilder.Unigram.parseNgramLines(
+          raw,
+          isCHS: false,
+          norm: 1_000,
+          counts: [:]
+        )
+      }
+    }
   }
 }

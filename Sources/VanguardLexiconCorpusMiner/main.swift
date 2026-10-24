@@ -197,7 +197,7 @@ func runMine(_ options: ParsedArguments) throws {
 
   let result = miner.mine(index: index, options: miningOptions)
 
-  let backlogHeader = "# 由 VanguardLexiconCorpusMiner 產生；行格式：值\t次數\t讀音（空格分隔）\t前驗詞鏈（空格分隔、由舊至新）。\n"
+  let backlogHeader = "# 由 VanguardLexiconCorpusMiner 產生；行格式：值\t次數\t讀音（空格分隔）\t前驗詞鏈（空格分隔、由舊至新）\t完整前文詞頻\t# 註解。\n"
   let backlog = backlogHeader + result.candidates.compactMap { $0.renderedLine() }.joined(separator: "\n") + "\n"
   try backlog.write(to: outputDirectory.appendingPathComponent("backlog.tsv"), atomically: true, encoding: .utf8)
 
@@ -224,6 +224,7 @@ func runMine(_ options: ParsedArguments) throws {
     "unknown_runs": result.unknownRuns.count,
     "ambiguous_values": result.ambiguous.count,
     "norm": index.norm,
+    "denominator_policy": "full-context (successor-aware)",
     "build_timestamp": index.buildTimestamp,
     "index": indexPath,
     "index_sha256": try sha256(of: URL(fileURLWithPath: indexPath)),

@@ -82,59 +82,92 @@ func testTextMapBuilderEmitsTypingFileOnly() async throws {
 
 @Suite("n-gram：前驗詞庫解析")
 struct NgramRecordsTests {
+  // MARK: Internal
+
   static let norm: Double = 374_388_831.9686408
 
-  @Test("繁體語系的 bigram 與 trigram 都會被讀入")
+  @Test("繁體語系的 trigram 會連同完整前文詞頻一併讀入")
   func loadsChtRecords() throws {
-    let records = try VCDataBuilder.Unigram.prepareRawNgramRecords(isCHS: false, norm: Self.norm)
+    // 傳入與產製端同源的詞頻表（count(書) 取自 `char-kanji-core.txt` 的繁中欄）。
+    let records = try VCDataBuilder.Unigram.prepareRawNgramRecords(
+      isCHS: false,
+      norm: Self.norm,
+      contextCounts: [false: ["書": 5_602]]
+    )
     #expect(!records.isEmpty)
 
-    let bigram = try #require(records.first { $0.value == "再" && $0.context.count == 1 })
-    #expect(bigram.readings == ["ㄗㄞˋ"])
-    #expect(bigram.context == ["要"])
-    #expect(bigram.count == 5)
-    #expect(bigram.isCHS == false)
+    let library = try #require(records.first { $0.value == "館" && $0.context == ["圖", "書"] })
+    #expect(library.readings == ["ㄍㄨㄢˇ"])
+    #expect(library.count == 249)
+    #expect(library.contextCount == 294)
+    #expect(library.denominatorSource == .fullContext)
+    #expect(library.isCHS == false)
     // 權重折算後應為負值（log10 權重）。
-    #expect(bigram.score < 0)
+    #expect(library.score < 0)
 
-    let trigram = try #require(records.first { $0.value == "再" && $0.context.count == 2 })
-    #expect(trigram.context == ["不", "要"])
-    #expect(trigram.count == 4)
+    // 同一批證據的 bigram 列（前文只有「書」）仍走 legacy 分母：count(書)。
+    let bigram = try #require(records.first { $0.value == "館" && $0.context == ["書"] })
+    #expect(bigram.count == 249)
+    // bigram 的「完整前文」就是那一個詞，故 contextCount 即 count(書)。
+    #expect(bigram.contextCount == 5_602)
+    #expect(bigram.denominatorSource == .legacyUnigramCount)
+    // 兩列同源、只差鏈長；trigram 換上 count(圖,書)＝294 之後，
+    // 分數由 bigram 的 −1.642 抬到 −0.362（δ＝log10(5602/294)＝1.280）。
+    #expect(abs(library.score - Self.weight(count: 249, denominator: 294, value: "館")) < 0.001)
+    #expect(abs(bigram.score - Self.weight(count: 249, denominator: 5_602, value: "館")) < 0.001)
+    #expect(abs((library.score - bigram.score) - 1.280) < 0.001)
   }
 
-  @Test("帶前驗詞鏈的條目以「前驗詞的詞頻」為分母算條件機率")
+  @Test("trigram 以完整前文詞頻為分母，bigram 仍以緊鄰前詞為分母")
   func conditionalScoreUsesContextCount() throws {
     let records = try VCDataBuilder.Unigram.prepareRawNgramRecords(
       isCHS: false,
       norm: Self.norm,
-      contextCounts: [false: ["要": 6_528]]
+      contextCounts: [false: ["書": 651]]
     )
-    let bigram = try #require(records.first { $0.value == "再" && $0.context == ["要"] })
-    // log10(e^(1/3 - 1) × 5 / 6528)
-    #expect(abs(bigram.score - -3.405) < 0.001)
-    // 取不到前驗詞頻次時，退回以 `_NORM` 折算的無條件機率。
-    let unconditional = try VCDataBuilder.Unigram.prepareRawNgramRecords(
+    let trigram = try #require(records.first { $0.value == "館" && $0.context == ["圖", "書"] })
+    // 分母取自第 5 欄（294），不是 count(書)（651）。
+    #expect(trigram.denominatorSource == .fullContext)
+    #expect(abs(trigram.score - Self.weight(count: 249, denominator: 294, value: "館")) < 0.001)
+
+    // bigram 無第 5 欄時沿用 count(前一個詞)（legacy），不得混入 trigram 的分母。
+    let legacy = try VCDataBuilder.Unigram.parseNgramLines(
+      "再\t5\tㄗㄞˋ\t要",
       isCHS: false,
-      norm: Self.norm
+      norm: Self.norm,
+      counts: ["要": 6_528]
     )
-    let fallback = try #require(unconditional.first { $0.value == "再" && $0.context == ["要"] })
-    #expect(abs(fallback.score - -8.164) < 0.001)
+    let bigram = try #require(legacy.first)
+    #expect(bigram.denominatorSource == .legacyUnigramCount)
+    #expect(abs(bigram.score - Self.weight(count: 5, denominator: 6_528, value: "再")) < 0.001)
+
+    // 取不到前驗詞頻時，才退回以 `_NORM` 折算（僅 bigram 允許）。
+    let fallbackRecords = try VCDataBuilder.Unigram.parseNgramLines(
+      "再\t5\tㄗㄞˋ\t要",
+      isCHS: false,
+      norm: Self.norm,
+      counts: [:]
+    )
+    let fallback = try #require(fallbackRecords.first)
+    #expect(fallback.denominatorSource == .normalizedFallback)
+    #expect(abs(fallback.score - Self.weight(count: 5, denominator: Self.norm, value: "再")) < 0.001)
   }
 
-  @Test("兩語系一併讀取時，同值不同語系的條目並存")
+  @Test("兩語系一併讀取時，各自的 trigram 條目並存")
   func loadsBothLocales() throws {
     let records = try VCDataBuilder.Unigram.prepareRawNgramRecords(isCHS: nil, norm: Self.norm)
-    #expect(records.contains { $0.value == "再" && !$0.isCHS })
-    #expect(records.contains { $0.value == "再" && $0.isCHS })
-    #expect(records.count >= 4)
+    #expect(records.contains { $0.value == "館" && $0.context == ["圖", "書"] && !$0.isCHS })
+    #expect(records.contains { $0.value == "网" && $0.context == ["互", "联"] && $0.isCHS })
+    // 兩語系各六列：館／馆 四列（案、檔 案、書、圖 書）、網／网 一列、碳 一列。
+    #expect(records.count == 12)
   }
 
   @Test("n-gram 條目會進到組句用的 Trie")
   func ngramsReachTypingTrie() async throws {
     let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
     let nodes = builder.mutexTrie4Typing.value.nodes.values
-    #expect(nodes.contains { $0.entries.contains { $0.context == ["要"] } })
-    #expect(nodes.contains { $0.entries.contains { $0.context == ["不", "要"] } })
+    #expect(nodes.contains { $0.entries.contains { $0.context == ["圖", "書"] } })
+    #expect(nodes.contains { $0.entries.contains { $0.context == ["氧", "化"] } })
   }
 
   @Test("詞類模板：詞值欄與前驗詞鏈欄都會展開成逐條成員")
@@ -202,6 +235,21 @@ struct NgramRecordsTests {
     #expect(chs["<PLACE_NOUN>"]?.contains("这里") == true)
     #expect(chs["<OBJECTIVE_VERB>"]?.contains("说") == true)
     #expect(chs["<SELF_VERB>"]?.contains("来") == true)
+  }
+
+  // MARK: Private
+
+  /// 依產製端同一條公式折算權重，避免測試自己另立一份常數。
+  private static func weight(count: Int, denominator: Double, value: String) -> Double {
+    let probe = VCDataBuilder.Unigram(
+      key: "probe",
+      value: value,
+      score: 0,
+      count: count,
+      category: .custom
+    )
+    probe.weighten(norm: denominator)
+    return probe.score
   }
 }
 
@@ -331,7 +379,7 @@ struct NgramInputValidationTests {
   func acceptsZWJEmoji() throws {
     let emoji = "🙅‍♀️"
     let records = try VCDataBuilder.Unigram.parseNgramLines(
-      "\(emoji)\t5\tㄗㄞˋ\t要 \(emoji)",
+      "\(emoji)\t5\tㄗㄞˋ\t要 \(emoji)\t7",
       isCHS: false,
       norm: 1_000,
       counts: [:]
@@ -352,6 +400,63 @@ struct NgramInputValidationTests {
           counts: [:]
         )
       }
+    }
+  }
+
+  @Test("trigram 缺完整前文詞頻會報錯，bigram 則可沿用 legacy 分母")
+  func rejectsTrigramWithoutContextCount() throws {
+    // trigram 只寫得出 count(書) 時，不得以前一個詞的詞頻冒充分母。
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "館\t249\tㄍㄨㄢˇ\t圖 書",
+        isCHS: false,
+        norm: 1_000,
+        counts: ["書": 651]
+      )
+    }
+    // 第 5 欄寫成註解同樣不算數。
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "館\t249\tㄍㄨㄢˇ\t圖 書\t# lift=1.0",
+        isCHS: false,
+        norm: 1_000,
+        counts: [:]
+      )
+    }
+    // bigram 沒有第 5 欄仍可解析。
+    let bigramRecords = try VCDataBuilder.Unigram.parseNgramLines(
+      "館\t249\tㄍㄨㄢˇ\t書",
+      isCHS: false,
+      norm: 1_000,
+      counts: ["書": 651]
+    )
+    #expect(bigramRecords.count == 1)
+  }
+
+  @Test("完整前文詞頻欄非整數或非正數時會報錯")
+  func rejectsInvalidContextCountColumn() {
+    for raw in ["館\t249\tㄍㄨㄢˇ\t圖 書\tabc", "館\t249\tㄍㄨㄢˇ\t圖 書\t0"] {
+      #expect(throws: VCDataBuilder.Exception.self) {
+        try VCDataBuilder.Unigram.parseNgramLines(
+          raw,
+          isCHS: false,
+          norm: 1_000,
+          counts: ["書": 651]
+        )
+      }
+    }
+  }
+
+  @Test("完整前文詞頻欄與詞類模板不可併用")
+  func rejectsContextCountWithClassTemplate() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "館\t249\tㄍㄨㄢˇ\t<PLACE_NOUN> 書\t294",
+        isCHS: false,
+        norm: 1_000,
+        counts: [:],
+        classTable: ["<PLACE_NOUN>": ["圖"]]
+      )
     }
   }
 }

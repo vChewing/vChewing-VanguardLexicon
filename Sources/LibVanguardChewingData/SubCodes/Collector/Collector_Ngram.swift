@@ -7,6 +7,20 @@ import Foundation
 // MARK: - VCDataBuilder.NgramRecord
 
 extension VCDataBuilder {
+  /// n-gram 條件機率之分母的來源。
+  ///
+  /// 條件機率 `p(詞｜前文)` 的分母是「前文」本身的詞頻：bigram（前文一詞 `y`）
+  /// 用 `count(y)`、trigram（前文兩詞 `x y`）用 `count(x, y)`。
+  /// 舊式 backlog 只寫得出 `count(y)`，故另立一級以資區別。
+  public enum NgramDenominatorSource: String, Sendable, Hashable, CaseIterable {
+    /// 前文鏈之完整詞頻：bigram 為 `count(y)`、trigram 為 `count(x, y)`。
+    case fullContext
+    /// 舊式 backlog 未載完整前文詞頻，沿用緊鄰前一詞之詞頻 `count(y)`。
+    case legacyUnigramCount
+    /// 取不到任何詞頻，退回以 `Collector.norm` 折算的無條件機率。
+    case normalizedFallback
+  }
+
   /// 一筆「附帶前驗詞鏈」的 n-gram 條目。
   ///
   /// `context` 由舊至新，v2.0 最多兩層；同一讀音索引鍵下可並存多筆僅前文不同的條目。
@@ -19,7 +33,9 @@ extension VCDataBuilder {
       context: [String],
       count: Int,
       score: Double,
-      isCHS: Bool
+      isCHS: Bool,
+      contextCount: Int? = nil,
+      denominatorSource: NgramDenominatorSource = .normalizedFallback
     ) {
       self.value = value
       self.readings = readings
@@ -27,6 +43,8 @@ extension VCDataBuilder {
       self.count = count
       self.score = score
       self.isCHS = isCHS
+      self.contextCount = contextCount
+      self.denominatorSource = denominatorSource
     }
 
     // MARK: Public
@@ -41,11 +59,16 @@ extension VCDataBuilder {
     public let count: Int
     /// log10 權重（負值）。
     ///
-    /// 分母固定為緊鄰前一詞（`context.last`）的詞頻，不是整條前文鏈的聯合詞頻；
-    /// 取不到或為 0 時，退回以 `Collector.norm` 折算的無條件機率。
+    /// 分母是「前文」本身的詞頻：bigram 取緊鄰前一詞（`context.last`）之 `count(y)`、
+    /// trigram 取其完整前文之 `count(x, y)`（見 `denominatorSource`）。
+    /// 只有在完全取不到詞頻時，才退回以 `Collector.norm` 折算的無條件機率。
     public let score: Double
     /// 所屬語系：`true` 為簡體、`false` 為繁體。
     public let isCHS: Bool
+    /// 折算 `score` 時所用的分母詞頻；`nil` 代表退回 `Collector.norm`。
+    public let contextCount: Int?
+    /// 折算 `score` 時分母的來源。
+    public let denominatorSource: NgramDenominatorSource
   }
 }
 
@@ -54,7 +77,9 @@ extension VCDataBuilder {
 extension VCDataBuilder.Unigram {
   /// 讀取並折算所有 n-gram 前驗詞庫（`phrases-ngram-{chs,cht}.txt`）。
   ///
-  /// 行格式：`詞值\t次數\t讀音（空格分隔）\t前驗詞鏈（空格分隔、由舊至新）`。
+  /// 行格式：`詞值\t次數\t讀音（空格分隔）\t前驗詞鏈（空格分隔、由舊至新）\t完整前文詞頻\t註解`。
+  /// 第 5 欄（完整前文的原始詞頻）為 v2.0 之新欄：給出即代表分母取自同一語料；
+  /// 空白欄或以 `#` 起首者視為舊式註解，trigram 列因此缺分母時一律報錯。
   /// 以 `#` 起首的行與空行一律忽略；欄位不足或讀音為空的行亦忽略。
   /// 詞值欄與前驗詞鏈欄都可以寫成 `<類名>`，由詞類清單
   /// （`phrases-ngram-classes-{chs,cht}.txt`）展開成逐條成員。
@@ -106,6 +131,80 @@ extension VCDataBuilder.Unigram {
     }
   }
 
+  /// 一列 n-gram 之分母的解析結果。
+  struct NgramDenominator {
+    /// 折算 `score` 時用的分母。
+    let value: Double
+    /// 分母的詞頻（`nil` 代表退回 `norm`）。
+    let contextCount: Int?
+    /// 分母的來源。
+    let source: VCDataBuilder.NgramDenominatorSource
+  }
+
+  /// 讀入第 5 欄（完整前文的原始詞頻）。
+  ///
+  /// 空白欄或以 `#` 起首者視為舊式註解（回傳 `nil`）；其餘必須是整數。
+  /// 詞類模板列（前文欄含 `<類名>`）不得攙此欄——展開後每個成員的前文詞頻各自不同，
+  /// 一列只寫一個數只會張冠李戴。
+  static func parseContextCountCell(
+    _ cell: String,
+    rawContext: [String],
+    classTable: [String: [String]]
+  )
+    throws -> Int? {
+    guard !cell.isEmpty, !cell.hasPrefix("#") else { return nil }
+    guard let count = Int(cell) else {
+      throw VCDataBuilder.Exception.errMsg(
+        "n-gram contextCount must be an integer or a `#` comment, got「\(cell)」."
+      )
+    }
+    guard !rawContext.contains(where: { classTable[$0] != nil }) else {
+      throw VCDataBuilder.Exception.errMsg(
+        "n-gram contextCount cannot be combined with class-templated context tokens."
+      )
+    }
+    return count
+  }
+
+  /// 決定一列 n-gram 的條件機率分母。
+  ///
+  /// 條件機率 `p(詞｜前文)` 的分母是「前文」本身的詞頻：
+  /// - bigram（前文一詞）：有明確 `contextCount` 就用它；否則沿用緊鄰前詞之詞頻 `count(y)`（legacy）。
+  /// - trigram（前文兩詞）：**必須**有明確 `contextCount`（即 `count(x, y)`）。缺欄即報錯：
+  ///   退回 `count(y)` 或 `_NORM` 只是把錯誤的分母當成正確答案。
+  static func resolveNgramDenominator(
+    context: [String],
+    explicitContextCount: Int?,
+    counts: [String: Int],
+    norm: Double
+  )
+    throws -> NgramDenominator {
+    if let explicitContextCount {
+      guard explicitContextCount > 0 else {
+        throw VCDataBuilder.Exception.errMsg(
+          "n-gram contextCount must be positive, got \(explicitContextCount) for context「\(context.joined(separator: " "))」."
+        )
+      }
+      return NgramDenominator(
+        value: Double(explicitContextCount),
+        contextCount: explicitContextCount,
+        source: .fullContext
+      )
+    }
+    if context.count >= 2 {
+      throw VCDataBuilder.Exception.errMsg(
+        "TextMap v2.0 trigram rows require the full-context count (count(\(context.joined(separator: ", ")))); add the fifth column to「\(context.joined(separator: " "))」."
+      )
+    }
+    if let last = context.last, let count = counts[last], count > 0 {
+      return NgramDenominator(value: Double(count), contextCount: count, source: .legacyUnigramCount)
+    }
+    guard norm > 0 else {
+      throw VCDataBuilder.Exception.errMsg("n-gram normalization baseline must be positive.")
+    }
+    return NgramDenominator(value: norm, contextCount: nil, source: .normalizedFallback)
+  }
+
   /// 解析 n-gram 前驗詞庫的內容。
   ///
   /// 詞值欄與前驗詞鏈欄都可以寫成 `<類名>`（見 `loadClassTable(isCHS:)`）：
@@ -135,6 +234,12 @@ extension VCDataBuilder.Unigram {
       guard rawContext.count <= 2 else {
         throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
       }
+      let contextCountCell = cells.count >= 5 ? cells[4].trimmingCharacters(in: .whitespaces) : ""
+      let explicitContextCount = try parseContextCountCell(
+        contextCountCell,
+        rawContext: rawContext,
+        classTable: classTable
+      )
       let valueIsClass = classTable[valueCell] != nil
       guard valueIsClass || !literalReadings.isEmpty else { continue }
       let contextVariants = expandTokens(rawContext, classTable: classTable)
@@ -148,9 +253,13 @@ extension VCDataBuilder.Unigram {
             throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
           }
           for token in context { try validateNgramToken(token) }
-          // 分母仍是緊鄰前一詞的詞頻，不因前文鏈較長而改取整鏈詞頻。
-          let denominator: Double = context.last.flatMap { counts[$0] }.flatMap { $0 > 0 ? Double($0) : nil }
-            ?? norm
+          // 分母是「前文」本身的詞頻：bigram 取 `count(y)`、trigram 取完整前文之 `count(x, y)`。
+          let resolved = try resolveNgramDenominator(
+            context: context,
+            explicitContextCount: explicitContextCount,
+            counts: counts,
+            norm: norm
+          )
           let probe = VCDataBuilder.Unigram(
             key: readings4ThisValue.joined(separator: "-"),
             value: value,
@@ -158,14 +267,16 @@ extension VCDataBuilder.Unigram {
             count: count,
             category: .custom
           )
-          probe.weighten(norm: denominator)
+          probe.weighten(norm: resolved.value)
           let record = VCDataBuilder.NgramRecord(
             value: value,
             readings: readings4ThisValue,
             context: context,
             count: count,
             score: probe.score,
-            isCHS: isCHS
+            isCHS: isCHS,
+            contextCount: resolved.contextCount,
+            denominatorSource: resolved.source
           )
           let identityKey =
             "\(isCHS ? "chs" : "cht")|\(readings4ThisValue.joined(separator: "-"))|\(context.joined(separator: "-"))|\(value)"

@@ -64,8 +64,8 @@ enum VerifyRunner {
     let reading: [String]
     let context: [String]
     let count: Int
-    /// 以「每列自身」為分母的粗估機率；實際注入時會改用語料中的前驗詞次數重算。
-    let probability: Double
+    /// 第 5 欄所載之完整前文詞頻；舊式列為 `nil`。
+    let contextCount: Int?
   }
 
   static func run(_ options: Options, reader: VanguardTextMapReader) throws
@@ -76,9 +76,18 @@ enum VerifyRunner {
       throw VerifyError.emptyCorpus
     }
 
-    var corpusCounts = [String: Int]()
+    // 分母與分子取同一批語料、同一邊界政策：沒有所求後繼位置的詞（句尾詞）不計入前文詞頻。
+    var corpusUnigramCounts = [String: Int]()
+    var corpusBigramCounts = [[String]: Int]()
     for words in sentences {
-      for word in words { corpusCounts[word, default: 0] += 1 }
+      for index in 0 ..< max(0, words.count - 1) {
+        corpusUnigramCounts[words[index], default: 0] += 1
+      }
+      if words.count >= 3 {
+        for index in 0 ..< (words.count - 2) {
+          corpusBigramCounts[[words[index], words[index + 1]], default: 0] += 1
+        }
+      }
     }
 
     let neededValues = Set(sentences.joined())
@@ -101,6 +110,7 @@ enum VerifyRunner {
     }
 
     var reports = [RowReport]()
+    var missingDenominators = [String]()
     for row in rows {
       let pair = row.context + [row.value]
       guard pair.count >= 2,
@@ -109,10 +119,25 @@ enum VerifyRunner {
         reports.append(RowReport(value: row.value, context: row.context, cases: []))
         continue
       }
-      let denominator = Double(corpusCounts[pair[pair.count - 2]] ?? 1)
-      let probability = max(
-        row.probability,
-        analyticProbability(reading: row.reading, countText: "\(row.count)", denominator: denominator)
+      // 條件機率的分母是「前文」本身的詞頻：bigram 用 count(y)、trigram 用 count(x, y)。
+      // 列上已載完整前文詞頻者，即照該列當初產製時的分母重演；舊式列才回頭查語料。
+      let contextTokens = Array(pair.dropLast())
+      let denominator = if let recorded = row.contextCount {
+        Double(recorded)
+      } else if contextTokens.count >= 2 {
+        Double(corpusBigramCounts[contextTokens] ?? 0)
+      } else {
+        Double(contextTokens.last.flatMap { corpusUnigramCounts[$0] } ?? 0)
+      }
+      guard denominator > 0 else {
+        missingDenominators.append(contextTokens.joined(separator: " "))
+        reports.append(RowReport(value: row.value, context: row.context, cases: []))
+        continue
+      }
+      let probability = analyticProbability(
+        value: row.value,
+        countText: "\(row.count)",
+        denominator: denominator
       )
       let gram = Yukuaki.Gram(
         keyArray: row.reading,
@@ -156,6 +181,11 @@ enum VerifyRunner {
       }
       reports.append(RowReport(value: row.value, context: row.context, cases: outcomes))
     }
+    if !missingDenominators.isEmpty {
+      FileHandle.standardError.write(
+        Data("缺分母而略過 \(missingDenominators.count) 列：\(missingDenominators.prefix(5).joined(separator: "、"))\n".utf8)
+      )
+    }
     return reports
   }
 
@@ -170,31 +200,28 @@ enum VerifyRunner {
       let context: [String] = fields.count >= 4
         ? fields[3].split(separator: " ").map(String.init)
         : []
-      let probability = analyticProbability(
-        reading: reading,
-        countText: fields[1],
-        denominator: 1
-      )
+      let contextCount = fields.count >= 5 ? Int(fields[4]) : nil
       return BacklogRow(
         value: fields[0],
         reading: reading,
         context: context,
         count: Int(fields[1]) ?? 1,
-        probability: probability
+        contextCount: contextCount
       )
     }
   }
 
   /// 以「語料次數」重建一列 n-gram 的機率：與 `Collector_Ngram` 的 `weighten` 同式。
   static func analyticProbability(
-    reading: [String],
+    value: String,
     countText: String,
     denominator: Double
   )
     -> Double {
     guard let count = Double(countText), count > 0, denominator > 0 else { return -8.164 }
-    let length = reading.reduce(0) { $0 + $1.count } + max(0, reading.count - 1)
-    return log10(exp(Double(length) / 3 - 1) * count / denominator)
+    // 詞長一律取詞值本身的字元數：與 `Collector.Unigram.weighten` 同一算法。
+    let length = Double(value.count)
+    return log10(exp(length / 3 - 1) * count / denominator)
   }
 
   // MARK: Private

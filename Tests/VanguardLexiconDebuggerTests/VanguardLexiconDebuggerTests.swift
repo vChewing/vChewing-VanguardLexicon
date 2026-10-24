@@ -631,7 +631,7 @@ struct VerifyRunnerTests {
   @Test
   func parsesBacklogRows() throws {
     let url = try temporaryFile("""
-    再\t5\tㄗㄞˋ\t不 要
+    再\t5\tㄗㄞˋ\t不 要\t294
     # 註解不算
     大行星\t5557\tㄉㄚˋ ㄒㄧㄥˊ ㄒㄧㄥ\t八
 
@@ -641,7 +641,9 @@ struct VerifyRunnerTests {
     #expect(rows[0].value == "再")
     #expect(rows[0].context == ["不", "要"])
     #expect(rows[0].count == 5)
+    #expect(rows[0].contextCount == 294)
     #expect(rows[1].reading == ["ㄉㄚˋ", "ㄒㄧㄥˊ", "ㄒㄧㄥ"])
+    #expect(rows[1].contextCount == nil)
     try? FileManager.default.removeItem(at: url)
   }
 
@@ -649,11 +651,11 @@ struct VerifyRunnerTests {
   func analyticProbabilityMatchesCollector() {
     // 與 P325 之測試值對齊：`再|要` 於 6528 個「要」的語料中出現 5 次 → −3.405。
     let value = VerifyRunner.analyticProbability(
-      reading: ["ㄗㄞˋ"],
+      value: "再",
       countText: "5",
       denominator: 6_528
     )
-    #expect(abs(value - log10(5.0 / 6_528.0)) < 1e-9)
+    #expect(abs(value - -3.405) < 0.001)
   }
 
   // MARK: Private

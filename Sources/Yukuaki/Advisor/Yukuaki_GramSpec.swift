@@ -21,6 +21,7 @@ extension Yukuaki {
       requiredCount: Double? = nil,
       norm: Double? = nil,
       denominator: Double? = nil,
+      denominatorSource: DenominatorSource = .normalizedBaseline,
       tier: Tier = .addUnigram
     ) {
       self.kind = kind
@@ -33,6 +34,7 @@ extension Yukuaki {
       self.requiredCount = requiredCount
       self.norm = norm
       self.denominator = denominator
+      self.denominatorSource = denominatorSource
       self.tier = tier
     }
 
@@ -47,6 +49,8 @@ extension Yukuaki {
     ) {
       let kind: Kind = gram.isTrigram ? .trigram : (gram.isBigram ? .bigram : .unigram)
       let denominator = contextCount ?? norm
+      // 前文詞頻取不到時，分母只是 `_NORM`（無條件機率），並非條件機率的分母。
+      let denominatorSource: DenominatorSource = contextCount == nil ? .normalizedBaseline : .fullContext
       self.init(
         kind: kind,
         keyArray: gram.keyArray,
@@ -62,6 +66,7 @@ extension Yukuaki {
         ),
         norm: norm,
         denominator: denominator,
+        denominatorSource: denominatorSource,
         tier: tier
       )
     }
@@ -132,6 +137,14 @@ extension Yukuaki {
       }
     }
 
+    /// 逆推 count 時所用分母的來源。
+    public enum DenominatorSource: String, Codable, Sendable {
+      /// 前文之完整詞頻（bigram 為 `count(y)`、trigram 為 `count(x, y)`）。
+      case fullContext
+      /// 未取得前文詞頻，暫以 `_NORM` 折算之無條件機率。
+      case normalizedBaseline
+    }
+
     public let kind: Kind
     public let keyArray: [String]
     public let current: String
@@ -148,8 +161,11 @@ extension Yukuaki {
     /// 逆推時採用的正規化基準。
     public let norm: Double?
 
-    /// 逆推時實際使用的分母：unigram 用 `_NORM`，帶前驗詞鏈的條目用前驗詞的 count。
+    /// 逆推時實際使用的分母：unigram 用 `_NORM`、bigram 用 `count(y)`、trigram 用 `count(x, y)`。
     public let denominator: Double?
+
+    /// 上述分母的來源。
+    public let denominatorSource: DenominatorSource
 
     /// 該提案的證據等級。
     public let tier: Tier
@@ -206,7 +222,7 @@ extension Yukuaki {
       var pieces = ["[\(kind.rawValue)|\(role.rawValue)|\(tier.rawValue)] \(reading) → \(current)"]
       if let context { pieces.append(context) }
       pieces.append(String(format: "所需分數 %.4f", requiredProbability))
-      let basis = previous.map { denominator != nil ? "（以「\($0)」的 count 為基準）" : "" } ?? ""
+      let basis = previous.map { basisText(previous: $0) } ?? ""
       if let countThreshold {
         pieces.append("count ≥ \(countThreshold)\(basis)")
       } else if let requiredCount {
@@ -214,6 +230,19 @@ extension Yukuaki {
       }
       pieces.append("證據等級：\(tier.label)")
       return pieces.joined(separator: "｜")
+    }
+
+    // MARK: Private
+
+    /// 分母依據的人類可讀說明。
+    private func basisText(previous: String) -> String {
+      let context = [anterior, previous].compactMap { $0 }.joined(separator: " ")
+      switch denominatorSource {
+      case .fullContext:
+        return "（以「\(context)」的 count 為基準）"
+      case .normalizedBaseline:
+        return kind == .unigram ? "" : "（未取得「\(context)」的 count，暫以 _NORM 折算）"
+      }
     }
   }
 }

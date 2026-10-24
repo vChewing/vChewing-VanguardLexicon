@@ -9,10 +9,14 @@ import Foundation
 /// 由已分詞語料統計「值得補進 n-gram 表」的候選列。
 ///
 /// 判準與引擎的載入端完全一致（見 `Collector_Ngram.parseNgramLines`）：
-/// 一列 `value\tcount\treading\tcontext` 在重建後之機率為
-/// `p = log10(e^(len/3-1) * count / count(context.last))`；
+/// 一列 `value\tcount\treading\tcontext\tcontextCount` 在重建後之機率為
+/// `p = log10(e^(len/3-1) * count / count(context))`；
 /// 唯有 `p` 嚴格大於同詞之單元圖分數時，該列才會在組句時勝出。
 /// 因此本工具反解出「至少需要多少次共現」，再與語料實測次數比對。
+///
+/// 分母一律取自**同一批分詞語料**：bigram 用 `count(context)`、
+/// trigram 用完整前文之 `count(context)`。凡在語料中沒有所求後繼位置的前文
+/// （句尾詞、句尾詞對）不計入分母，使條件機率在同一政策下正規化。
 struct CorpusMiner {
   // MARK: Internal
 
@@ -34,6 +38,8 @@ struct CorpusMiner {
     let value: String
     let reading: [String]
     let corpusCount: Int
+    /// 分母：完整前文在語料中的出現次數（只計存在所求後繼位置者）。
+    let contextCount: Int
     let requiredCount: Int
     let lift: Double
     let assumedReading: Bool
@@ -68,6 +74,10 @@ struct CorpusMiner {
   private(set) var unigramCounts = [String: Int]()
   private var bigramCounts = [[String]: Int]()
   private var trigramCounts = [[String]: Int]()
+  /// `count(y)`：只計存在所求後繼位置的前文（句尾詞不計）。
+  private var contextUnigramCounts = [String: Int]()
+  /// `count(x, y)`：只計存在所求後繼位置的前文詞對。
+  private var contextBigramCounts = [[String]: Int]()
 
   mutating func ingest(words: [String]) {
     guard !words.isEmpty else { return }
@@ -77,10 +87,14 @@ struct CorpusMiner {
     guard words.count >= 2 else { return }
     for index in 1 ..< words.count {
       bigramCounts[[words[index - 1], words[index]], default: 0] += 1
+      // 位置 index-1 的詞在此句尚有後繼，故計入 `count(y)`。
+      contextUnigramCounts[words[index - 1], default: 0] += 1
     }
     guard words.count >= 3 else { return }
     for index in 2 ..< words.count {
       trigramCounts[[words[index - 2], words[index - 1], words[index]], default: 0] += 1
+      // 位置 index-2、index-1 的詞對在此句尚有後繼，故計入 `count(x, y)`。
+      contextBigramCounts[[words[index - 2], words[index - 1]], default: 0] += 1
     }
   }
 
@@ -107,8 +121,12 @@ struct CorpusMiner {
             context.allSatisfy(Self.isBacklogTokenSafe)
       else { return }
       guard let unigram = index.unigram(value) else { return }
-      let denominator = index.count(of: lastContext)
-      guard denominator >= Double(options.minContextCount) else { return }
+      // 分母取自同一批語料：bigram 用 `count(y)`、trigram 用 `count(x, y)`。
+      let contextCount = chain.count >= 3
+        ? contextBigramCounts[context] ?? 0
+        : contextUnigramCounts[lastContext] ?? 0
+      guard contextCount >= options.minContextCount else { return }
+      let denominator = Double(contextCount)
 
       var readings = unigram.readings
       if readings.isEmpty { readings = [(key: [], probability: unigram.probability)] }
@@ -140,6 +158,7 @@ struct CorpusMiner {
             value: value,
             reading: reading.key,
             corpusCount: corpusCount,
+            contextCount: contextCount,
             requiredCount: max(required, options.minCount),
             lift: probability - unigram.probability,
             assumedReading: assumedReading
@@ -174,8 +193,10 @@ extension CorpusMiner.Candidate {
           reading.allSatisfy(CorpusMiner.isBacklogTokenSafe)
     else { return nil }
     let reading = reading.joined(separator: " ")
-    var comment = "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) required=\(requiredCount)"
+    var comment =
+      "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) context=\(contextCount) required=\(requiredCount)"
     if assumedReading { comment += " assumed-reading" }
-    return "\(value)\t\(max(requiredCount, corpusCount))\t\(reading)\t\(context.joined(separator: " "))\t\(comment)"
+    let contextCell = context.joined(separator: " ")
+    return "\(value)\t\(max(requiredCount, corpusCount))\t\(reading)\t\(contextCell)\t\(contextCount)\t\(comment)"
   }
 }

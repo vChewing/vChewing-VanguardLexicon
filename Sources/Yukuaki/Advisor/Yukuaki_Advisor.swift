@@ -22,10 +22,12 @@ extension Yukuaki {
     public init(
       gramQuerier: @escaping Yukuaki.GramQuerier,
       norm: Double? = nil,
+      contextCountProvider: Yukuaki.ContextCountProvider? = nil,
       options: Options = .init()
     ) {
       self.gramQuerier = gramQuerier
       self.norm = norm
+      self.contextCountProvider = contextCountProvider
       self.options = options
     }
 
@@ -213,6 +215,9 @@ extension Yukuaki {
         if norm == nil {
           attemptNotes.append("未取得辭典的正規化基準（_NORM），故無法逆推 count。")
         }
+        if specs.contains(where: { $0.kind == .trigram && $0.denominatorSource == .normalizedBaseline }) {
+          attemptNotes.append("trigram 之前文詞頻（count(x, y)）未知，其 count 只能以 _NORM 折算，僅供參考。")
+        }
         if specs.contains(where: { !$0.isCountExpressive }) {
           attemptNotes.append("有提案的逆推 count 不到 1：這代表以現行正規化基準而言，單靠詞頻已經抬不到那個分數，需要改動正規化、或改以更高階的 n-gram 處理。")
         }
@@ -291,6 +296,8 @@ extension Yukuaki {
     }
 
     private let gramQuerier: Yukuaki.GramQuerier
+    /// 完整前文詞頻的注入來源；`nil` 時退回由辭典 n-gram 條目反推。
+    private let contextCountProvider: Yukuaki.ContextCountProvider?
     private var baseQueryCache = [String: [Yukuaki.Gram]]()
     private var seenContextual = false
 
@@ -356,20 +363,57 @@ extension Yukuaki {
       return max(best, options.fallbackBaseline)
     }
 
-    /// 前驗詞在辭典裡的 count（由該詞的 unigram 分數逆推）。
+    /// 前文在辭典裡的 count（由辭典的分數逆推）。
     ///
-    /// 帶前驗詞鏈的條目存的是條件機率 `p(詞｜前文)`，其分母是前驗詞的 count，
-    /// 故逆推所需的 count 也得以它為基準；取不到時回退至 `nil`（改用 `_NORM`）。
+    /// 帶前驗詞鏈的條目存的是條件機率 `p(詞｜前文)`，分母是「前文」本身的 count：
+    /// bigram 的前文是緊鄰那一詞（`count(y)`，可由該詞的 unigram 分數逆推）；
+    /// trigram 的前文是整個詞對（`count(x, y)`，辭典未存，見 `fullContextCount`）。
+    /// 取不到時回退至 `nil`——絕不以 `count(y)` 冒充 `count(x, y)`。
     private func contextCount(of gram: Yukuaki.Gram) -> Double? {
       guard gram.isBigram || gram.isTrigram else { return nil }
       guard let previous = gram.previous, let norm, norm > 0 else { return nil }
-      let candidates = baseGrams(keys: [previous]).filter { $0.keyArray == [previous] }
-      guard let best = candidates.map(\.probability).max()
-      else { return nil }
+      if gram.isTrigram, let anterior = gram.anterior {
+        return fullContextCount(anterior: anterior, previous: previous)
+      }
+      guard let best = strongestUnigram(previous) else { return nil }
       return Yukuaki.GramSpec.invertedCount(
         probability: best,
         value: previous,
         denominator: norm
+      )
+    }
+
+    /// 辭典中單一詞條（同詞值、不限讀音）的最高 unigram 分數。
+    private func strongestUnigram(_ value: String) -> Double? {
+      baseGrams(keys: [value])
+        .filter { $0.keyArray == [value] }
+        .map(\.probability)
+        .max()
+    }
+
+    /// 完整前文詞對 `(x, y)` 的 count。
+    ///
+    /// 先問注入的語料端；沒有注入時，試著由辭典裡 `x → y` 的 bigram 條目反推：
+    /// 該條目之分數為 `log10(scale(y) × count(x, y) / count(x))`，
+    /// 故 `count(x, y)` 可由 `count(x)`（x 之 unigram 分數逆推）與該條目之分數得到。
+    /// 兩途皆不得，即回傳 `nil`。
+    private func fullContextCount(anterior: String, previous: String) -> Double? {
+      if let contextCountProvider { return contextCountProvider(anterior, previous) }
+      guard let norm, norm > 0 else { return nil }
+      let pairs = baseGrams(keys: [anterior]).filter {
+        $0.current == previous && $0.previous == anterior && $0.anterior == nil
+      }
+      guard let best = pairs.map(\.probability).max() else { return nil }
+      guard let anteriorScore = strongestUnigram(anterior) else { return nil }
+      let anteriorCount = Yukuaki.GramSpec.invertedCount(
+        probability: anteriorScore,
+        value: anterior,
+        denominator: norm
+      )
+      return Yukuaki.GramSpec.invertedCount(
+        probability: best,
+        value: previous,
+        denominator: anteriorCount
       )
     }
 

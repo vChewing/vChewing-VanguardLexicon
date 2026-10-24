@@ -110,13 +110,14 @@ struct CorpusMinerTests {
     options.minContextCount = 1
     options.margin = 0.02
 
-    // 以「很 北京」之四階共現餵入 4 次；上下文「很」之詞頻約 10_000 × 10^-2 / e^(-1/3)。
+    // 以「很 北京」之四階共現餵入 4 次；分母取自同批語料的 count(很)＝4。
     for _ in 0 ..< 4 { miner.ingest(words: ["很", "北京"]) }
     let result = miner.mine(index: index, options: options)
     // 「北京」以單讀音出現，應有一列候選；其 required 不超過語料次數。
     #expect(result.candidates.count == 1)
     #expect(result.candidates.first?.value == "北京")
     #expect(result.candidates.first?.corpusCount == 4)
+    #expect(result.candidates.first?.contextCount == 4)
   }
 
   @Test
@@ -132,6 +133,8 @@ struct CorpusMinerTests {
     var options = CorpusMiner.Options()
     options.minCount = 1
     options.minContextCount = 1
+    // 分母取自同批語料：「很」有 100 次後繼，其中僅 1 次接「北京」。
+    for _ in 0 ..< 99 { miner.ingest(words: ["很", "甲"]) }
     for _ in 0 ..< 1 { miner.ingest(words: ["很", "北京"]) }
     let result = miner.mine(index: index, options: options)
     #expect(result.candidates.isEmpty)
@@ -280,6 +283,7 @@ struct CorpusMinerBacklogSafetyTests {
       value: value,
       reading: reading,
       corpusCount: 5,
+      contextCount: 5,
       requiredCount: 5,
       lift: 1,
       assumedReading: false

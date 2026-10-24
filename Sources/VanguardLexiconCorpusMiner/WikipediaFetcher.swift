@@ -2,6 +2,9 @@
 // ====================
 // This code is released under the SPDX-License-Identifier: `MulanPSL-2.0`.
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
 import Foundation
 
 // MARK: - WikipediaFetcher

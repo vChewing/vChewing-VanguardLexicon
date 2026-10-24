@@ -15,7 +15,7 @@ extension Yukuaki {
 
     public init(keyArray4Query: [String], grams: [Yukuaki.Gram]) {
       self.keyArray4Query = keyArray4Query
-      self.grams = Self.sortGrams(grams)
+      self.grams = Self.sortGrams(Self.seedingFallbackUnigram(in: grams))
       self.currentGramIndex = 0
     }
 
@@ -230,10 +230,28 @@ extension Yukuaki {
       overridingScore = Self.defaultOverridingScore
     }
 
+    /// 節點必有單元圖：若給定的元圖陣列連一條單元圖都沒有，就在最前面補一條
+    /// 「無語境證成」的單元圖（分值 `-114.514`），與 Homa 側的行為一致。
+    ///
+    /// 之所以要補：`unigramScore` 是節點估值的錨。節點若沒有單元圖，基線只能退化成
+    /// `0`，而 `0` 又高於任何真實單元圖之分數，等於給異常節點加成。
+    private static func seedingFallbackUnigram(in grams: [Yukuaki.Gram]) -> [Yukuaki.Gram] {
+      guard !grams.isEmpty, !grams.contains(where: \.isUnigram) else { return grams }
+      let fallback = Yukuaki.Gram(
+        keyArray: grams[0].keyArray,
+        current: grams[0].current,
+        probability: fallbackUnigramProbability
+      )
+      return [fallback] + grams
+    }
+
+    /// 上述保險補入之單元圖所用的分值。
+    static let fallbackUnigramProbability: Double = -114.514
+
     /// 用另一個節點的 grams 同步該節點，並在必要時重置覆寫狀態。
     public mutating func syncingGrams(from node: Yukuaki.Node) {
       let oldValue = currentGram
-      grams = node.grams
+      grams = Self.seedingFallbackUnigram(in: node.grams)
       if let oldValue, let newValue = currentGram, oldValue.current == newValue.current { return }
       reset()
     }

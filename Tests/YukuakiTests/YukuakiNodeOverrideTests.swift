@@ -60,6 +60,17 @@ struct YukuakiNodeOverrideTests {
     #expect(abs(evaluation.score - Yukuaki.Node.defaultOverridingScore) < 1e-6)
   }
 
+  /// 節點必有單元圖：只帶右文脈之節點在建構時會被補上一條無語境單元圖，與 Homa 側一致。
+  @Test("Yukuaki：節點沒有單元圖時補一條保險單元圖")
+  func seedsFallbackUnigram() throws {
+    let contextual = Yukuaki.Gram(keyArray: ["ㄅ"], current: "八", previous: "這", probability: -2)
+    let node = Yukuaki.Node(keyArray4Query: ["ㄅ"], grams: [contextual])
+    #expect(node.grams.count == 2)
+    let seeded = try #require(node.topUnigramGram)
+    #expect(seeded.probability == Yukuaki.Node.fallbackUnigramProbability)
+    #expect(node.unigramScore == Yukuaki.Node.fallbackUnigramProbability)
+  }
+
   // MARK: Private
 
   /// 一個「單讀音、兩條 gram」的節點：「這」（單元圖 −2.5）與「著」（`再` 之後的 bigram、−1.0）。

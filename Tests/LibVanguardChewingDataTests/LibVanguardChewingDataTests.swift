@@ -158,8 +158,14 @@ struct NgramRecordsTests {
     let records = try VCDataBuilder.Unigram.prepareRawNgramRecords(isCHS: nil, norm: Self.norm)
     #expect(records.contains { $0.value == "館" && $0.context == ["圖", "書"] && !$0.isCHS })
     #expect(records.contains { $0.value == "网" && $0.context == ["互", "联"] && $0.isCHS })
-    // 兩語系各六列：館／馆 四列（案、檔 案、書、圖 書）、網／网 一列、碳 一列。
-    #expect(records.count == 12)
+    // 列數自資料導出：合併讀取恰為兩軌之和，不硬寫運送中的列數。
+    let cht = try VCDataBuilder.Unigram.prepareRawNgramRecords(isCHS: false, norm: Self.norm)
+    let chs = try VCDataBuilder.Unigram.prepareRawNgramRecords(isCHS: true, norm: Self.norm)
+    #expect(records.count == cht.count + chs.count)
+    // 缺口列在兩軌皆在（`[在, *]`）。
+    for isCHS in [false, true] {
+      #expect(records.contains { $0.value == "的" && $0.context == ["在", "*"] && $0.isCHS == isCHS })
+    }
   }
 
   @Test("n-gram 條目會進到組句用的 Trie")

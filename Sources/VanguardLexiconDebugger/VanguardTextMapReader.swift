@@ -180,6 +180,18 @@ final class VanguardTextMapReader {
     typeID != EntryType.meta && typeID != EntryType.revLookup
   }
 
+  /// 前文條目（C／D）只取本軌。
+  ///
+  /// 單元圖跨軌並列的理由是「兩軌的漢字在對方面前都仍可選，差別只在權重」；但前文條目
+  /// 綁的是一組具體字串（詞值＋前文鏈），跨軌並列只會讓「不要再這樣」在繁體軌以簡體
+  /// 字形勝出——兩列的機率完全相同，取捨僅剩檔案順序。
+  private func isOwnLane(typeID: Int, locale: Locale) -> Bool {
+    switch (typeID, locale) {
+    case (EntryType.chs, .cht), (EntryType.cht, .chs): false
+    default: true
+    }
+  }
+
   /// 組織一行 `@` 的詞條：本軌照行機率計分，另一軌獨有的詞條改以零頻次權重計分。
   private func grams(
     own: [String],
@@ -294,7 +306,7 @@ final class VanguardTextMapReader {
         }
         pairs.append((probability, context))
       }
-      guard accepts(typeID: typeID) else { return [] }
+      guard accepts(typeID: typeID), isOwnLane(typeID: typeID, locale: locale) else { return [] }
       return pairs.map { pair in
         makeGram(value: value, probability: pair.probability, context: pair.context, keys: keys)
       }
@@ -312,7 +324,7 @@ final class VanguardTextMapReader {
     guard context.count <= 2, fields.count == 3 || !context.isEmpty else {
       throw DebuggerError.malformedTextMap("型別 C 有前文欄時，須含一或兩個 token。")
     }
-    guard accepts(typeID: typeID) else { return [] }
+    guard accepts(typeID: typeID), isOwnLane(typeID: typeID, locale: locale) else { return [] }
     return [makeGram(value: value, probability: probability, context: context, keys: keys)]
   }
 

@@ -389,6 +389,73 @@ struct NgramInputValidationTests {
     #expect(records.first?.context == ["要", emoji])
   }
 
+  @Test("缺口列：`*` 可佔 previous 一格，且須帶聚合分母")
+  func parsesGapRow() throws {
+    let records = try VCDataBuilder.Unigram.parseNgramLines(
+      "的\t120\tㄉㄜ˙\t在 *\t500",
+      isCHS: false,
+      norm: 1_000,
+      counts: [:]
+    )
+    #expect(records.count == 1)
+    #expect(records.first?.context == ["在", VCDataBuilder.NgramRecord.wildcardContextToken])
+    #expect(records.first?.contextCount == 500)
+    #expect(records.first?.denominatorSource == .fullContext)
+  }
+
+  @Test("缺口列：`*` 單獨成鏈會報錯")
+  func rejectsBareWildcardContext() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "的\t120\tㄉㄜ˙\t*\t500",
+        isCHS: false,
+        norm: 1_000,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("缺口列：`*` 佔 anterior 一格會報錯")
+  func rejectsWildcardInAnteriorSlot() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "的\t120\tㄉㄜ˙\t* 在\t500",
+        isCHS: false,
+        norm: 1_000,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("缺口列與同名 trigram 列不得並存")
+  func rejectsGapRowCoexistingWithTrigram() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        [
+          "的\t50\tㄉㄜ˙\t在 *\t500",
+          "的\t80\tㄉㄜ˙\t在 這樣\t500",
+        ].joined(separator: "\n"),
+        isCHS: false,
+        norm: 1_000,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("缺口列只與同一 anterior 的 trigram 衝突")
+  func gapRowCoexistsWithUnrelatedTrigram() throws {
+    let records = try VCDataBuilder.Unigram.parseNgramLines(
+      [
+        "的\t50\tㄉㄜ˙\t在 *\t500",
+        "的\t80\tㄉㄜ˙\t要 這樣\t500",
+      ].joined(separator: "\n"),
+      isCHS: false,
+      norm: 1_000,
+      counts: [:]
+    )
+    #expect(records.count == 2)
+  }
+
   @Test("詞值與前文中的控制字元會報錯")
   func rejectsControlCharacters() {
     for raw in ["再\u{1}\t5\tㄗㄞˋ\t要", "再\t5\tㄗㄞˋ\t要\u{7}"] {

@@ -169,7 +169,9 @@ extension Yukuaki {
       for segment in segments.values {
         for node in segment.values {
           for gram in node.grams {
-            if let previous = gram.previous, !previous.isEmpty { result.insert(previous) }
+            if let previous = gram.previous, !previous.isEmpty, !gram.hasWildcardPrevious {
+              result.insert(previous)
+            }
             if let anterior = gram.anterior, !anterior.isEmpty { result.insert(anterior) }
           }
         }
@@ -219,7 +221,10 @@ extension Yukuaki {
       var hasUnigram = false
       for gram in node.grams {
         guard gram.isUnigram else {
-          guard let previous, !previous.isEmpty, gram.previous == previous else { continue }
+          // 缺口列（`[x, *]`）不讀 previous，故不因 previous 為 nil 而出局。
+          let matchesPrevious = gram.hasWildcardPrevious
+            || (previous.map { !$0.isEmpty && gram.previous == $0 } ?? false)
+          guard matchesPrevious else { continue }
           guard gram.anterior == nil || gram.anterior == anterior else { continue }
           guard gram.probability > baseline else { continue }
           result.append((gram, gram.weightedScore(against: baseline)))

@@ -49,6 +49,12 @@ extension VCDataBuilder {
 
     // MARK: Public
 
+    /// 前文格之萬用符：該格不指定詞值，其貢獻已聚合進分母。
+    ///
+    /// 只用於「有 anterior、缺 previous」之缺口列（`[x, *]`）；只准出現在兩格前文鏈之
+    /// 最後一格，且該列之第 5 欄須為聚合後之前文詞頻 `count(x, ·)`。
+    public static let wildcardContextToken = "*"
+
     /// 詞值。
     public let value: String
     /// 該詞本身的讀音（注音音節，即 Trie 的索引鍵）。
@@ -234,6 +240,7 @@ extension VCDataBuilder.Unigram {
       guard rawContext.count <= 2 else {
         throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
       }
+      try validateWildcardPlacement(rawContext)
       let contextCountCell = cells.count >= 5 ? cells[4].trimmingCharacters(in: .whitespaces) : ""
       let explicitContextCount = try parseContextCountCell(
         contextCountCell,
@@ -285,7 +292,56 @@ extension VCDataBuilder.Unigram {
         }
       }
     }
-    return Array(bucketed.values)
+    let records = Array(bucketed.values)
+    try validateGapExclusivity(records)
+    return records
+  }
+
+  /// 缺口列（`[x, *]`）與 trigram 列（`[x, y]`）互斥。
+  ///
+  /// 同一 `(x, y, w)` 不得同時以兩條軸估值：缺口列涵蓋**所有** `y`，故只要該詞在該讀音
+  /// 下已有任一 `[x, y]` 之 trigram 列，該缺口列即不得存在。互斥於產製端強制——txtMap
+  /// 係由本層產出，人手只改來源表，故這裡是唯一能同時看到兩類列的位置。
+  static func validateGapExclusivity(
+    _ records: [VCDataBuilder.NgramRecord]
+  )
+    throws {
+    guard records.contains(where: { $0.context.last == VCDataBuilder.NgramRecord.wildcardContextToken }) else {
+      return
+    }
+    var exactKeys = Set<String>()
+    for record in records where record.context.last != VCDataBuilder.NgramRecord.wildcardContextToken {
+      guard record.context.count == 2 else { continue }
+      exactKeys.insert(exclusivityKey(record))
+    }
+    for record in records where record.context.last == VCDataBuilder.NgramRecord.wildcardContextToken {
+      guard exactKeys.contains(exclusivityKey(record)) else { continue }
+      let chain = record.context.joined(separator: " ")
+      throw VCDataBuilder.Exception.errMsg(
+        "n-gram gap row [\(chain)] for「\(record.value)」conflicts with an existing trigram row on the same antecedent."
+      )
+    }
+  }
+
+  /// 互斥判定之身分鍵：語系＋讀音＋詞值＋**實際約束的那個前文**（`x`）。
+  ///
+  /// 缺口列 `[x, *]` 與 trigram 列 `[x, y]` 皆取 `context[0]`，故同一 `x` 之下只要存在
+  /// 任何 trigram 列，缺口列即衝突。
+  private static func exclusivityKey(_ record: VCDataBuilder.NgramRecord) -> String {
+    let anterior = record.context.first ?? ""
+    let readings = record.readings.joined(separator: "-")
+    return "\(record.isCHS ? "chs" : "cht")|\(readings)|\(record.value)|\(anterior)"
+  }
+
+  /// 萬用符只准出現在兩格前文鏈之最後一格。
+  private static func validateWildcardPlacement(_ rawContext: [String]) throws {
+    guard rawContext.contains(VCDataBuilder.NgramRecord.wildcardContextToken) else { return }
+    guard rawContext.count == 2,
+          rawContext[1] == VCDataBuilder.NgramRecord.wildcardContextToken else {
+      throw VCDataBuilder.Exception.errMsg(
+        "n-gram wildcard context token is only allowed as the last of two tokens."
+      )
+    }
   }
 
   private static func validateNgramToken(_ token: String) throws {

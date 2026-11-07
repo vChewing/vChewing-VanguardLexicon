@@ -110,11 +110,13 @@ extension Yukuaki {
     /// - Note: 同一組前文可能對應多條 gram（例如同一詞值掛了不同的讀音或不同的覆寫來源），
     ///   此時取機率最高者；同分時取排序在前者，與 Homa 的 `contextGram` 行為一致。
     public func contextGram(previous: String?, anterior: String? = nil) -> Yukuaki.Gram? {
-      guard let previous, !previous.isEmpty else { return nil }
+      let hasPrevious = !(previous ?? "").isEmpty
       var bestBigram: Yukuaki.Gram?
       var bestTrigram: Yukuaki.Gram?
       for gram in grams {
-        guard gram.previous == previous else { continue }
+        // 缺口列（`[x, *]`）不約束 previous，故不因 previous 缺席而出局。
+        let matchesPrevious = gram.hasWildcardPrevious || (hasPrevious && gram.previous == previous)
+        guard matchesPrevious, gram.previous != nil else { continue }
         if gram.anterior == nil {
           if bestBigram == nil || gram.probability > (bestBigram?.probability ?? -.infinity) {
             bestBigram = gram
@@ -143,6 +145,16 @@ extension Yukuaki {
       }
       let unigramBaseline = unigramScore
       guard let previous, !previous.isEmpty else {
+        // 缺口列不需 previous，故無前文時仍須走一次語境評估。
+        if let bonus = contextGram(previous: nil, anterior: anterior),
+           bonus.probability > unigramBaseline {
+          return .init(
+            score: bonus.weightedScore(against: unigramBaseline),
+            gram: bonus,
+            isExplicit: isExplicitlyOverridden,
+            usedBackoff: false
+          )
+        }
         return evaluateWithoutContext()
       }
       let bestBonus = contextGram(previous: previous, anterior: anterior)

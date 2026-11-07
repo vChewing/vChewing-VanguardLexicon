@@ -39,10 +39,19 @@ private enum IncomingContextLexicon {
   /// [T01]：「在」→「這樣」之間的「的」，用來抵銷 B01。
   static let trigram = multi(["ㄉㄜ˙"], "的", -0.5, previous: "這樣", anterior: "在")
 
-  static func assembler(withBigram: Bool = true, withTrigram: Bool = true) -> Yukuaki.Assembler {
+  /// 缺口列：只約束「距離 2 是『在』」，previous 不設限。
+  static let gapRow = multi(["ㄉㄜ˙"], "的", -0.5, previous: "*", anterior: "在")
+
+  static func assembler(
+    withBigram: Bool = true,
+    withTrigram: Bool = true,
+    withGapRow: Bool = false
+  )
+    -> Yukuaki.Assembler {
     var grams = baseGrams
     if withBigram { grams.append(bigram) }
     if withTrigram { grams.append(trigram) }
+    if withGapRow { grams.append(gapRow) }
     let lexicon = Lexicon(grams: grams)
     return lexicon.assembler(maxSegLength: 10)
   }
@@ -163,6 +172,62 @@ struct YukuakiIncomingContextTests {
   /// - 雙元圖的結果恰為原始機率，與舊模型逐位元相同（既有語料的計分不會漂移）。
   /// - 三元圖把增益算兩次；四階以上再由鏈長自然外推。
   /// - 鏈長數的是「詞鏈」而非讀音：多音節詞的單元圖仍是 1。
+  /// 缺口列（`[x, *]`）：previous 不設限、anterior 照常比對。
+  ///
+  /// 它必須在 previous 缺席（DP 正規化成 nil）時照樣命中，否則最需要它的稀疏狀態
+  /// 反而永不觸發。
+  @Test("缺口列：previous 任意、anterior 照比")
+  func gapRowMatchesAnyPrevious() throws {
+    func gram(previous: String?, anterior: String?, probability: Double) -> Yukuaki.Gram {
+      .init(
+        keyArray: ["ㄉㄜ˙"],
+        current: "的",
+        previous: previous,
+        anterior: anterior,
+        probability: probability
+      )
+    }
+    let node = Yukuaki.Node(
+      keyArray4Query: ["ㄉㄜ˙"],
+      grams: [
+        gram(previous: nil, anterior: nil, probability: -1.5),
+        gram(previous: "*", anterior: "在", probability: -0.5),
+      ]
+    )
+    #expect(node.evaluate(previous: "隨便", anterior: "在").gram?.previous == "*")
+    #expect(node.evaluate(previous: nil, anterior: "在").gram?.previous == "*")
+    #expect(node.evaluate(previous: "隨便", anterior: "再").gram?.isUnigram == true)
+  }
+
+  /// 缺口列的鏈長只數受約束的前文格：`[x, *]` 為 2，不是 3。
+  @Test("缺口列：鏈長只數受約束的格")
+  func gapRowChainLength() throws {
+    let gap = Yukuaki.Gram(
+      keyArray: ["ㄉㄜ˙"], current: "的", previous: "*", anterior: "在", probability: -0.5
+    )
+    #expect(gap.chainLength == 2)
+    #expect(abs(gap.weightedScore(against: -1.5) - -0.5) < 1e-9)
+  }
+
+  /// 端到端：乙案（B01 令「再」勝出）之後，缺口列 `[在, *]` 把「在」扳回來。
+  @Test("缺口列：把「在」扳回來")
+  func gapRowRestoresZai4() throws {
+    let assembler = IncomingContextLexicon.assembler(withTrigram: false, withGapRow: true)
+    try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
+    let result = assembler.assembleWithScore()
+    #expect(result.path.map(\.value) == ["不", "要", "在", "這樣", "的"])
+    #expect(abs(result.score - -19.209) < 1e-6)
+  }
+
+  /// 同一情境拿掉缺口列之後必須退回「再」。
+  @Test("缺口列：拿掉就退回「再」")
+  func gapRowNegativeControl() throws {
+    let assembler = IncomingContextLexicon.assembler(withTrigram: false)
+    try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
+    let result = assembler.assembleWithScore()
+    #expect(result.path.map(\.value) == ["不", "要", "再", "這樣", "的"])
+  }
+
   @Test("計分模型：按鏈長計次")
   func chainLengthWeighting() throws {
     let baseline = -1.5

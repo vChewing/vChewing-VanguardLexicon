@@ -39,6 +39,12 @@ extension Yukuaki {
 
     // MARK: Public
 
+    /// 前文格之萬用符：該格不指定詞值，其貢獻已聚合進分母。
+    ///
+    /// 只用於「有 anterior、缺 previous」之缺口列（`[x, *]`）。不得存成 `nil`——
+    /// 存 `nil` 會被當成「沒有這個前文」，鏈長與計分一併退化。
+    public static let wildcardContextToken = "*"
+
     public let keyArray: [String]
     public let current: String
     public let previous: String?
@@ -48,6 +54,9 @@ extension Yukuaki {
 
     /// 該 gram 是否為 unigram（不攜帶任何前文）。
     public var isUnigram: Bool { previous == nil && anterior == nil }
+
+    /// 前文鏈之最後一格是否為萬用符（缺口列）。
+    public var hasWildcardPrevious: Bool { previous == Yukuaki.Gram.wildcardContextToken }
 
     /// 該 gram 是否為 bigram（只攜帶前一個詞）。
     public var isBigram: Bool { previous != nil && anterior == nil }
@@ -60,7 +69,11 @@ extension Yukuaki {
 
     /// 該 gram 的前文鏈長（1 = unigram、2 = bigram、3 = trigram）。
     /// - Note: 這是「詞鏈」的長度，不是讀音長度：多音節詞的 unigram 仍然是 1。
-    public var chainLength: Int { 1 + (previous == nil ? 0 : 1) + (anterior == nil ? 0 : 1) }
+    /// - Note: 萬用符那一格不算——缺口列 `[x, *]` 只約束一個前文，故鏈長為 2；
+    ///   若把 `*` 也計入，`weightedScore` 會把它當成 trigram 而把增益算兩次。
+    public var chainLength: Int {
+      1 + (previous == nil || hasWildcardPrevious ? 0 : 1) + (anterior == nil ? 0 : 1)
+    }
 
     /// 該 gram 的讀音長度與詞長是否不符。
     public var isReadingMismatched: Bool { keyArray.count != current.count }

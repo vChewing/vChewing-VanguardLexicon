@@ -1,4 +1,4 @@
-name: Swift Build (Linux)
+name: test-linux-VanguardLexicon
 
 on:
   push:
@@ -7,13 +7,17 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-linux:
-    name: Swift Build (Linux)
+  build:
+    name: test-linux-VanguardLexicon
     runs-on: ubuntu-latest
+    env:
+      GIT_SSL_NO_VERIFY: true
     steps:
-    - uses: actions/checkout@v4
-    - uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: "6.2"
-    - name: Build
-      run: swift build -v
+      - uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: "6.4.0"
+      - uses: actions/checkout@v1
+      - name: Clean
+        run: swift package clean
+      - name: Test
+        run: swift --version && swift test -c release && swift run VCDataBuilder vanguardTextMap

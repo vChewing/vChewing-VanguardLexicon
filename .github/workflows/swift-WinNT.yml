@@ -1,4 +1,4 @@
-name: Swift Build (WinNT)
+name: test-winnt-VanguardLexicon
 
 on:
   push:
@@ -7,13 +7,30 @@ on:
     branches: [ "main" ]
 
 jobs:
-  windows:
-    name: Swift Build (WinNT)
-
+  build:
+    name: test-winnt-VanguardLexicon
     runs-on: windows-latest
+    env:
+      GIT_SSL_NO_VERIFY: true
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.4.2
+
+      # Windows Swift toolchain install
+      - name: Setup Swift toolchain (Windows)
+        # 建议固定到 tag/sha；这里先按官方示例用 main
+        uses: compnerd/gha-setup-swift@main
         with:
-          windows-swift-version: swift-6.2-release
-          windows-swift-build: 6.2-RELEASE
+          source: swift.org
+          # Swift 6.4+ is required: 6.2 / 6.3 are blocked by the manifests
+          # (`Package@swift-6.2.swift` / `Package@swift-6.3.swift`), cf. P216 §13.6.
+          # Note: the 6.4 series' swift.org identifiers carry the patch zero
+          # (`swift-6.4.0-release` / `6.4.0-RELEASE`), unlike the 6.2 / 6.3 series.
+          swift-version: swift-6.4.0-release
+          swift-build: 6.4.0-RELEASE
+          # 可选：cache: true
+
+      - name: Swift version + run tests
+        shell: pwsh
+        run: |
+          swift --version
+          swift test -c release && swift run VCDataBuilder vanguardTextMap

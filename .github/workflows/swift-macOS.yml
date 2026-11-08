@@ -1,0 +1,24 @@
+name: test-macOS-VanguardLexicon-SwiftFOSS
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: test-macOS-VanguardLexicon-SwiftFOSS
+    runs-on: macos-latest
+    env:
+      GIT_SSL_NO_VERIFY: true
+    steps:
+      - uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: "6.4.0"
+      - uses: actions/checkout@v1
+      - name: Clean
+        run: swift package clean
+      - name: Test
+        # Swift 5 CI variant is intentionally not for running tests.
+        run: swift --version && swift test -c release && swift run VCDataBuilder vanguardTextMap

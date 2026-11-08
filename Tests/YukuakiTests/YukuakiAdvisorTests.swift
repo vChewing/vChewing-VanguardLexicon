@@ -303,7 +303,7 @@ struct YukuakiAdvisorTests {
     #expect(weak.isBelowNominalFloor())
     let needed = try? #require(weak.minimalNominalDenominator())
     #expect((needed ?? 0) > 1e7)
-    #expect(weak.factoryRow() == "的話\t1\tㄉㄜ˙ ㄏㄨㄚˋ\t再 這樣\t1000")
+    #expect(weak.factoryRow() == "的話 1 ㄉㄜ˙-ㄏㄨㄚˋ 再|這樣 1000")
     let pinned = Yukuaki.GramSpec(
       kind: .trigram,
       keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"],
@@ -315,7 +315,7 @@ struct YukuakiAdvisorTests {
     )
     #expect(pinned.factoryCount() == 44)
     #expect(!pinned.isBelowNominalFloor())
-    #expect(pinned.factoryRow() == "的話\t44\tㄉㄜ˙ ㄏㄨㄚˋ\t再 這樣\t1000")
+    #expect(pinned.factoryRow() == "的話 44 ㄉㄜ˙-ㄏㄨㄚˋ 再|這樣 1000")
     let unigram = Yukuaki.GramSpec(
       kind: .unigram,
       keyArray: ["ㄗㄞˋ"],

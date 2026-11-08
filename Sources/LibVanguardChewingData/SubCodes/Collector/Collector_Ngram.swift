@@ -227,28 +227,55 @@ extension VCDataBuilder.Unigram {
   )
     throws -> [VCDataBuilder.NgramRecord] {
     var bucketed: [String: VCDataBuilder.NgramRecord] = [:]
-    for lineData in raw.components(separatedBy: .newlines) {
+    for (lineIndex, lineData) in raw.components(separatedBy: .newlines).enumerated() {
+      let lineNumber = lineIndex + 1
       let line = lineData.hasSuffix("\r") ? String(lineData.dropLast()) : lineData
-      guard !line.isEmpty, !line.hasPrefix("#") else { continue }
-      let cells = line.components(separatedBy: "\t")
-      guard cells.count >= 4 else { continue }
-      let valueCell = cells[0].trimmingCharacters(in: .whitespaces)
-      let count = Int(cells[1].trimmingCharacters(in: .whitespaces)) ?? 0
-      let literalReadings = cells[2].split(separator: " ").map(\.description).filter { !$0.isEmpty }
-      let rawContext = cells[3].split(separator: " ").map(\.description).filter { !$0.isEmpty }
-      guard !valueCell.isEmpty, !rawContext.isEmpty else { continue }
+      let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+      guard !trimmedLine.isEmpty, !trimmedLine.hasPrefix("#") else { continue }
+      /// 欄界是「一段空白」（空格或 TAB 均可摺疊）；欄內不得再有空白：
+      /// 讀音以 `-` 連接、前驗詞鏈以 `|` 連接。故編輯器把 TAB 換成空格也不影響語意。
+      let cells = line.split(whereSeparator: \.isWhitespace).map(String.init)
+      guard (4 ... 6).contains(cells.count) else {
+        throw VCDataBuilder.Exception.errMsg(
+          "n-gram 第 \(lineNumber) 行：欄數為 \(cells.count)，應為 4 至 6 欄；欄界是空白，但欄內不得再有空白——讀音請以 `-` 連接、前驗詞鏈請以 `|` 連接。該行開頭：\(line.prefix(40))"
+        )
+      }
+      let valueCell = cells[0]
+      guard !valueCell.isEmpty else {
+        throw VCDataBuilder.Exception.errMsg("n-gram 第 \(lineNumber) 行：詞值欄為空。")
+      }
+      let countCell = cells[1]
+      guard let count = Int(countCell) else {
+        throw VCDataBuilder.Exception.errMsg(
+          "n-gram 第 \(lineNumber) 行：次數欄「\(countCell)」不是整數。"
+        )
+      }
+      guard cells.count < 6 || cells[5].hasPrefix("#") else {
+        throw VCDataBuilder.Exception.errMsg(
+          "n-gram 第 \(lineNumber) 行：第 6 欄只能是 `#` 起首的單一註解 token（不得含空白）。"
+        )
+      }
+      let literalReadings = cells[2] == "-"
+        ? []
+        : cells[2].split(separator: "-").map(String.init).filter { !$0.isEmpty }
+      let rawContext = cells[3].split(separator: "|").map(String.init).filter { !$0.isEmpty }
+      guard !rawContext.isEmpty else {
+        throw VCDataBuilder.Exception.errMsg("n-gram 第 \(lineNumber) 行：前驗詞鏈欄為空。")
+      }
       guard rawContext.count <= 2 else {
         throw VCDataBuilder.Exception.errMsg("TextMap v2.0 n-gram context is limited to two tokens.")
       }
       try validateWildcardPlacement(rawContext)
-      let contextCountCell = cells.count >= 5 ? cells[4].trimmingCharacters(in: .whitespaces) : ""
+      let contextCountCell = cells.count >= 5 ? cells[4] : ""
       let explicitContextCount = try parseContextCountCell(
         contextCountCell,
         rawContext: rawContext,
         classTable: classTable
       )
       let valueIsClass = classTable[valueCell] != nil
-      guard valueIsClass || !literalReadings.isEmpty else { continue }
+      guard valueIsClass || !literalReadings.isEmpty else {
+        throw VCDataBuilder.Exception.errMsg("n-gram 第 \(lineNumber) 行：非詞類之列缺讀音。")
+      }
       let contextVariants = expandTokens(rawContext, classTable: classTable)
       let valueVariants = valueIsClass ? (classTable[valueCell] ?? []) : [valueCell]
       for value in valueVariants {
@@ -388,10 +415,10 @@ extension VCDataBuilder.Unigram {
     strRAW.components(separatedBy: .newlines).forEach { lineData in
       let line = lineData.hasSuffix("\r") ? String(lineData.dropLast()) : lineData
       guard !line.isEmpty, !line.hasPrefix("#") else { return }
-      let cells = line.components(separatedBy: "\t")
+      let cells = line.split(whereSeparator: \.isWhitespace).map(String.init)
       guard cells.count >= 2 else { return }
-      let name = cells[0].trimmingCharacters(in: .whitespaces)
-      let members = cells[1].split(separator: " ").map(\.description).filter { !$0.isEmpty }
+      let name = cells[0]
+      let members = cells.dropFirst().filter { !$0.isEmpty }
       guard !name.isEmpty, !members.isEmpty else { return }
       result[name] = members
     }

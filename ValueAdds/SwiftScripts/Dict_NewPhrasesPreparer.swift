@@ -104,18 +104,19 @@ struct NGramRow {
     return max(1, Int(raw.rounded()))
   }
 
-  /// `詞值<TAB>次數<TAB>讀音<TAB>前文鏈<TAB>count(前文)`
+  /// `詞值 次數 讀音 前文鏈 count(前文)`：欄界是空白，欄內不得再有空白
+  /// （讀音以 `-` 連接、前文鏈以 `|` 連接），故 TAB 被編輯器換成空格也不歧義。
   var reportAsLine: String? {
     guard let count = requiredCount else { return nil }
-    let readingCells = reading.replacingOccurrences(of: "-", with: " ")
-    let contextCells = context.joined(separator: " ")
+    let readingCell = reading
+    let contextCell = context.joined(separator: "|")
     return [
       value,
       "\(count)",
-      readingCells,
-      contextCells,
+      readingCell,
+      contextCell,
       "\(Int(nominalDenominator))",
-    ].joined(separator: "\t")
+    ].joined(separator: " ")
   }
 }
 
@@ -240,7 +241,7 @@ func emit(label: String, unigrams: [Phrase], ngrams: [NGramRow], tags: [String])
   print("// ── phrases-\(label.lowercased()).txt（單元圖列）──")
   print(unigrams.makeReport(bare: true), terminator: "")
   print("// ── phrases-ngram-\(label.lowercased()).txt（多字圖列）──")
-  print("// 欄序：詞值\t次數\t讀音\t前文鏈\tcount(前文)")
+  print("// 欄序：詞值 次數 讀音 前文鏈 count(前文)（讀音以 - 連接、前文鏈以 | 連接）")
   ngrams.forEach { row in
     if let line = row.reportAsLine, row.issue == nil {
       print(line)

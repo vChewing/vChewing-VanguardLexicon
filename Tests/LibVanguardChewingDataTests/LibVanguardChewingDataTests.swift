@@ -132,7 +132,7 @@ struct NgramRecordsTests {
 
     // bigram 無第 5 欄時沿用 count(前一個詞)（legacy），不得混入 trigram 的分母。
     let legacy = try VCDataBuilder.Unigram.parseNgramLines(
-      "再\t5\tㄗㄞˋ\t要",
+      "再 5 ㄗㄞˋ 要",
       isCHS: false,
       norm: Self.norm,
       counts: ["要": 6_528]
@@ -143,7 +143,7 @@ struct NgramRecordsTests {
 
     // 取不到前驗詞頻時，才退回以 `_NORM` 折算（僅 bigram 允許）。
     let fallbackRecords = try VCDataBuilder.Unigram.parseNgramLines(
-      "再\t5\tㄗㄞˋ\t要",
+      "再 5 ㄗㄞˋ 要",
       isCHS: false,
       norm: Self.norm,
       counts: [:]
@@ -151,6 +151,44 @@ struct NgramRecordsTests {
     let fallback = try #require(fallbackRecords.first)
     #expect(fallback.denominatorSource == .normalizedFallback)
     #expect(abs(fallback.score - Self.weight(count: 5, denominator: Self.norm, value: "再")) < 0.001)
+  }
+
+  @Test("欄內含空白（讀音未以 - 連接）的列會報錯，不得靜默略過")
+  func rejectsInnerSpaces() {
+    /// 舊制以空格分隔欄內的讀音；新制要求讀音以 `-` 連接，否則欄數會爆開。
+    let pasted = "的話 1 ㄉㄜ˙ ㄏㄨㄚˋ 再 這樣 1000"
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        pasted,
+        isCHS: false,
+        norm: Self.norm,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("次數欄非整數時會報錯")
+  func rejectsNonIntegerCount() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "再 五 ㄗㄞˋ 要",
+        isCHS: false,
+        norm: Self.norm,
+        counts: [:]
+      )
+    }
+  }
+
+  @Test("非詞類之列缺讀音時會報錯")
+  func rejectsMissingReadings() {
+    #expect(throws: VCDataBuilder.Exception.self) {
+      try VCDataBuilder.Unigram.parseNgramLines(
+        "再 5 - 要",
+        isCHS: false,
+        norm: Self.norm,
+        counts: [:]
+      )
+    }
   }
 
   @Test("兩語系一併讀取時，各自的 trigram 條目並存")
@@ -179,8 +217,8 @@ struct NgramRecordsTests {
   @Test("詞類模板：詞值欄與前驗詞鏈欄都會展開成逐條成員")
   func classTemplateExpands() throws {
     let raw = """
-    <PLACE_NOUN>\t120\t-\t在
-    在\t120\tㄗㄞˋ\t<PLACE_NOUN>
+    <PLACE_NOUN> 120 - 在
+    在 120 ㄗㄞˋ <PLACE_NOUN>
     """
     let classes = ["<PLACE_NOUN>": ["這裡", "那裡"]]
     let readings = [
@@ -220,7 +258,7 @@ struct NgramRecordsTests {
   @Test("詞類成員查無讀音時，該成員略過而不臆造讀音")
   func classMemberWithoutReadingsIsSkipped() throws {
     let records = try VCDataBuilder.Unigram.parseNgramLines(
-      "<PLACE_NOUN>\t9\t-\t在",
+      "<PLACE_NOUN> 9 - 在",
       isCHS: false,
       norm: Self.norm,
       counts: [:],
@@ -373,7 +411,7 @@ struct NgramInputValidationTests {
   func rejectsLongContext() {
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "再\t5\tㄗㄞˋ\t甲 乙 丙",
+        "再 5 ㄗㄞˋ 甲|乙|丙",
         isCHS: false,
         norm: 1_000,
         counts: [:]
@@ -385,7 +423,7 @@ struct NgramInputValidationTests {
   func acceptsZWJEmoji() throws {
     let emoji = "🙅‍♀️"
     let records = try VCDataBuilder.Unigram.parseNgramLines(
-      "\(emoji)\t5\tㄗㄞˋ\t要 \(emoji)\t7",
+      "\(emoji) 5 ㄗㄞˋ 要|\(emoji) 7",
       isCHS: false,
       norm: 1_000,
       counts: [:]
@@ -398,7 +436,7 @@ struct NgramInputValidationTests {
   @Test("缺口列：`*` 可佔 previous 一格，且須帶聚合分母")
   func parsesGapRow() throws {
     let records = try VCDataBuilder.Unigram.parseNgramLines(
-      "的\t120\tㄉㄜ˙\t在 *\t500",
+      "的 120 ㄉㄜ˙ 在|* 500",
       isCHS: false,
       norm: 1_000,
       counts: [:]
@@ -413,7 +451,7 @@ struct NgramInputValidationTests {
   func rejectsBareWildcardContext() {
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "的\t120\tㄉㄜ˙\t*\t500",
+        "的 120 ㄉㄜ˙ * 500",
         isCHS: false,
         norm: 1_000,
         counts: [:]
@@ -425,7 +463,7 @@ struct NgramInputValidationTests {
   func rejectsWildcardInAnteriorSlot() {
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "的\t120\tㄉㄜ˙\t* 在\t500",
+        "的 120 ㄉㄜ˙ *|在 500",
         isCHS: false,
         norm: 1_000,
         counts: [:]
@@ -438,8 +476,8 @@ struct NgramInputValidationTests {
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
         [
-          "的\t50\tㄉㄜ˙\t在 *\t500",
-          "的\t80\tㄉㄜ˙\t在 這樣\t500",
+          "的 50 ㄉㄜ˙ 在|* 500",
+          "的 80 ㄉㄜ˙ 在|這樣 500",
         ].joined(separator: "\n"),
         isCHS: false,
         norm: 1_000,
@@ -452,8 +490,8 @@ struct NgramInputValidationTests {
   func gapRowCoexistsWithUnrelatedTrigram() throws {
     let records = try VCDataBuilder.Unigram.parseNgramLines(
       [
-        "的\t50\tㄉㄜ˙\t在 *\t500",
-        "的\t80\tㄉㄜ˙\t要 這樣\t500",
+        "的 50 ㄉㄜ˙ 在|* 500",
+        "的 80 ㄉㄜ˙ 要|這樣 500",
       ].joined(separator: "\n"),
       isCHS: false,
       norm: 1_000,
@@ -464,7 +502,7 @@ struct NgramInputValidationTests {
 
   @Test("詞值與前文中的控制字元會報錯")
   func rejectsControlCharacters() {
-    for raw in ["再\u{1}\t5\tㄗㄞˋ\t要", "再\t5\tㄗㄞˋ\t要\u{7}"] {
+    for raw in ["再\u{1} 5 ㄗㄞˋ 要", "再 5 ㄗㄞˋ 要\u{7}"] {
       #expect(throws: VCDataBuilder.Exception.self) {
         try VCDataBuilder.Unigram.parseNgramLines(
           raw,
@@ -481,7 +519,7 @@ struct NgramInputValidationTests {
     // trigram 只寫得出 count(書) 時，不得以前一個詞的詞頻冒充分母。
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "館\t249\tㄍㄨㄢˇ\t圖 書",
+        "館 249 ㄍㄨㄢˇ 圖|書",
         isCHS: false,
         norm: 1_000,
         counts: ["書": 651]
@@ -490,7 +528,7 @@ struct NgramInputValidationTests {
     // 第 5 欄寫成註解同樣不算數。
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "館\t249\tㄍㄨㄢˇ\t圖 書\t# lift=1.0",
+        "館 249 ㄍㄨㄢˇ 圖|書 #comment",
         isCHS: false,
         norm: 1_000,
         counts: [:]
@@ -498,7 +536,7 @@ struct NgramInputValidationTests {
     }
     // bigram 沒有第 5 欄仍可解析。
     let bigramRecords = try VCDataBuilder.Unigram.parseNgramLines(
-      "館\t249\tㄍㄨㄢˇ\t書",
+      "館 249 ㄍㄨㄢˇ 書",
       isCHS: false,
       norm: 1_000,
       counts: ["書": 651]
@@ -508,7 +546,7 @@ struct NgramInputValidationTests {
 
   @Test("完整前文詞頻欄非整數或非正數時會報錯")
   func rejectsInvalidContextCountColumn() {
-    for raw in ["館\t249\tㄍㄨㄢˇ\t圖 書\tabc", "館\t249\tㄍㄨㄢˇ\t圖 書\t0"] {
+    for raw in ["館 249 ㄍㄨㄢˇ 圖|書 abc", "館 249 ㄍㄨㄢˇ 圖|書 0"] {
       #expect(throws: VCDataBuilder.Exception.self) {
         try VCDataBuilder.Unigram.parseNgramLines(
           raw,
@@ -524,7 +562,7 @@ struct NgramInputValidationTests {
   func rejectsContextCountWithClassTemplate() {
     #expect(throws: VCDataBuilder.Exception.self) {
       try VCDataBuilder.Unigram.parseNgramLines(
-        "館\t249\tㄍㄨㄢˇ\t<PLACE_NOUN> 書\t294",
+        "館 249 ㄍㄨㄢˇ <PLACE_NOUN>|書 294",
         isCHS: false,
         norm: 1_000,
         counts: [:],

@@ -256,7 +256,7 @@ private func printSpecRows(_ spec: Yukuaki.GramSpec, indent: String) {
     print("\(indent)→ 使用者辭典列：\(row)")
   }
   if let row = spec.factoryRow() {
-    print("\(indent)→ 原廠列（phrases-ngram）：\(row)")
+    print("\(indent)→ 原廠列（phrases-ngram；讀音 -、前文鏈 |）：\(row)")
   }
   if let floor = spec.nominalFloor(), spec.isBelowNominalFloor() {
     var message = "\(indent)  ⚠︎ 分數弱於名義分母 D=1000 之下限 \(ReportPrinter.format(floor, places: 3))：匯出時會被抬成 1 次、實際等效該下限"
@@ -266,6 +266,8 @@ private func printSpecRows(_ spec: Yukuaki.GramSpec, indent: String) {
     print(message + "。")
   }
 }
+
+// MARK: - ReportPrinter
 
 enum ReportPrinter {
   static func format(_ value: Double, places: Int = 4) -> String {

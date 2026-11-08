@@ -247,14 +247,15 @@ extension Yukuaki {
 
     /// 可直接貼進 `phrases-ngram-{cht,chs}.txt` 的一列（僅 n-gram 提案）。
     ///
-    /// 欄序與 P336 之匯出腳本一致：`詞值<TAB>次數<TAB>讀音<TAB>前文鏈<TAB>count(前文)`；
-    /// 讀音與前文鏈皆以單一空格分格，前文鏈由舊至新。
+    /// 欄序與 P336 之匯出腳本一致：`詞值 次數 讀音 前文鏈 count(前文)`。
+    /// 欄界是空白（空格或 TAB 皆可），但欄內不得再有空白：讀音以 `-` 連接、
+    /// 前文鏈以 `|` 連接（由舊至新）——故 TAB 被編輯器換成空格也不會歧義。
     public func factoryRow(nominalDenominator: Double = GramSpec.nominalDenominator) -> String? {
       guard let count = factoryCount(nominalDenominator: nominalDenominator) else { return nil }
-      let chain = [anterior, previous].compactMap { $0 }.joined(separator: " ")
+      let chain = [anterior, previous].compactMap { $0 }.joined(separator: "|")
       guard !chain.isEmpty else { return nil }
-      let reading = keyArray.joined(separator: " ")
-      return [current, "\(count)", reading, chain, "\(Int(nominalDenominator))"].joined(separator: "\t")
+      let reading = keyArray.joined(separator: "-")
+      return [current, "\(count)", reading, chain, "\(Int(nominalDenominator))"].joined(separator: " ")
     }
 
     /// 該詞條對應的 Gram。

@@ -75,7 +75,7 @@ struct CorpusMiner {
   }
 
   private static func isBacklogTokenSafe(_ token: String) -> Bool {
-    isBacklogValueSafe(token) && !token.unicodeScalars.contains {
+    isBacklogValueSafe(token) && !token.contains("|") && !token.unicodeScalars.contains {
       $0.isASCII && CharacterSet.whitespacesAndNewlines.contains($0)
     }
   }
@@ -236,13 +236,13 @@ extension CorpusMiner.Candidate {
           context.allSatisfy(CorpusMiner.isBacklogTokenSafe),
           reading.allSatisfy(CorpusMiner.isBacklogTokenSafe)
     else { return nil }
-    let reading = reading.joined(separator: " ")
+    let readingCell = reading.joined(separator: "-")
     var comment =
-      "# lift=\(String(format: "%.3f", lift)) corpus=\(corpusCount) context=\(contextCount) required=\(requiredCount) lb=\(String(format: "%.3f", lowerBound))"
-    if assumedReading { comment += " assumed-reading" }
-    let contextCell = context.joined(separator: " ")
+      "#lift=\(String(format: "%.3f", lift));corpus=\(corpusCount);context=\(contextCount);required=\(requiredCount);lb=\(String(format: "%.3f", lowerBound))"
+    if assumedReading { comment += ";assumed-reading" }
+    let contextCell = context.joined(separator: "|")
     // 第 2 欄寫真實共現次數：載入端以 `count(c, w) / count(c)` 復算機率，若在此處灌水，
     // 復算結果便與本行宣稱的 lift 不符。
-    return "\(value)\t\(corpusCount)\t\(reading)\t\(contextCell)\t\(contextCount)\t\(comment)"
+    return "\(value) \(corpusCount) \(readingCell) \(contextCell) \(contextCount) \(comment)"
   }
 }

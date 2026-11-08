@@ -397,7 +397,7 @@ struct P332ReadingsAndEvidenceTests {
       lowerBound: 0.321,
       assumedReading: false
     )
-    let fields = (candidate.renderedLine() ?? "").components(separatedBy: "\t")
+    let fields = (candidate.renderedLine() ?? "").components(separatedBy: " ")
     #expect(fields[1] == "7")
     #expect(fields[5].contains("lb=0.321"))
   }

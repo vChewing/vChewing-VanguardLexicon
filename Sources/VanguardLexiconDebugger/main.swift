@@ -250,6 +250,23 @@ enum ReadingChainResolver {
 
 // MARK: - ReportPrinter
 
+/// 逐條印出一條 n-gram 提案的兩種落點：使用者辭典列與原廠多字圖列。
+private func printSpecRows(_ spec: Yukuaki.GramSpec, indent: String) {
+  if let row = spec.userDataRow {
+    print("\(indent)→ 使用者辭典列：\(row)")
+  }
+  if let row = spec.factoryRow() {
+    print("\(indent)→ 原廠列（phrases-ngram）：\(row)")
+  }
+  if let floor = spec.nominalFloor(), spec.isBelowNominalFloor() {
+    var message = "\(indent)  ⚠︎ 分數弱於名義分母 D=1000 之下限 \(ReportPrinter.format(floor, places: 3))：匯出時會被抬成 1 次、實際等效該下限"
+    if let needed = spec.minimalNominalDenominator() {
+      message += String(format: "；要以整數次數表達此分數，D 至少需 %.1e", needed)
+    }
+    print(message + "。")
+  }
+}
+
 enum ReportPrinter {
   static func format(_ value: Double, places: Int = 4) -> String {
     String(format: "%.\(places)f", value)
@@ -592,6 +609,14 @@ struct DebuggerRunner {
               print("     → 依正規化基準 \(ReportPrinter.format(norm, places: 3)) 逆推")
             }
           }
+          printSpecRows(spec, indent: "     ")
+        }
+      }
+      if !advice.alternatives.isEmpty {
+        print("替代方案（未採用，共 \(advice.alternatives.count) 條）：")
+        for spec in advice.alternatives {
+          print("  - \(spec.summary(separator: separator))")
+          printSpecRows(spec, indent: "    ")
         }
       }
       if let validation = advice.validation {

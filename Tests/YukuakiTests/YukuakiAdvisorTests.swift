@@ -196,6 +196,136 @@ struct YukuakiAdvisorTests {
     #expect(summary.contains("count"))
   }
 
+  @Test("頻次改動過大時，列出條件機率的 n-gram 替代方案")
+  func listsContextualAlternatives() throws {
+    /// 復刻 P338 的實例：`在｜這樣｜的｜話` 因缺口列（`的` 之前是 `在`）而勝過 `再｜這樣｜的話`。
+    let fixture = AdvisorFixture(
+      grams: [
+        ug("ㄗㄞˋ", "在", -5.009),
+        ug("ㄗㄞˋ", "再", -5.012),
+        ug("ㄓㄜˋ", "這", -3.5),
+        ug("ㄧㄤˋ", "樣", -3.5),
+        Yukuaki.Gram(keyArray: ["ㄓㄜˋ", "ㄧㄤˋ"], current: "這樣", probability: -3.142),
+        Yukuaki.Gram(keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"], current: "的話", probability: -8.116),
+        ug("ㄉㄜ˙", "的", -4.976),
+        ug("ㄏㄨㄚˋ", "話", -5.133),
+        Yukuaki.Gram(keyArray: ["ㄉㄜ˙"], current: "的", previous: "*", anterior: "在", probability: -1.497),
+        Yukuaki.Gram(
+          keyArray: ["ㄓㄜˋ", "ㄧㄤˋ"],
+          current: "這樣",
+          previous: "再",
+          probability: -2.844
+        ),
+      ],
+      norm: 374_385_572.468
+    )
+    let chain = ["ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙", "ㄏㄨㄚˋ"]
+    #expect(try fixture.assembledText(of: chain) == "在這樣的話")
+    let report = try fixture.advisor().analyze(readingChain: chain, expected: "再這樣的話")
+    #expect(!report.isMatched)
+    #expect(report.validation?.finalText == "再這樣的話")
+    /// 首選仍是「補既有詞條的頻次」——但「的話」的現行頻次只有個位數，倍率雖大、絕對改動小。
+    let proposal = try #require(report.proposals.first)
+    #expect(proposal.kind == .unigram)
+    #expect(proposal.current == "的話")
+    #expect(proposal.tier == .adjustCount)
+    #expect((proposal.countMultiplier ?? 0) > 10)
+    #expect(report.notes.contains { $0.contains("請見替代方案") })
+    /// 替代方案必須包含「(再, 這樣) → 的話」這條條件機率列。
+    let contextual = try #require(report.alternatives.first { $0.kind == .trigram && $0.current == "的話" })
+    #expect(contextual.previous == "這樣")
+    #expect(contextual.anterior == "再")
+    #expect(contextual.tier == .addTrigram)
+    #expect(contextual.requiredProbability > -8.116)
+    #expect(contextual.requiredProbability < 0)
+    #expect(contextual.userDataRow?.hasSuffix("#NGRAM:再|這樣") == true)
+  }
+
+  @Test("頻次改動不大時，不列替代方案")
+  func noAlternativesForSmallBoost() throws {
+    let fixture = AdvisorFixture(
+      grams: [
+        ug("ㄉㄧㄢˋ", "電", -3),
+        ug("ㄋㄠˇ", "腦", -3),
+        ug("ㄋㄠˇ", "惱", -3.1),
+      ]
+    )
+    let report = try fixture.advisor().analyze(readingChain: ["ㄉㄧㄢˋ", "ㄋㄠˇ"], expected: "電惱")
+    #expect(report.proposals.first?.tier == .adjustCount)
+    #expect(report.alternatives.isEmpty)
+    #expect(!report.notes.contains { $0.contains("請見替代方案") })
+  }
+
+  @Test("n-gram 提案可渲染成使用者辭典列")
+  func userDataRowRendering() {
+    let trigram = Yukuaki.GramSpec(
+      kind: .trigram,
+      keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"],
+      current: "的話",
+      previous: "這樣",
+      anterior: "再",
+      role: .boosting,
+      requiredProbability: -7.5205
+    )
+    #expect(trigram.userDataRow == "的話 ㄉㄜ˙-ㄏㄨㄚˋ -7.5205 #NGRAM:再|這樣")
+    let bigram = Yukuaki.GramSpec(
+      kind: .bigram,
+      keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"],
+      current: "的話",
+      previous: "這樣",
+      role: .boosting,
+      requiredProbability: -6.925
+    )
+    #expect(bigram.userDataRow == "的話 ㄉㄜ˙-ㄏㄨㄚˋ -6.9250 #NGRAM:這樣")
+    let unigram = Yukuaki.GramSpec(
+      kind: .unigram,
+      keyArray: ["ㄗㄞˋ"],
+      current: "再",
+      role: .boosting,
+      requiredProbability: -3.8
+    )
+    #expect(unigram.userDataRow == nil)
+  }
+
+  @Test("n-gram 提案可渲染成原廠多字圖列")
+  func factoryRowRendering() {
+    let weak = Yukuaki.GramSpec(
+      kind: .trigram,
+      keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"],
+      current: "的話",
+      previous: "這樣",
+      anterior: "再",
+      role: .boosting,
+      requiredProbability: -7.5205
+    )
+    /// 名義分母 1000 之下，−7.5205 弱於下限（約 −3.145），故四捨五入成 1 次。
+    #expect(weak.factoryCount() == 1)
+    #expect(weak.isBelowNominalFloor())
+    let needed = try? #require(weak.minimalNominalDenominator())
+    #expect((needed ?? 0) > 1e7)
+    #expect(weak.factoryRow() == "的話\t1\tㄉㄜ˙ ㄏㄨㄚˋ\t再 這樣\t1000")
+    let pinned = Yukuaki.GramSpec(
+      kind: .trigram,
+      keyArray: ["ㄉㄜ˙", "ㄏㄨㄚˋ"],
+      current: "的話",
+      previous: "這樣",
+      anterior: "再",
+      role: .boosting,
+      requiredProbability: -1.5
+    )
+    #expect(pinned.factoryCount() == 44)
+    #expect(!pinned.isBelowNominalFloor())
+    #expect(pinned.factoryRow() == "的話\t44\tㄉㄜ˙ ㄏㄨㄚˋ\t再 這樣\t1000")
+    let unigram = Yukuaki.GramSpec(
+      kind: .unigram,
+      keyArray: ["ㄗㄞˋ"],
+      current: "再",
+      role: .boosting,
+      requiredProbability: -3.8
+    )
+    #expect(unigram.factoryRow() == nil)
+  }
+
   // MARK: Private
 
   private var dianNaoLexicon: AdvisorFixture {

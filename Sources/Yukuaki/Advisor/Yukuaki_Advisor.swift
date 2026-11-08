@@ -61,6 +61,12 @@ extension Yukuaki {
       ///
       /// 這個值對應 vChewing 詞庫編譯器的 `DEFAULT_PROB_9`（即「九字以下詞條的缺省分數」）。
       public var fallbackBaseline = -13.0
+      /// 「抬高既有詞條頻次」的合理倍率上限。
+      ///
+      /// 一個數量級（10 倍）以上就不再是「補頻次」，而是重寫該詞的頻次：它全域生效、
+      /// 會牽連其他句子，卻往往只是為了補上某個缺失的條件機率。首選逾此值時，
+      /// 工具會另列等價的 n-gram 提案（`Report.alternatives`）。
+      public var maxCountMultiplier = 10.0
     }
 
     /// 一次逆推的完整結果。
@@ -82,6 +88,8 @@ extension Yukuaki {
       public let alignmentCount: Int
       public let alignment: [Yukuaki.Segmenter.Chunk]
       public let proposals: [Yukuaki.GramSpec]
+      /// 等價但未採用的提案。首選需跨數量級改寫既有頻次時，這裡會列出條件機率的 n-gram 等替代做法。
+      public let alternatives: [Yukuaki.GramSpec]
       public let validation: Validation?
       public let notes: [String]
     }
@@ -121,6 +129,7 @@ extension Yukuaki {
           alignmentCount: 0,
           alignment: [],
           proposals: [],
+          alternatives: [],
           validation: nil,
           notes: notes + ["預設組句結果與期望結果一致，無需追補任何詞條。"]
         )
@@ -164,62 +173,35 @@ extension Yukuaki {
         let candidates = proposalCandidates(for: alignment, current: current.path)
           .sorted { tier(of: $0) > tier(of: $1) }
         guard !candidates.isEmpty else { continue }
-        guard let workingMargin = searchWorkingMargin(
-          readingChain: readingChain,
-          expected: expected,
-          candidates: candidates
-        ) else { continue }
-        let minimal = consolidate(
-          minimize(
-            candidates: candidates,
-            readingChain: readingChain,
-            expected: expected,
-            margin: workingMargin
-          ),
+        guard let solved = solve(
+          alignment: alignment,
+          candidates: candidates,
           readingChain: readingChain,
           expected: expected
-        )
-        guard let minimalMargin = searchWorkingMargin(
-          readingChain: readingChain,
-          expected: expected,
-          candidates: minimal
         ) else { continue }
-        let tightMargin = tighten(
-          candidates: minimal,
-          readingChain: readingChain,
-          expected: expected,
-          workingMargin: minimalMargin
-        )
-        let validation = validate(
-          candidates: minimal,
-          readingChain: readingChain,
-          expected: expected,
-          margin: tightMargin
-        )
-        let specs = minimal
-          .map { spec in
-            Yukuaki.GramSpec(
-              gram: spec,
-              role: roleOf(spec, alignment: alignment),
-              requiredProbability: baselineProbability(of: spec) + tightMargin,
-              norm: norm,
-              contextCount: contextCount(of: spec),
-              tier: tier(of: spec)
-            )
-          }
-          .sorted { lhs, rhs in
-            if lhs.tier != rhs.tier { return lhs.tier < rhs.tier }
-            return lhs.keyArray.count > rhs.keyArray.count
-          }
         var attemptNotes = notes
         if norm == nil {
           attemptNotes.append("未取得辭典的正規化基準（_NORM），故無法逆推 count。")
         }
-        if specs.contains(where: { $0.kind == .trigram && $0.denominatorSource == .normalizedBaseline }) {
+        if solved.specs.contains(where: { $0.kind == .trigram && $0.denominatorSource == .normalizedBaseline }) {
           attemptNotes.append("trigram 之前文詞頻（count(x, y)）未知，其 count 只能以 _NORM 折算，僅供參考。")
         }
-        if specs.contains(where: { !$0.isCountExpressive }) {
+        if solved.specs.contains(where: { !$0.isCountExpressive }) {
           attemptNotes.append("有提案的逆推 count 不到 1：這代表以現行正規化基準而言，單靠詞頻已經抬不到那個分數，需要改動正規化、或改以更高階的 n-gram 處理。")
+        }
+        if let expensive = solved.specs.first(where: {
+          $0.isOverCountBudget(threshold: options.maxCountMultiplier)
+        }), let multiplier = expensive.countMultiplier, let existing = expensive.existingCount,
+        let required = expensive.requiredCount {
+          attemptNotes.append(
+            String(
+              format: "首選提案需將「%@」的頻次自 %.0f 抬至 %.0f（%.1f 倍）：若不想改動全域頻次，請見替代方案。",
+              expensive.current,
+              existing,
+              required,
+              multiplier
+            )
+          )
         }
         attemptNotes.append("已排除審字因素：本工具只考慮「讀音 → 詞」的評分，不考慮半衰記憶、聯想、候選字輪替等輸入法行為。")
         let report = Report(
@@ -231,12 +213,13 @@ extension Yukuaki {
           isMatched: false,
           alignmentCount: alignments.count,
           alignment: alignment,
-          proposals: specs,
-          validation: validation,
+          proposals: solved.specs,
+          alternatives: solved.runnerUps,
+          validation: solved.validation,
           notes: attemptNotes
         )
         /// 能以整數頻次表達者優先；否則先留著，繼續試下一個分詞方式。
-        if norm == nil || specs.allSatisfy(\.isCountExpressive) { return report }
+        if norm == nil || solved.specs.allSatisfy(\.isCountExpressive) { return report }
         if fallbackReport == nil { fallbackReport = report }
       }
       if let fallbackReport { return fallbackReport }
@@ -251,6 +234,7 @@ extension Yukuaki {
         alignmentCount: alignments.count,
         alignment: orderedAlignments.first ?? [],
         proposals: [],
+        alternatives: [],
         validation: nil,
         notes: notes + ["期望結果的每個詞都在辭典內、分數卻仍不足以勝出：此情形無法靠追補詞條解決（除非改動既有的競爭詞條）。"]
       )
@@ -293,6 +277,13 @@ extension Yukuaki {
       let current: String
       let previous: String?
       let anterior: String?
+    }
+
+    /// 一次「分詞 → 提案 → 模擬 → 收斂」的完整結果。
+    private struct Solved {
+      let specs: [Yukuaki.GramSpec]
+      let runnerUps: [Yukuaki.GramSpec]
+      let validation: Report.Validation
     }
 
     private let gramQuerier: Yukuaki.GramQuerier
@@ -354,6 +345,84 @@ extension Yukuaki {
       return outcome.path.joinedSentence == expected
     }
 
+    /// 一次完整的求解：找邊距、縮減提案、收斂成單條、定出最終邊距並驗證。
+    private func solve(
+      alignment: [Yukuaki.Segmenter.Chunk],
+      candidates: [Yukuaki.Gram],
+      readingChain: [String],
+      expected: String
+    )
+      -> Solved? {
+      guard let workingMargin = searchWorkingMargin(
+        readingChain: readingChain,
+        expected: expected,
+        candidates: candidates
+      ) else { return nil }
+      func spec(of gram: Yukuaki.Gram, margin: Double) -> Yukuaki.GramSpec {
+        Yukuaki.GramSpec(
+          gram: gram,
+          role: roleOf(gram, alignment: alignment),
+          requiredProbability: baselineProbability(of: gram) + margin,
+          norm: norm,
+          contextCount: contextCount(of: gram),
+          existingCount: existingCount(of: gram),
+          tier: tier(of: gram)
+        )
+      }
+      let consolidated = consolidate(
+        minimize(
+          candidates: candidates,
+          readingChain: readingChain,
+          expected: expected,
+          margin: workingMargin
+        ),
+        candidates: candidates,
+        readingChain: readingChain,
+        expected: expected,
+        specBuilder: spec
+      )
+      guard let minimalMargin = searchWorkingMargin(
+        readingChain: readingChain,
+        expected: expected,
+        candidates: consolidated.chosen
+      ) else { return nil }
+      let tightMargin = tighten(
+        candidates: consolidated.chosen,
+        readingChain: readingChain,
+        expected: expected,
+        workingMargin: minimalMargin
+      )
+      let validation = validate(
+        candidates: consolidated.chosen,
+        readingChain: readingChain,
+        expected: expected,
+        margin: tightMargin
+      )
+      let specs = consolidated.chosen
+        .map { spec(of: $0, margin: tightMargin) }
+        .sorted { lhs, rhs in
+          if lhs.tier != rhs.tier { return lhs.tier < rhs.tier }
+          if lhs.keyArray.count != rhs.keyArray.count { return lhs.keyArray.count > rhs.keyArray.count }
+          return lhs.requiredProbability < rhs.requiredProbability
+        }
+      let runnerUps = consolidated.runnerUps
+        .map { spec(of: $0.gram, margin: $0.margin) }
+        /// 正分數的機率不存在（`log10` 之下必 ≤ 0）：那類提案只是「把一條列抬到荒謬的高度」。
+        .filter { $0.requiredProbability <= 0 }
+        .sorted { lhs, rhs in
+          if lhs.tier != rhs.tier { return lhs.tier < rhs.tier }
+          if lhs.requiredProbability != rhs.requiredProbability {
+            return lhs.requiredProbability < rhs.requiredProbability
+          }
+          return sortKey(of: lhs.gram) < sortKey(of: rhs.gram)
+        }
+      return Solved(
+        specs: specs,
+        runnerUps: runnerUps,
+        validation: validation
+      )
+    }
+
     // MARK: 提案
 
     /// 該讀音下的競品基準分數（不含期望詞本身）。
@@ -389,6 +458,27 @@ extension Yukuaki {
         .filter { $0.keyArray == [value] }
         .map(\.probability)
         .max()
+    }
+
+    /// 該詞條的現行頻次（由既有 gram 的分數逆推）。
+    ///
+    /// 只有 unigram 有現行頻次：ngram 提案必然是新增列，故回傳 `nil`。
+    private func existingCount(of gram: Yukuaki.Gram) -> Double? {
+      guard gram.isUnigram, let norm, norm > 0 else { return nil }
+      let key = GramKey(gram)
+      let scores = baseGrams(keys: gram.keyArray).filter { GramKey($0) == key }.map(\.probability)
+      guard let best = scores.max() else { return nil }
+      return Yukuaki.GramSpec.invertedCount(
+        probability: best,
+        value: gram.current,
+        denominator: norm
+      )
+    }
+
+    /// 提案的穩定排序鍵（同級提案之間的次序不得取決於排序演算法是否穩定）。
+    private func sortKey(of gram: Yukuaki.Gram) -> String {
+      [gram.keyArray.joined(separator: "-"), gram.current, gram.previous ?? "", gram.anterior ?? ""]
+        .joined(separator: "|")
     }
 
     /// 完整前文詞對 `(x, y)` 的 count。
@@ -623,31 +713,68 @@ extension Yukuaki {
       return current
     }
 
-    /// 嘗試把「多條提案的組合」縮成「單一條提案」。
+    /// 嘗試把「多條提案的組合」縮成「單一條提案」，並回報其他同樣可行的單條提案。
     ///
     /// 單一 n-gram 的假設遠比組合來得可信：組合之所以出現，多半只是因為貪婪縮減
     /// 卡在「恰好打平」的邊界上（兩條路徑同分時，少一條就翻不回來）。與其回報
     /// 兩條互相依賴的提案，不如讓單一條稍微抬高一點。
+    ///
+    /// 首選取證據等級最低者；同級之中取「絕對頻次改動」最小者——倍率相同時，
+    /// 4 → 63 遠比 7093 → 110116 可信。若首選需跨一個數量級地改寫既有頻次，
+    /// 就續收其他可行的單條提案：那時條件機率的 n-gram 往往是更誠實的說法。
     private func consolidate(
       _ minimal: [Yukuaki.Gram],
+      candidates: [Yukuaki.Gram],
       readingChain: [String],
-      expected: String
+      expected: String,
+      specBuilder: (Yukuaki.Gram, Double) -> Yukuaki.GramSpec
     )
-      -> [Yukuaki.Gram] {
-      guard minimal.count > 1 else { return minimal }
-      var ordered = minimal.sorted { tier(of: $0) < tier(of: $1) }
-      while !ordered.isEmpty {
-        let candidate = ordered[0]
-        if searchWorkingMargin(
+      -> (chosen: [Yukuaki.Gram], runnerUps: [(gram: Yukuaki.Gram, margin: Double)]) {
+      func marginIfViable(_ candidate: Yukuaki.Gram) -> Double? {
+        guard let workingMargin = searchWorkingMargin(
           readingChain: readingChain,
           expected: expected,
           candidates: [candidate]
-        ) != nil {
-          return [candidate]
-        }
-        ordered.removeFirst()
+        ) else { return nil }
+        return tighten(
+          candidates: [candidate],
+          readingChain: readingChain,
+          expected: expected,
+          workingMargin: workingMargin
+        )
       }
-      return minimal
+      let ordered = candidates.sorted { lhs, rhs in
+        if tier(of: lhs) != tier(of: rhs) { return tier(of: lhs) < tier(of: rhs) }
+        return sortKey(of: lhs) < sortKey(of: rhs)
+      }
+      var viable = [(gram: Yukuaki.Gram, margin: Double)]()
+      var chosenTier: Yukuaki.GramSpec.Tier?
+      for candidate in ordered {
+        let candidateTier = tier(of: candidate)
+        if let chosenTier, candidateTier > chosenTier { break }
+        guard let margin = marginIfViable(candidate) else { continue }
+        viable.append((candidate, margin))
+        chosenTier = candidateTier
+      }
+      guard !viable.isEmpty else { return (minimal, []) }
+      func editCost(_ item: (gram: Yukuaki.Gram, margin: Double)) -> Double {
+        let spec = specBuilder(item.gram, item.margin)
+        guard let required = spec.requiredCount, let existing = spec.existingCount else { return 0 }
+        return abs(required - existing)
+      }
+      guard let chosen = viable.min(by: { editCost($0) < editCost($1) }) else { return (minimal, []) }
+      let chosenSpec = specBuilder(chosen.gram, chosen.margin)
+      guard chosenSpec.isOverCountBudget(threshold: options.maxCountMultiplier) else {
+        return ([chosen.gram], [])
+      }
+      var runnerUps = viable.filter { sortKey(of: $0.gram) != sortKey(of: chosen.gram) }
+      for candidate in ordered {
+        guard tier(of: candidate) > (chosenTier ?? .addUnigram) else { continue }
+        guard !runnerUps.contains(where: { sortKey(of: $0.gram) == sortKey(of: candidate) }) else { continue }
+        guard let margin = marginIfViable(candidate) else { continue }
+        runnerUps.append((candidate, margin))
+      }
+      return ([chosen.gram], runnerUps)
     }
 
     private func validate(

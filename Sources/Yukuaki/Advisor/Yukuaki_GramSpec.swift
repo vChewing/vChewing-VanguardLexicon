@@ -19,6 +19,7 @@ extension Yukuaki {
       role: Role,
       requiredProbability: Double,
       requiredCount: Double? = nil,
+      existingCount: Double? = nil,
       norm: Double? = nil,
       denominator: Double? = nil,
       denominatorSource: DenominatorSource = .normalizedBaseline,
@@ -32,6 +33,7 @@ extension Yukuaki {
       self.role = role
       self.requiredProbability = requiredProbability
       self.requiredCount = requiredCount
+      self.existingCount = existingCount
       self.norm = norm
       self.denominator = denominator
       self.denominatorSource = denominatorSource
@@ -45,6 +47,7 @@ extension Yukuaki {
       requiredProbability: Double,
       norm: Double?,
       contextCount: Double? = nil,
+      existingCount: Double? = nil,
       tier: Tier = .addUnigram
     ) {
       let kind: Kind = gram.isTrigram ? .trigram : (gram.isBigram ? .bigram : .unigram)
@@ -64,6 +67,7 @@ extension Yukuaki {
           value: gram.current,
           denominator: denominator
         ),
+        existingCount: existingCount,
         norm: norm,
         denominator: denominator,
         denominatorSource: denominatorSource,
@@ -158,6 +162,9 @@ extension Yukuaki {
     /// 由該分數逆推出來的出現頻次。辭典未提供正規化基準時為 `nil`。
     public let requiredCount: Double?
 
+    /// 該詞條的現行頻次（可由既有 gram 的分數逆推）。僅 unigram 有值。
+    public let existingCount: Double?
+
     /// 逆推時採用的正規化基準。
     public let norm: Double?
 
@@ -167,6 +174,9 @@ extension Yukuaki {
     /// 上述分母的來源。
     public let denominatorSource: DenominatorSource
 
+    /// 匯出原廠多字圖列時所用的名義分母（與 P336 之腳本一致）。
+    public static let nominalDenominator: Double = 1_000
+
     /// 該提案的證據等級。
     public let tier: Tier
 
@@ -174,6 +184,77 @@ extension Yukuaki {
     public var countThreshold: Int? {
       guard let requiredCount, requiredCount.isFinite, requiredCount >= 1 else { return nil }
       return Int(requiredCount.rounded(.up))
+    }
+
+    /// 所需頻次相對現行頻次的倍率。
+    ///
+    /// 只有 `adjustCount` 有意義：`fillMissingCount` 的既有頻次是零頻次基線（0.25），
+    /// 倍率再大也只是「補上缺失頻次」，不是改寫既有詞頻。
+    public var countMultiplier: Double? {
+      guard tier == .adjustCount, let requiredCount, let existingCount, existingCount > 0 else { return nil }
+      return requiredCount / existingCount
+    }
+
+    /// 可直接貼進 `userdata-{cht,chs}.txt` 的一列（僅 n-gram 提案）。
+    ///
+    /// 前文鏈由舊至新以 `|` 相接，分數取「剛好夠用」的邊界；實際寫入時可視情況加嚴。
+    public var userDataRow: String? {
+      guard kind != .unigram else { return nil }
+      let chain = [anterior, previous].compactMap { $0 }.joined(separator: "|")
+      guard !chain.isEmpty else { return nil }
+      let reading = keyArray.joined(separator: "-")
+      let score = String(format: "%.4f", requiredProbability)
+      return "\(current) \(reading) \(score) #NGRAM:\(chain)"
+    }
+
+    /// 原廠多字圖列（`phrases-ngram-*.txt`）所需的整數次數。
+    ///
+    /// 與 `Dict_NewPhrasesPreparer`（P336）同式：`次數 = max(1, round(D × 10^分數 / e^(詞長/3 − 1)))`。
+    /// 名義分母之下限為 `log10(e^(詞長/3 − 1) / D)`；比它更弱的分數一律被抬成 1 次（因而變強）。
+    public func factoryCount(nominalDenominator: Double = GramSpec.nominalDenominator) -> Int? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      let raw = nominalDenominator * pow(10, requiredProbability) / scale
+      guard raw.isFinite, raw > 0 else { return nil }
+      return max(1, Int(raw.rounded()))
+    }
+
+    /// 名義分母之下限分數（比它更弱者無法以整數次數表達）。
+    public func nominalFloor(nominalDenominator: Double = GramSpec.nominalDenominator) -> Double? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      return log10(scale / nominalDenominator)
+    }
+
+    /// 以「1 次」表達該分數所需的最小名義分母。
+    ///
+    /// 現行名義分母（1000）不足以表達弱分數時，維護者可據此判斷要不要調大分母。
+    public func minimalNominalDenominator() -> Double? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      let value = scale / pow(10, requiredProbability)
+      return value.isFinite ? value : nil
+    }
+
+    /// 該提案的分數是否弱於名義分母之下限。
+    public func isBelowNominalFloor(nominalDenominator: Double = GramSpec.nominalDenominator) -> Bool {
+      guard let floor = nominalFloor(nominalDenominator: nominalDenominator) else { return false }
+      return requiredProbability < floor
+    }
+
+    /// 可直接貼進 `phrases-ngram-{cht,chs}.txt` 的一列（僅 n-gram 提案）。
+    ///
+    /// 欄序與 P336 之匯出腳本一致：`詞值<TAB>次數<TAB>讀音<TAB>前文鏈<TAB>count(前文)`；
+    /// 讀音與前文鏈皆以單一空格分格，前文鏈由舊至新。
+    public func factoryRow(nominalDenominator: Double = GramSpec.nominalDenominator) -> String? {
+      guard let count = factoryCount(nominalDenominator: nominalDenominator) else { return nil }
+      let chain = [anterior, previous].compactMap { $0 }.joined(separator: " ")
+      guard !chain.isEmpty else { return nil }
+      let reading = keyArray.joined(separator: " ")
+      return [current, "\(count)", reading, chain, "\(Int(nominalDenominator))"].joined(separator: "\t")
     }
 
     /// 該詞條對應的 Gram。
@@ -207,6 +288,17 @@ extension Yukuaki {
       return count.isFinite ? count : nil
     }
 
+    /// 所需頻次是否已逾「補頻次」的合理範圍。
+    ///
+    /// 這與證據等級描述的是兩件事：等級說「這是哪一種新事實」，倍率說「這個改動有多大」。
+    /// 把一個既有詞的頻次抬高一個數量級，已經不是「它原本被低估了一點」，而是重寫該詞
+    /// 在語料裡的分量——全域生效、且與其他句子互相牽連。屆時一條條件機率的 n-gram
+    /// 往往是更誠實的說法，故由 `Advisor` 降級為替代方案。
+    public func isOverCountBudget(threshold: Double) -> Bool {
+      guard let countMultiplier else { return false }
+      return countMultiplier > threshold
+    }
+
     /// 人類可讀的一行摘要。
     public func summary(separator: String = "-") -> String {
       let reading = keyArray.joined(separator: separator)
@@ -227,6 +319,9 @@ extension Yukuaki {
         pieces.append("count ≥ \(countThreshold)\(basis)")
       } else if let requiredCount {
         pieces.append(String(format: "所需 count %.2f\(basis)（不足 1，現行基準無法達成）", requiredCount))
+      }
+      if let countMultiplier, let existingCount {
+        pieces.append(String(format: "現行約 %.0f，倍率 %.1f×", existingCount, countMultiplier))
       }
       pieces.append("證據等級：\(tier.label)")
       return pieces.joined(separator: "｜")

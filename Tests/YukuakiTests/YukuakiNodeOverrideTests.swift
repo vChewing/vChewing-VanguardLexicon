@@ -9,7 +9,7 @@ import Testing
 
 /// 節點覆寫型別在組句期間的語義。
 ///
-/// P325 的右文脈 DP 會對**同一個節點**以多組前文反覆估值，所以估值的兩個產物
+/// P325 的正向文脈 DP 會對**同一個節點**以多組前文反覆估值，所以估值的兩個產物
 /// （「得多少分」與「該選哪一條 gram」）必須分開說清楚；否則兩引擎會在同一份資料上
 /// 給出不同的字，或同一引擎連兩次組句都給出不同的字。
 @Suite("Yukuaki：節點覆寫與估值")
@@ -60,7 +60,7 @@ struct YukuakiNodeOverrideTests {
     #expect(abs(evaluation.score - Yukuaki.Node.defaultOverridingScore) < 1e-6)
   }
 
-  /// 節點必有單元圖：只帶右文脈之節點在建構時會被補上一條無語境單元圖，與 Homa 側一致。
+  /// 節點必有單元圖：只帶正向文脈之節點在建構時會被補上一條無語境單元圖，與 Homa 側一致。
   @Test("Yukuaki：節點沒有單元圖時補一條保險單元圖")
   func seedsFallbackUnigram() throws {
     let contextual = Yukuaki.Gram(keyArray: ["ㄅ"], current: "八", previous: "這", probability: -2)

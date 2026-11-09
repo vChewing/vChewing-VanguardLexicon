@@ -5,7 +5,7 @@
 import Testing
 @testable import Yukuaki
 
-// MARK: - IncomingContextLexicon
+// MARK: - FrontContextLexicon
 
 /// 三個案例共用的辭典。分數不是語料統計值，而是「讓三個案例同時成立」的示範值。
 ///
@@ -16,8 +16,8 @@ import Testing
 ///   三個案例才有可能同時成立。
 ///
 /// 這個窗口本身就是 P325 的結論之一：在現行「語境加成須高於同名節點 unigram 基線、
-/// 且逐項對數相加」的計分模型下，右文脈 n-gram 的可用權重範圍是被案例本身夾死的。
-private enum IncomingContextLexicon {
+/// 且逐項對數相加」的計分模型下，正向文脈 n-gram 的可用權重範圍是被案例本身夾死的。
+private enum FrontContextLexicon {
   // MARK: Internal
 
   static let baseGrams: [Yukuaki.Gram] = [
@@ -101,17 +101,17 @@ private enum IncomingContextLexicon {
   }
 }
 
-// MARK: - YukuakiIncomingContextTests
+// MARK: - YukuakiFrontContextTests
 
-/// 「右文脈」＝組句當下的前文不足以定案、必須等右邊的詞進來才知道該選哪個同音詞。
+/// 「正向文脈」＝組句當下的前文不足以定案、必須等後續的詞進來才知道該選哪個同音詞。
 ///
 /// 這三支測試若改回「只以位置為 DP 狀態」的舊演算法，第二、三支會失敗：
 /// 「再」在「要」後面就先輸給「在」而被砍掉，之後「這樣」帶來的 B01 加成永遠沒機會生效。
-@Suite("Yukuaki：右文脈 DP")
-struct YukuakiIncomingContextTests {
+@Suite("Yukuaki：正向文脈 DP")
+struct YukuakiFrontContextTests {
   @Test("案例 1：預設就該選「在」，不需要任何 n-gram 資料")
   func caseOneDefaultsToZai4() throws {
-    let assembler = IncomingContextLexicon.assembler(withBigram: false, withTrigram: false)
+    let assembler = FrontContextLexicon.assembler(withBigram: false, withTrigram: false)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄌㄧˇ"])
     // 組句會就地把勝出之 gram 寫回節點，故一律先取值再斷言（Swift Testing 失敗診斷會二次求值）。
     let result = assembler.assembleWithScore()
@@ -121,7 +121,7 @@ struct YukuakiIncomingContextTests {
 
   @Test("案例 2：B01 讓「再」翻盤")
   func caseTwoFlipsToZai4WithBigram() throws {
-    let assembler = IncomingContextLexicon.assembler(withTrigram: false)
+    let assembler = FrontContextLexicon.assembler(withTrigram: false)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "再", "這樣"])
@@ -130,7 +130,7 @@ struct YukuakiIncomingContextTests {
 
   @Test("案例 2 的負控：拿掉 B01 就退回「在」")
   func caseTwoFallsBackWithoutBigram() throws {
-    let assembler = IncomingContextLexicon.assembler(withBigram: false, withTrigram: false)
+    let assembler = FrontContextLexicon.assembler(withBigram: false, withTrigram: false)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "在", "這樣"])
@@ -141,7 +141,7 @@ struct YukuakiIncomingContextTests {
   /// 總分因而由舊模型的 −19.209 提高 1.0 至 −18.209。
   @Test("案例 3：T01 用前前驗詞把「在」扳回來")
   func caseThreeRestoresZai4WithTrigram() throws {
-    let assembler = IncomingContextLexicon.assembler()
+    let assembler = FrontContextLexicon.assembler()
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "在", "這樣", "的"])
@@ -150,7 +150,7 @@ struct YukuakiIncomingContextTests {
 
   @Test("案例 3 的負控：拿掉 T01 就退回「再」")
   func caseThreeFallsBackWithoutTrigram() throws {
-    let assembler = IncomingContextLexicon.assembler(withTrigram: false)
+    let assembler = FrontContextLexicon.assembler(withTrigram: false)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "再", "這樣", "的"])
@@ -158,7 +158,7 @@ struct YukuakiIncomingContextTests {
 
   @Test("重複組句不會漂移")
   func assemblyIsIdempotent() throws {
-    let assembler = IncomingContextLexicon.assembler()
+    let assembler = FrontContextLexicon.assembler()
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let first = assembler.assemble().map(\.value)
     let second = assembler.assemble().map(\.value)
@@ -212,7 +212,7 @@ struct YukuakiIncomingContextTests {
   /// 端到端：乙案（B01 令「再」勝出）之後，缺口列 `[在, *]` 把「在」扳回來。
   @Test("缺口列：把「在」扳回來")
   func gapRowRestoresZai4() throws {
-    let assembler = IncomingContextLexicon.assembler(withTrigram: false, withGapRow: true)
+    let assembler = FrontContextLexicon.assembler(withTrigram: false, withGapRow: true)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "在", "這樣", "的"])
@@ -222,7 +222,7 @@ struct YukuakiIncomingContextTests {
   /// 同一情境拿掉缺口列之後必須退回「再」。
   @Test("缺口列：拿掉就退回「再」")
   func gapRowNegativeControl() throws {
-    let assembler = IncomingContextLexicon.assembler(withTrigram: false)
+    let assembler = FrontContextLexicon.assembler(withTrigram: false)
     try assembler.insertKeys(["ㄅㄨˋ", "ㄧㄠˋ", "ㄗㄞˋ", "ㄓㄜˋ", "ㄧㄤˋ", "ㄉㄜ˙"])
     let result = assembler.assembleWithScore()
     #expect(result.path.map(\.value) == ["不", "要", "再", "這樣", "的"])

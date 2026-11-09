@@ -149,6 +149,9 @@ extension Yukuaki {
       case normalizedBaseline
     }
 
+    /// 匯出原廠多字圖列時所用的名義分母（與 P336 之腳本一致）。
+    public static let nominalDenominator: Double = 1_000
+
     public let kind: Kind
     public let keyArray: [String]
     public let current: String
@@ -173,9 +176,6 @@ extension Yukuaki {
 
     /// 上述分母的來源。
     public let denominatorSource: DenominatorSource
-
-    /// 匯出原廠多字圖列時所用的名義分母（與 P336 之腳本一致）。
-    public static let nominalDenominator: Double = 1_000
 
     /// 該提案的證據等級。
     public let tier: Tier
@@ -207,57 +207,6 @@ extension Yukuaki {
       return "\(current) \(reading) \(score) #NGRAM:\(chain)"
     }
 
-    /// 原廠多字圖列（`phrases-ngram-*.txt`）所需的整數次數。
-    ///
-    /// 與 `Dict_NewPhrasesPreparer`（P336）同式：`次數 = max(1, round(D × 10^分數 / e^(詞長/3 − 1)))`。
-    /// 名義分母之下限為 `log10(e^(詞長/3 − 1) / D)`；比它更弱的分數一律被抬成 1 次（因而變強）。
-    public func factoryCount(nominalDenominator: Double = GramSpec.nominalDenominator) -> Int? {
-      guard kind != .unigram else { return nil }
-      let scale = exp(Double(current.count) / 3 - 1)
-      guard scale > 0 else { return nil }
-      let raw = nominalDenominator * pow(10, requiredProbability) / scale
-      guard raw.isFinite, raw > 0 else { return nil }
-      return max(1, Int(raw.rounded()))
-    }
-
-    /// 名義分母之下限分數（比它更弱者無法以整數次數表達）。
-    public func nominalFloor(nominalDenominator: Double = GramSpec.nominalDenominator) -> Double? {
-      guard kind != .unigram else { return nil }
-      let scale = exp(Double(current.count) / 3 - 1)
-      guard scale > 0 else { return nil }
-      return log10(scale / nominalDenominator)
-    }
-
-    /// 以「1 次」表達該分數所需的最小名義分母。
-    ///
-    /// 現行名義分母（1000）不足以表達弱分數時，維護者可據此判斷要不要調大分母。
-    public func minimalNominalDenominator() -> Double? {
-      guard kind != .unigram else { return nil }
-      let scale = exp(Double(current.count) / 3 - 1)
-      guard scale > 0 else { return nil }
-      let value = scale / pow(10, requiredProbability)
-      return value.isFinite ? value : nil
-    }
-
-    /// 該提案的分數是否弱於名義分母之下限。
-    public func isBelowNominalFloor(nominalDenominator: Double = GramSpec.nominalDenominator) -> Bool {
-      guard let floor = nominalFloor(nominalDenominator: nominalDenominator) else { return false }
-      return requiredProbability < floor
-    }
-
-    /// 可直接貼進 `phrases-ngram-{cht,chs}.txt` 的一列（僅 n-gram 提案）。
-    ///
-    /// 欄序與 P336 之匯出腳本一致：`詞值 次數 讀音 前文鏈 count(前文)`。
-    /// 欄界是空白（空格或 TAB 皆可），但欄內不得再有空白：讀音以 `-` 連接、
-    /// 前文鏈以 `|` 連接（由舊至新）——故 TAB 被編輯器換成空格也不會歧義。
-    public func factoryRow(nominalDenominator: Double = GramSpec.nominalDenominator) -> String? {
-      guard let count = factoryCount(nominalDenominator: nominalDenominator) else { return nil }
-      let chain = [anterior, previous].compactMap { $0 }.joined(separator: "|")
-      guard !chain.isEmpty else { return nil }
-      let reading = keyArray.joined(separator: "-")
-      return [current, "\(count)", reading, chain, "\(Int(nominalDenominator))"].joined(separator: " ")
-    }
-
     /// 該詞條對應的 Gram。
     public var gram: Yukuaki.Gram {
       .init(
@@ -287,6 +236,57 @@ extension Yukuaki {
       guard scale > 0 else { return nil }
       let count = denominator * pow(10, probability) / scale
       return count.isFinite ? count : nil
+    }
+
+    /// 原廠多字圖列（`phrases-ngram-*.txt`）所需的整數次數。
+    ///
+    /// 與 `Dict_NewPhrasesPreparer`（P336）同式：`次數 = max(1, round(D × 10^分數 / e^(詞長/3 − 1)))`。
+    /// 名義分母之下限為 `log10(e^(詞長/3 − 1) / D)`；比它更弱的分數一律被抬成 1 次（因而變強）。
+    public func factoryCount(nominalDenominator: Double = Self.nominalDenominator) -> Int? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      let raw = nominalDenominator * pow(10, requiredProbability) / scale
+      guard raw.isFinite, raw > 0 else { return nil }
+      return max(1, Int(raw.rounded()))
+    }
+
+    /// 名義分母之下限分數（比它更弱者無法以整數次數表達）。
+    public func nominalFloor(nominalDenominator: Double = Self.nominalDenominator) -> Double? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      return log10(scale / nominalDenominator)
+    }
+
+    /// 以「1 次」表達該分數所需的最小名義分母。
+    ///
+    /// 現行名義分母（1000）不足以表達弱分數時，維護者可據此判斷要不要調大分母。
+    public func minimalNominalDenominator() -> Double? {
+      guard kind != .unigram else { return nil }
+      let scale = exp(Double(current.count) / 3 - 1)
+      guard scale > 0 else { return nil }
+      let value = scale / pow(10, requiredProbability)
+      return value.isFinite ? value : nil
+    }
+
+    /// 該提案的分數是否弱於名義分母之下限。
+    public func isBelowNominalFloor(nominalDenominator: Double = Self.nominalDenominator) -> Bool {
+      guard let floor = nominalFloor(nominalDenominator: nominalDenominator) else { return false }
+      return requiredProbability < floor
+    }
+
+    /// 可直接貼進 `phrases-ngram-{cht,chs}.txt` 的一列（僅 n-gram 提案）。
+    ///
+    /// 欄序與 P336 之匯出腳本一致：`詞值 次數 讀音 前文鏈 count(前文)`。
+    /// 欄界是空白（空格或 TAB 皆可），但欄內不得再有空白：讀音以 `-` 連接、
+    /// 前文鏈以 `|` 連接（由舊至新）——故 TAB 被編輯器換成空格也不會歧義。
+    public func factoryRow(nominalDenominator: Double = Self.nominalDenominator) -> String? {
+      guard let count = factoryCount(nominalDenominator: nominalDenominator) else { return nil }
+      let chain = [anterior, previous].compactMap { $0 }.joined(separator: "|")
+      guard !chain.isEmpty else { return nil }
+      let reading = keyArray.joined(separator: "-")
+      return [current, "\(count)", reading, chain, "\(Int(nominalDenominator))"].joined(separator: " ")
     }
 
     /// 所需頻次是否已逾「補頻次」的合理範圍。

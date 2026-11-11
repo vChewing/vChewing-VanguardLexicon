@@ -222,7 +222,7 @@ enum ChewingCBasedDatabaseGenerator {
       phrase: phrase,
       phones: phones.map { token in
         guard let encoded = ChewingPhoneEncoder.uintFromPhone(token) else {
-          preconditionFailure("Invalid exception phrase phone token: \(token)")
+          fatalError("Invalid exception phrase phone token: \(token)")
         }
         return encoded
       }
@@ -238,7 +238,7 @@ enum ChewingCBasedDatabaseGenerator {
           phrase.unicodeScalars.count == 1,
           let encoded = ChewingPhoneEncoder.uintFromPhone(phone)
     else {
-      preconditionFailure("Invalid exception word entry: \(phrase) / \(phone)")
+      fatalError("Invalid exception word entry: \(phrase) / \(phone)")
     }
     return ExceptionWordEntry(scalar: scalar.value, phone: encoded)
   }

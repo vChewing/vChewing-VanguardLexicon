@@ -97,7 +97,7 @@ let package = Package(
         ),
         .testTarget(
           name: "VanguardLexiconDebuggerTests",
-          dependencies: ["VanguardLexiconDebugger", "Yukuaki"]
+          dependencies: ["VanguardLexiconDebugger", "Yukuaki", "LibVanguardChewingData"]
         ),
         .testTarget(
           name: "VanguardLexiconCorpusMinerTests",

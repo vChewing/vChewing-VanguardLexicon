@@ -20,5 +20,4 @@ jobs:
       - name: Clean
         run: swift package clean
       - name: Test
-        # Swift 5 CI variant is intentionally not for running tests.
         run: swift --version && swift test -c release && swift run VCDataBuilder vanguardTextMap

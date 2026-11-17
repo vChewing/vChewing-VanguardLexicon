@@ -20,11 +20,12 @@ Linux 系统的话，请注意两个先决条件：
 
 ------
 
-目前整个仓库的建置代码已经全部重写。Makefile 目前的内容并未能反应该仓库的这次重写的变化，故只有下述三道命令可以正常使用：
+目前整个仓库的建置代码已经全部重写。Makefile 目前只维护下列命令；其余旧靶未随重写更新：
 
 - `make clean`
 - `make lint`
 - `make format`
+- `make textKVSTable-all`／`make textKVSTable-chs`／`make textKVSTable-cht`
 
 本仓库的格式化往往是 `make lint; make format` 按照这个顺序一次性执行格式化操作。
 
@@ -54,8 +55,8 @@ Linux 系统的话，请注意两个先决条件：
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
       chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文，純 Swift 生成器）
       chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
-      mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
-      mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
+      textKVSTableCHS   - 純文字 KVS 表（簡體中文；每行 `key value score`，無檔頭）
+      textKVSTableCHT   - 純文字 KVS 表（繁體中文；每行 `key value score`，無檔頭）
 
     注意：
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
@@ -64,6 +65,7 @@ Linux 系统的话，请注意两个先决条件：
       2. chewingRustCHS 與 chewingRustCHT 現由本倉庫內的純 Swift 產生器直接生成
          `tsi.dat` 與 `word.dat`，不再依賴外部 chewing-cli 或任何已安裝的新酷音工具。
          若要把建置產物回灌給 libchewing-rust 做 smoke test，再另行安裝 Rust 工具鏈即可。
+      3. textKVSTableCHS/CHT 只輸出純文字 KVS 表，不含任何格式檔頭；消費端自行決定如何解析。
 
     範例：
       // 給所有的建置目標全部建置一遍：

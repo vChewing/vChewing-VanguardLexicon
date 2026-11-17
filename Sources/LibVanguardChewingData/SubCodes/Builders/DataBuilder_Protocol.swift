@@ -481,8 +481,8 @@ extension VCDataBuilder {
     case chewingRustCHT
     case chewingCBasedCHS
     case chewingCBasedCHT
-    case mcbopomofoCHS
-    case mcbopomofoCHT
+    case textKVSTableCHS
+    case textKVSTableCHT
   }
 }
 
@@ -494,8 +494,8 @@ extension VCDataBuilder.BuilderType {
     case .chewingRustCHT: try await VCDataBuilder.ChewingRustDataBuilder(isCHS: false)
     case .chewingCBasedCHS: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: true)
     case .chewingCBasedCHT: try await VCDataBuilder.ChewingCBasedDataBuilder(isCHS: false)
-    case .mcbopomofoCHS: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: true)
-    case .mcbopomofoCHT: try await VCDataBuilder.McBopomofoDataBuilder(isCHS: false)
+    case .textKVSTableCHS: try await VCDataBuilder.TextKVSTableDataBuilder(isCHS: true)
+    case .textKVSTableCHT: try await VCDataBuilder.TextKVSTableDataBuilder(isCHS: false)
     }
   }
 

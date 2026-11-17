@@ -33,8 +33,7 @@ endif
 .PHONY: format lint clean dockertest dockerrun \
         build510 clean510 \
         install install-vchewing macv \
-        mcbpmf-all mcbpmf-chs mcbpmf-cht \
-        mcbpmf-install-fcitx5 \
+        textKVSTable-all textKVSTable-chs textKVSTable-cht \
         libchewing-all libchewing-chs libchewing-cht \
         libchewing-rust libchewing-install \
         libchewing-all-c libchewing-c-chs libchewing-c-cht \
@@ -128,31 +127,19 @@ else
 	@echo "\033[0;32m//$$(tput bold) macOS: 核心語彙檔案部署成功。$$(tput sgr0)\033[0m"
 endif
 
-# MARK: - McBopomofo (FCITX5-Linux)
+# MARK: - Text KVS Table
 
-mcbpmf-all: mcbpmf-chs mcbpmf-cht
+textKVSTable-all: textKVSTable-chs textKVSTable-cht
 
-mcbpmf-chs:
-	$(MAKE) mcbpmf LANG=CHS
+textKVSTable-chs:
+	$(MAKE) textKVSTable LANG=CHS
 
-mcbpmf-cht:
-	$(MAKE) mcbpmf LANG=CHT
+textKVSTable-cht:
+	$(MAKE) textKVSTable LANG=CHT
 
-mcbpmf:
+textKVSTable:
 	@$(eval LANG := $(shell echo $(LANG) | tr 'a-z' 'A-Z'))
-	swift run VCDataBuilder mcbopomofo$(LANG)
-
-mcbpmf-install-fcitx5: mcbpmf
-	@$(eval DEPLOY_DIR_MCBPMF_LINUX_FCITX5 := "/usr/share/fcitx5/data/")
-	@$(eval LANG := $(shell echo $(LANG) | tr 'A-Z' 'a-z'))
-	@$(eval BUILD_DIR_MCBPMF := "$(RELEASE_DIR)$(PATHSEP)mcbopomofo-$(shell echo $(LANG) | tr 'A-Z' 'a-z')")
-ifeq ($(OS),Windows_NT)
-	@echo "Windows 不支援 McBopomofo。"
-else
-	@$(MKDIR) $(DEPLOY_DIR_MCBPMF_LINUX_FCITX5)
-	@$(CP) "$(BUILD_DIR_MCBPMF)$(PATHSEP)data.txt" $(DEPLOY_DIR_MCBPMF_LINUX_FCITX5)
-	@echo "\033[0;32m//$$(tput bold) 已將詞庫檔案部署至 $(DEPLOY_DIR_MCBPMF_LINUX_FCITX5) 目錄下。$$(tput sgr0)\033[0m"
-endif
+	swift run VCDataBuilder textKVSTable$(LANG)
 
 # MARK: - LibChewing (Rust-Based)
 

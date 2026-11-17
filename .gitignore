@@ -203,7 +203,6 @@ ipch/
 MACVCompiler/*.fire.*
 MACVCompiler/[Bb]in
 Makefile.in
-mcbopomofo-data.txt
 nCrunchTemp_*
 Network Trash Folder
 node_modules/

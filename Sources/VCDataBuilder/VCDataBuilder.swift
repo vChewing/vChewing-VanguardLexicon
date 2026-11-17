@@ -28,8 +28,8 @@ struct Main {
       chewingRustCHT    - 新酷音輸入法引擎（0.6.0 開始的 Rust 語言版專用，繁體中文）
       chewingCBasedCHS  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，簡體中文，純 Swift 生成器）
       chewingCBasedCHT  - 新酷音輸入法引擎（0.5.1 為止的 C 語言版專用，繁體中文，純 Swift 生成器）
-      mcbopomofoCHS     - 小麥注音輸入法（簡體中文）// 不支援 PIME 版本
-      mcbopomofoCHT     - 小麥注音輸入法（繁體中文）// 不支援 PIME 版本
+      textKVSTableCHS   - 純文字 KVS 表（簡體中文；每行 `key value score`，無檔頭）
+      textKVSTableCHT   - 純文字 KVS 表（繁體中文；每行 `key value score`，無檔頭）
 
     注意：
       1. chewingCBasedCHS 與 chewingCBasedCHT 現由本倉庫內的純 Swift 產生器直接生成
@@ -38,6 +38,7 @@ struct Main {
       2. chewingRustCHS 與 chewingRustCHT 現由本倉庫內的純 Swift 產生器直接生成
          `tsi.dat` 與 `word.dat`，不再依賴外部 chewing-cli 或任何已安裝的新酷音工具。
          若要把建置產物回灌給 libchewing-rust 做 smoke test，再另行安裝 Rust 工具鏈即可。
+      3. textKVSTableCHS/CHT 只輸出純文字 KVS 表，不含任何格式檔頭；消費端自行決定如何解析。
 
     範例：
       // 給所有的建置目標全部建置一遍：

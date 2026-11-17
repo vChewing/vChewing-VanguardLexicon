@@ -51,6 +51,17 @@ extension VCDataBuilder.TextKVSTableDataBuilder {
       resultString.append("\(gram.key) \(gram.value) \(gram.score)")
       resultString.append("\n")
     }
+
+    // n-gram 列：第 4 欄沿用 userphrase 的 `#NGRAM:前文鏈` 文法。
+    // 消費端向來把第 4 欄起、以 `#` 起首的 cell 當註解；支援 n-gram 的消費端
+    // 再從該 cell 讀取前文鏈（`|` 分隔、由舊至新、最多兩詞；`*` 僅居鏈尾）。
+    let ngrams = await data.ngrams
+    ngrams.forEach { record in
+      let key = record.readings.joined(separator: "-")
+      let chain = record.context.joined(separator: "|")
+      resultString.append("\(key) \(record.value) \(record.score) #NGRAM:\(chain)")
+      resultString.append("\n")
+    }
     guard let data = resultString.joined().data(using: .utf8) else {
       throw VCDataBuilder.Exception.errMsg("Data encoding failed on assembling the text KVS table.")
     }

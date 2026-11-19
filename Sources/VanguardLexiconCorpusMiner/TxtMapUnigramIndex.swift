@@ -201,7 +201,7 @@ struct TxtMapUnigramIndex {
     key.components(separatedBy: separator)
   }
 
-  /// 讀音鍵必須是注音。詞庫 key-line-map 段同時收錄 `_alt_punctuation_'`、`_shift_*`
+  /// 讀音鍵必須是注音。詞庫 key-line-map 段同時收錄 `_alt_punct_'`、`_shift_*`
   /// 一類鍵位名（為符號鍵而設，並非任何字的讀音）；若混進多讀音判定，`一`、`的` 這類
   /// 常用字會被假的讀音撐破音字數，`--ambiguous-readings` 的統計便不可信。
   private static func isPhoneticReading(_ reading: [String]) -> Bool {

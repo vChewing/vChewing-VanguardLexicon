@@ -745,43 +745,4 @@ extension VCDataBuilder.Collector {
       return []
     }
   }
-
-  func getPunctuations() -> [VCDataBuilder.Unigram] {
-    do {
-      // 標點符號。
-      let fileNameStem = "data-punctuations"
-      let fileURL = Bundle.module.url(forResource: fileNameStem, withExtension: "txt")
-      guard let fileURL else { return [] }
-      let dataStr = try String(contentsOf: fileURL, encoding: .utf8)
-      var newUnigrams = [VCDataBuilder.Unigram]()
-      dataStr.enumerateLines { currentLine, _ in
-        let dataCells = currentLine.split(separator: " ")
-        guard dataCells.count == 3, dataCells.first?.first == "_" else { return }
-        newUnigrams.append(
-          .init(
-            key: dataCells[0].description,
-            value: dataCells[1].description,
-            score: 0, // 標點權重是 0
-            count: 0,
-            category: .misc
-          )
-        )
-      }
-      if VCDataBuilder.TestSampleFilter.isEnabled {
-        var filtered = [VCDataBuilder.Unigram]()
-        var punctuationListCount = 0
-        for unigram in newUnigrams {
-          if unigram.key == "_punctuation_list" {
-            guard punctuationListCount < 11 else { continue }
-            punctuationListCount += 1
-          }
-          filtered.append(unigram)
-        }
-        return filtered
-      }
-      return newUnigrams
-    } catch {
-      return []
-    }
-  }
 }

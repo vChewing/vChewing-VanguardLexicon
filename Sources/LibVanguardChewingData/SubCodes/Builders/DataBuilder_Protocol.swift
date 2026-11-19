@@ -219,13 +219,6 @@ extension VCDataBuilder.TriePreparatorProtocol {
             return (VanguardTrie.Trie.EntryType.zhuyinwen.rawValue, insertions)
           }
           subGroup.addTask {
-            // 字母與標點符號
-            let insertions = await self.data.getPunctuations().compactMap {
-              $0.asPreparedTypingTrieInsertion(type: .letterPunctuations)
-            }
-            return (VanguardTrie.Trie.EntryType.letterPunctuations.rawValue, insertions)
-          }
-          subGroup.addTask {
             // CNS 全字庫
             let insertions = await self.data.tableKanjiCNS.values.flatMap { $0 }.compactMap {
               $0.asPreparedTypingTrieInsertion(type: .cns)

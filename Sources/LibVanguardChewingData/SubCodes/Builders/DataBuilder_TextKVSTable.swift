@@ -41,7 +41,6 @@ extension VCDataBuilder.TextKVSTableDataBuilder {
   public func getIteratorForLexiconAssemblyTask() async throws -> VCDataBuilder.ChunkIterator {
     var resultString = [String]()
     var grams = await data.getAllUnigrams(isCHS: isCHS, sorted: false)
-    grams.append(contentsOf: await data.getPunctuations())
     grams.append(contentsOf: await data.getSymbols())
     grams.append(contentsOf: await data.getZhuyinwen())
     grams = grams.sorted { lhs, rhs -> Bool in

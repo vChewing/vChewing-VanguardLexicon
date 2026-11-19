@@ -292,18 +292,21 @@ struct CorpusMinerBacklogSafetyTests {
   }
 }
 
-// MARK: - P332ReadingsAndEvidenceTests
+// MARK: - CorpusMinerReadingsAndEvidenceTests
 
-struct P332ReadingsAndEvidenceTests {
+struct CorpusMinerReadingsAndEvidenceTests {
   @Test
   func pseudoReadingsAreNotPronunciations() {
-    // 詞庫的 key-line-map 段另有 `_alt_punctuation_*` 一類鍵位名（為符號鍵而設），
+    // 詞庫的 key-line-map 段另有 `_alt_punct_*` 一類鍵位名（為符號鍵而設），
     // 若把它們算成讀音，`一`、`的` 這類常用字會被假的讀音撐破音字數。
+    // 此處刻意放入 `_alt_punct_1`：它模擬舊 key-line-map 為符號鍵所寫的 pseudo-reading，
+    // 與「一」真正的讀音 `ㄧ` 併存；若 `isPhoneticReading` 失效，「一」會被記成兩個讀音，
+    // 本測試即紅。它不代表標點本身，而是這條過濾器的實際語料邊界。
     let index = TxtMapUnigramIndex(
       norm: 1_000,
       entries: [
         ("一", -2.0, ["ㄧ"]),
-        ("一", -2.0, ["_alt_punctuation_1"]),
+        ("一", -2.0, ["_alt_punct_1"]),
       ]
     )
     #expect(index.unigram("一")?.readings.count == 1)

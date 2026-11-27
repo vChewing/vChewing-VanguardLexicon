@@ -297,7 +297,9 @@ extension Yukuaki {
     private func baseGrams(keys: [String]) -> [Yukuaki.Gram] {
       let cacheKey = keys.joined(separator: "-")
       if let cached = baseQueryCache[cacheKey] { return cached }
-      let grams = gramQuerier(keys.map { Yukuaki.PossibleKey.singleKey($0) })
+      // 與組句器同一去重規則：否則「同值多筆」會令 `tier(of:)` 之 `first(where:)`
+      // 取到較低分那筆，把「頻次不足」誤判成「零頻次」。
+      let grams = gramQuerier(keys.map { Yukuaki.PossibleKey.singleKey($0) }).consolidated()
       if grams.contains(where: { !$0.isUnigram }) { seenContextual = true }
       baseQueryCache[cacheKey] = grams
       return grams

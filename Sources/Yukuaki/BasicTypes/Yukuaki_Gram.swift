@@ -106,10 +106,43 @@ extension Yukuaki {
       guard !context.isEmpty else { return body }
       return "\(body) [\(context)]"
     }
+
+    // MARK: Internal
+
+    /// 去重身分：讀音鍵＋詞值＋前文鏈。
+    ///
+    /// 以字串拼成，與 `LexiconAssembly` 之 `Homa.Gram.consolidate` 同法（那邊只拼
+    /// 詞值與前文鏈，因它一次只處理單一節點；此處把讀音鍵也納入，令本函式在混鍵陣列上亦成立）。
+    var consolidationIdentity: String {
+      [keyArray.joined(separator: "-"), current, previous ?? "", anterior ?? ""]
+        .joined(separator: "\u{1}")
+    }
   }
 }
 
 extension Array where Element == Yukuaki.Gram {
+  /// 以「讀音鍵＋詞值＋前文鏈」為身分去重，同身分留機率最高者（同分則留先出現者）。
+  ///
+  /// 身分規則與 `vChewing-LibVanguard` 之 `Array<Homa.Gram>.consolidate(filter:)` 一致；
+  /// 差別只在「留哪筆」——引擎靠呼叫端排序而以第一筆為準（次序即語義），此處直接比分數，
+  /// 因為本套件沒有使用者片語層。前文條目不得按詞值合併：同一詞值在不同前文下是不同的統計條目。
+  public func consolidated() -> [Yukuaki.Gram] {
+    var indexByIdentity = [String: Int]()
+    var result = [Yukuaki.Gram]()
+    result.reserveCapacity(count)
+    for gram in self {
+      let identity = gram.consolidationIdentity
+      guard let existingIndex = indexByIdentity[identity] else {
+        indexByIdentity[identity] = result.count
+        result.append(gram)
+        continue
+      }
+      guard gram.probability > result[existingIndex].probability else { continue }
+      result[existingIndex] = gram
+    }
+    return result
+  }
+
   /// 將一組 gram 拆成 unigram 與 bigram 兩堆（trigram 不列入 bigram）。
   public var asGramTypes: (unigrams: [Yukuaki.Gram], bigrams: [Yukuaki.Gram]) {
     (filter(\.isUnigram), filter(\.isBigram))

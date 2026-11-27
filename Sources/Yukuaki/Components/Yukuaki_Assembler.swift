@@ -206,11 +206,10 @@ extension Yukuaki {
     private func queryGrams(_ keys: [Yukuaki.PossibleKey]) -> [Yukuaki.Gram] {
       let cacheKey = QueryCacheKey(keys: keys)
       if let cached = gramQueryCache[cacheKey] { return cached }
-      var seen = Set<Yukuaki.Gram>()
-      var result = [Yukuaki.Gram]()
-      for gram in gramQuerier(keys) where seen.insert(gram).inserted {
-        result.append(gram)
-      }
+      // 去重：同（讀音鍵, 詞值, 前文鏈）只留機率最高者——與引擎側 `consolidate` 同身分規則。
+      // 舊制以 `Set<Gram>` 去重，而 `Gram` 之 `Hashable` 含 `probability`，故只砍「完全相同」的
+      // 兩筆；同值不同分（如某字同時有 `@` 列與 `>7` 列）會並存進節點。
+      var result = gramQuerier(keys).consolidated()
       result.sort(by: Yukuaki.Node.sortGram)
       if gramQueryCache.count >= Self.maxCachedQueries { gramQueryCache.removeAll(keepingCapacity: true) }
       gramQueryCache[cacheKey] = result

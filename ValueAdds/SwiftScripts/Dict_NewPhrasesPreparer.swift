@@ -7,7 +7,11 @@
 // 開發用私人腳本，將自己記錄的新詞的內容同步到先鋒語料庫內。
 //
 // 兩條輸出：
-// ① `phrases-{cht,chs}.txt` 之單元圖列（`字詞 次數 讀音`）——既有行為。
+// ① `phrases-{cht,chs}.txt` 之單元圖列（`字詞 次數 讀音 [#NERFED]`）——既有行為；
+//    使用者片語辭典內權重 `<= -114.514`（就地降頻至地板）者匯出為 `字詞 0 讀音 #NERFED`：
+//    產製端見此旗標即令頻次為 0、權重恆為 -114.514（懲戒權重）。
+//    判定用「地板」而非「-114 以下」：`-114.4` 這類值只是很低的權重，不是懲戒——
+//    若把它也標成 `#NERFED`，等於把 -114.4 悄悄改成 -114.514。
 // ② `phrases-ngram-{cht,chs}.txt` 之多字圖列（`詞值 次數 讀音 前文鏈 count(前文)`）——
 //    來源是使用者片語辭典內以 `#NGRAM:前文鏈` 宣告之列。
 //
@@ -24,6 +28,10 @@ import Foundation
 
 /// 分數 → 次數換算所用之名義分母。
 let nominalDenominator: Double = 1_000
+
+/// 降權（nerf）之地板權重：與輸入法端 `LibVanguard` 之懲戒值同值。
+/// 低於或等於此值者視為已被就地降頻；在其之上者（如 `-114.4`）只是很低的權重。
+let nerfFloorWeight: Double = -114.514
 
 func readUserDataFile(at path: String, label: String) -> String? {
   do {
@@ -66,10 +74,13 @@ struct Phrase {
   var isOverridden = false
   var requireKanjiCheck = false
   var isGame = false
+  /// 使用者以「就地降頻」壓到懲戒權重（`-114.514`）者：匯出為 `#NERFED` 列。
+  /// 此類列之頻次一律 0，產製端逕給 `-114.514`，不經正規化折算。
+  var isNerfed = false
 
   var reportAsCells: [String] {
     [
-      "\(text) \(count) \(pronunciation)",
+      [text, "\(count)", pronunciation].joined(separator: " ") + nerfCell,
       isGame ? "#電玩" : "",
       isOverridden ? "#複寫" : "",
       requireKanjiCheck ? "#錯字檢查" : "",
@@ -77,8 +88,11 @@ struct Phrase {
   }
 
   var reportAsBareCells: [String] {
-    ["\(text) \(count) \(pronunciation)"]
+    [[text, "\(count)", pronunciation].joined(separator: " ") + nerfCell]
   }
+
+  /// 行尾之 `#NERFED` 旗標格（未帶旗標者為空字串）。
+  private var nerfCell: String { isNerfed ? " #NERFED" : "" }
 }
 
 // MARK: - NGramRow
@@ -166,8 +180,10 @@ func makeUnigrams(from rawString: String) -> [Phrase] {
     if line.contains(" #GAME") { phrase.isGame = true } // 得手動檢查升頻值。
     if cells.count >= 3, let weightValue = Double(cells[2].description) {
       switch weightValue {
-      case ..<(-114): phrase.count = 0
-      case -114 ..< 0: phrase.count = 2
+      case ...nerfFloorWeight: // 已被就地降頻至地板 ⇒ `#NERFED` 列。
+        phrase.count = 0
+        phrase.isNerfed = true
+      case ..<0: phrase.count = 2
       default: phrase.count = phrase.isOverridden ? 4_444_444 : 4
       }
     }

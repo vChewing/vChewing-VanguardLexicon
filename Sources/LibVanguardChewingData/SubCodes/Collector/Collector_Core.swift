@@ -216,6 +216,104 @@ extension [VCDataBuilder.Unigram.Category: [String: VCDataBuilder.Unigram.GramSe
 
 // MARK: - Extending Unigram APIs.
 
+extension VCDataBuilder {
+  /// 詞語資料列之旗標（`#` 起首之格）。目前只有 `#NERFED`。
+  public enum PhraseFlag: String, CaseIterable, Sendable, Hashable {
+    /// 懲戒詞條：頻次恆為 0、權重恆為 `Unigram.nerfedWeight`。
+    case nerfed = "NERFED"
+
+    // MARK: Lifecycle
+
+    /// 自一格（含 `#` 前綴）解析；大小寫不拘，未知旗標回傳 `nil`。
+    init?(cell: String) {
+      guard cell.hasPrefix("#") else { return nil }
+      self.init(rawValue: String(cell.dropFirst()).uppercased())
+    }
+
+    // MARK: Public
+
+    /// 該旗標是否為 `#NERFED`。
+    public var isNerfed: Bool { self == .nerfed }
+  }
+
+  /// 一列詞語資料之剖析結果（`詞語 頻次 讀音… [#旗標…]`）。
+  public struct PhraseRow: Sendable, Hashable {
+    public let value: String
+    public let reading: String
+    public let count: Int
+    public let isNerfed: Bool
+  }
+
+  /// 詞語資料列剖析失敗之原因（供健檢彙報用）。
+  public struct PhraseRowParseError: Error, Sendable, Hashable {
+    public let reason: String
+  }
+}
+
+extension VCDataBuilder.Unigram {
+  /// 剖析一列詞語資料。
+  ///
+  /// 格式：`詞語 頻次 讀音…`，讀音每格一個音節、以 `-` 串接後即索引鍵。
+  /// 自第一個 `#` 起首之格起，其後皆為旗標（如 `#NERFED`）；旗標之後不得再有讀音格。
+  /// - Parameters:
+  ///   - lineData: 已正規化（相容模式之標記已濾除）之單列資料。
+  /// - Returns: 剖析結果；`nil` 代表該列不是有效資料列（詞語或讀音為空）。
+  /// - Throws: `VCDataBuilder.PhraseRowParseError`——欄位不足、頻次非整數、未知旗標、
+  ///   或讀音格落於旗標之後。
+  public static func parsePhraseRow(_ lineData: String) throws -> VCDataBuilder.PhraseRow? {
+    let components = lineData.components(separatedBy: " ")
+
+    // 檢查最小欄位數量 (詞語, 頻次, 讀音)
+    guard components.count >= 3 else {
+      throw VCDataBuilder.PhraseRowParseError(
+        reason: "Entry must have at least 3 fields: phrase, frequency, and pronunciation. Found \(components.count) field(s)."
+      )
+    }
+
+    let phrase = components[0]
+
+    // 檢查頻次欄位是否合理
+    guard let occurrence = Int(components[1]) else {
+      throw VCDataBuilder.PhraseRowParseError(
+        reason: "Frequency field '\(components[1])' is not a valid integer. Expected format: 詞語 頻次 讀音串"
+      )
+    }
+
+    var readingCells = [String]()
+    var isNerfed = false
+    var hasSeenFlag = false
+    for cell in components.dropFirst(2) {
+      if cell.first == "#" {
+        hasSeenFlag = true
+        guard let flag = VCDataBuilder.PhraseFlag(cell: cell) else {
+          let knownFlags = VCDataBuilder.PhraseFlag.allCases.map { "#" + $0.rawValue }
+            .joined(separator: "、")
+          throw VCDataBuilder.PhraseRowParseError(
+            reason: "Unknown flag '\(cell)'. Known flags: \(knownFlags)."
+          )
+        }
+        if flag.isNerfed { isNerfed = true }
+        continue
+      }
+      guard !hasSeenFlag else {
+        throw VCDataBuilder.PhraseRowParseError(
+          reason: "Reading cells must precede flags; found '\(cell)' after a flag."
+        )
+      }
+      readingCells.append(cell)
+    }
+
+    let phone = readingCells.joined(separator: "-")
+    guard !phrase.isEmpty, !phone.isEmpty else { return nil }
+    return VCDataBuilder.PhraseRow(
+      value: phrase,
+      reading: phone,
+      count: isNerfed ? 0 : occurrence,
+      isNerfed: isNerfed
+    )
+  }
+}
+
 extension VCDataBuilder.Unigram.Category {
   func regex4FileNameMatching4Phrases(isCHS: Bool) -> String? {
     let suffix = isCHS ? "chs" : "cht"
@@ -446,35 +544,24 @@ extension VCDataBuilder.Unigram {
             guard !handledHashes.contains(lineData.hashValue) else { continue }
             handledHashes.insert(lineData.hashValue)
             guard !lineData.isEmpty else { continue }
-            let components = lineData.components(separatedBy: " ")
 
-            // 檢查最小欄位數量 (詞語, 頻次, 讀音)
-            guard components.count >= 3 else {
+            // 逐列剖析：欄位不足、頻次非整數、未知旗標、讀音格落於旗標之後者一律記入錯誤。
+            let row: VCDataBuilder.PhraseRow
+            do {
+              guard let parsedRow = try Self.parsePhraseRow(lineData) else { continue }
+              row = parsedRow
+            } catch let parseError as VCDataBuilder.PhraseRowParseError {
               let errorMsg = VCDataBuilder.Exception.invalidPhraseFormat(
                 file: fileURL.lastPathComponent,
                 line: lineData,
-                reason: "Entry must have at least 3 fields: phrase, frequency, and pronunciation. Found \(components.count) field(s)."
+                reason: parseError.reason
               ).errorDescription ?? "Unknown error"
               collectedErrors.append(errorMsg)
               continue
             }
 
-            let phrase = components[0].description
-
-            // 檢查頻次欄位是否合理
-            guard let occurrence = Int(components[1]) else {
-              let errorMsg = VCDataBuilder.Exception.invalidPhraseFormat(
-                file: fileURL.lastPathComponent,
-                line: lineData,
-                reason: "Frequency field '\(components[1])' is not a valid integer. Expected format: 詞語 頻次 讀音串"
-              ).errorDescription ?? "Unknown error"
-              collectedErrors.append(errorMsg)
-              continue
-            }
-
-            let phone = components[2...].joined(separator: "-")
-
-            guard !phrase.isEmpty, !phone.isEmpty else { continue }
+            let phrase = row.value
+            let phone = row.reading
 
             // 使用 UnigramKey 進行去重檢查
             let key = ReadingWordPair(phrase: phrase, phone: phone)
@@ -488,13 +575,14 @@ extension VCDataBuilder.Unigram {
               }) else { continue }
             }
 
-            // 建立 Unigram
+            // 建立 Unigram（`#NERFED` 列之頻次由 Unigram 強制歸零）
             let newUnigram = Self(
               key: phone,
               value: phrase,
               score: 0.0,
-              count: occurrence,
-              category: type
+              count: row.count,
+              category: type,
+              isNerfed: row.isNerfed
             )
 
             unigramTable[type, default: [:]][phone, default: []].insert(newUnigram)

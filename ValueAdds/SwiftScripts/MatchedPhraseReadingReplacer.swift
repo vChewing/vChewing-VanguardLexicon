@@ -43,8 +43,10 @@ func shouldOmit(line givenLine: inout String) -> Bool {
   cells.removeFirst(1)
   valueAndFreq.append(cells[0])
   cells.removeFirst(1)
-  if let cellsLast = cells.last, cellsLast.hasPrefix("#") {
-    cells.removeLast()
+  // 行尾之旗標格（`#` 起首，如 `#NERFED`）不屬讀音，改寫後須逐格保留。
+  var flagCells = [String]()
+  while let cellsLast = cells.last, cellsLast.hasPrefix("#") {
+    flagCells.insert(cells.removeLast(), at: 0)
   }
   guard cells.count == valueCell.count else {
     print("skipping line: \(givenLine)")
@@ -58,7 +60,7 @@ func shouldOmit(line givenLine: inout String) -> Bool {
     }
   }
   if altered {
-    givenLine = (valueAndFreq + cells).joined(separator: " ")
+    givenLine = (valueAndFreq + cells + flagCells).joined(separator: " ")
   }
   return !altered
 }

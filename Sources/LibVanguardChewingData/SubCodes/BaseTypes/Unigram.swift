@@ -15,23 +15,28 @@ extension VCDataBuilder {
       value: String,
       score: Double,
       count: Int,
-      category: Category
+      category: Category,
+      isNerfed: Bool = false
     ) {
       self.key = key
       self.value = value
       self.score = score
-      self.count = count
+      self.count = isNerfed ? 0 : count
       self.type = category
+      self.isNerfed = isNerfed
       self.timestamp = VCDataBuilder.Unigram.nextStableSerial()
     }
 
     public required init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
+      let decodedCount = try container.decode(Int.self, forKey: .count)
+      let decodedNerfed = try container.decodeIfPresent(Bool.self, forKey: .isNerfed) ?? false
       self.key = try container.decode(String.self, forKey: .key)
       self.value = try container.decode(String.self, forKey: .value)
       self.score = try container.decode(Double.self, forKey: .score)
-      self.count = try container.decode(Int.self, forKey: .count)
+      self.count = decodedNerfed ? 0 : decodedCount
       self.type = try container.decode(Category.self, forKey: .category)
+      self.isNerfed = decodedNerfed
       self.timestamp = try container.decodeIfPresent(Double.self, forKey: .timestamp)
         ?? VCDataBuilder.Unigram.nextStableSerial()
     }
@@ -58,18 +63,33 @@ extension VCDataBuilder {
 
     public static let naturalE: Double = exp(1.0)
 
+    /// NERF 旗標（`#NERFED`）之懲戒權重：與 LibVanguard 側「保險單元圖」同值。
+    ///
+    /// 遠低於任何真實單元圖（理想範圍 `[-9.5, 0]`），故帶此權重之詞條在組句時
+    /// 除「唯一結果」外不會被取用。
+    public static let nerfedWeight: Double = -114.514
+
     public let key: String
     public let value: String
     public private(set) var score: Double = -1.0
+    /// 出現次數。帶 `#NERFED` 旗標者恆為 0。
     public let count: Int
     public let type: Category
+    /// 是否帶 `#NERFED` 旗標（懲戒詞條）。
+    public let isNerfed: Bool
     public let timestamp: Double
 
     public var keyValueHash: Int {
       "\(key)\t\(value)".hashValue
     }
 
+    /// 詞頻折算之增量：`weighten` 之前那次全域盤點（`Collector.norm`）的加總項。
+    ///
+    /// 帶 `#NERFED` 旗標者**無權參與**此統計：其頻次只是「此詞不得勝出」之標記，
+    /// 不是樣本證據，故與 `.custom`／`.misc` 同樣回傳 `nil`。**不得**只靠「頻次恰為 0、
+    /// 乘出來剛好是 0」這個副作用來排除——頻次政策一旦調整，`_NORM` 就會靜默膨脹。
     public var normDelta: Double? {
+      guard !isNerfed else { return nil }
       switch type {
       case .macv: break
       case .tabe: break
@@ -86,7 +106,7 @@ extension VCDataBuilder {
     }
 
     public var description: String {
-      "(\(key), \(value), \(score), \(type)"
+      "(\(key), \(value), \(score), \(type)\(isNerfed ? ", NERFED" : "")"
     }
 
     public var keyCells: [String] {
@@ -108,6 +128,7 @@ extension VCDataBuilder {
       hasher.combine(score)
       hasher.combine(count)
       hasher.combine(type)
+      hasher.combine(isNerfed)
       hasher.combine(timestamp)
     }
 
@@ -118,10 +139,19 @@ extension VCDataBuilder {
       try container.encode(score, forKey: .score)
       try container.encode(count, forKey: .count)
       try container.encode(type, forKey: .category)
+      try container.encode(isNerfed, forKey: .isNerfed)
       try container.encode(timestamp, forKey: .timestamp)
     }
 
+    /// 折算權重。
+    ///
+    /// 帶 `#NERFED` 旗標者不參與正規化折算：其頻次恆為 0，若照 count 0 之分支折算，
+    /// 只會得到約 -11 的普通低頻權重。
     public func weighten(norm: Double) {
+      guard !isNerfed else {
+        score = Self.nerfedWeight
+        return
+      }
       var weight: Double = 0
       switch count {
       case -2: // 拗音假名
@@ -173,6 +203,7 @@ extension VCDataBuilder {
       case score = "s"
       case count = "c"
       case category = "t"
+      case isNerfed = "n"
       case timestamp = "d"
     }
 

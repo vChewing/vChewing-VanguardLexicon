@@ -133,6 +133,9 @@ extension VCDataBuilder.Collector {
     var unigramPolyChars = [VCDataBuilder.Unigram]()
     data.forEach { neta in
       // 核心字詞庫的內容頻率一般大於 -10，但也得考慮某些包含假名的合成詞。
+      // 帶 `#NERFED` 旗標者係刻意懲戒之詞條（權重恆為 -114.514）：其分數不參與
+      // 「是否被自身成分奪權」之統計，亦不得成為其他詞條的奪權來源。
+      guard !neta.isNerfed else { return }
       guard neta.score > -14 else { return }
       valueToScore[neta.value] = max(neta.score, valueToScore[neta.value] ?? -14)
       let phoneCells = neta.keyCells
@@ -352,7 +355,9 @@ extension VCDataBuilder.Collector {
     guard components.count > readingFieldIndex else { return nil }
 
     let phrase = components[0]
-    let reading = components[readingFieldIndex...].joined(separator: "-")
+    // 旗標（`#` 起首之格）不屬讀音：帶 `#NERFED` 之列與未帶者仍是同一個詞音配對。
+    let reading = components[readingFieldIndex...].prefix { $0.first != "#" }
+      .joined(separator: "-")
     guard !phrase.isEmpty, !reading.isEmpty else { return nil }
 
     return DuplicateRecord(

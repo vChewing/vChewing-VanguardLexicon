@@ -235,6 +235,14 @@ extension VCDataBuilder.Unigram {
       /// 欄界是「一段空白」（空格或 TAB 均可摺疊）；欄內不得再有空白：
       /// 讀音以 `-` 連接、前驗詞鏈以 `|` 連接。故編輯器把 TAB 換成空格也不影響語意。
       let cells = line.split(whereSeparator: \.isWhitespace).map(String.init)
+      // NERF 旗標只屬於單元圖詞列（`phrases-*.txt`）：n-gram 列之權重是條件機率，
+      // 沒有「頻次恆 0、權重恆 -114.514」這種語義。故此處出現即報錯——**不得**當成
+      // 第 6 欄之註解靜默略過，否則該列看似已被懲戒、實則照舊參與組句。
+      if let nerfCell = cells.first(where: { VCDataBuilder.PhraseFlag(cell: $0)?.isNerfed == true }) {
+        throw VCDataBuilder.Exception.errMsg(
+          "n-gram 第 \(lineNumber) 行：n-gram 列不支援 `\(nerfCell)`（該旗標只屬於單元圖詞列 `phrases-*.txt`）。"
+        )
+      }
       guard (4 ... 6).contains(cells.count) else {
         throw VCDataBuilder.Exception.errMsg(
           "n-gram 第 \(lineNumber) 行：欄數為 \(cells.count)，應為 4 至 6 欄；欄界是空白，但欄內不得再有空白——讀音請以 `-` 連接、前驗詞鏈請以 `|` 連接。該行開頭：\(line.prefix(40))"

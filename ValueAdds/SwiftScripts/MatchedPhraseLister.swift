@@ -38,7 +38,8 @@ func shouldOmit(line givenLine: inout String) -> Bool {
     return true
   }
   cells.removeFirst(2)
-  if let cellsLast = cells.last, cellsLast.hasPrefix("#") {
+  // 行尾之旗標格（`#` 起首，如 `#NERFED`）不屬讀音，可有多格。
+  while let cellsLast = cells.last, cellsLast.hasPrefix("#") {
     cells.removeLast()
   }
   guard cells.count == valueCell.count else {

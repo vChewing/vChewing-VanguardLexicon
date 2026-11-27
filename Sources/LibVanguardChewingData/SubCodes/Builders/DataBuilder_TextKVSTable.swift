@@ -47,7 +47,7 @@ extension VCDataBuilder.TextKVSTableDataBuilder {
       (lhs.key, rhs.score, lhs.timestamp) < (rhs.key, lhs.score, rhs.timestamp)
     }
     grams.forEach { gram in
-      resultString.append("\(gram.key) \(gram.value) \(gram.score)")
+      resultString.append(Self.makeLine(for: gram))
       resultString.append("\n")
     }
 
@@ -73,5 +73,15 @@ extension VCDataBuilder.TextKVSTableDataBuilder {
   /// 純文字表不需要額外的後編譯步驟。
   public func performPostCompilation() async throws {
     print("Data compilation succeeded for the text KVS table.")
+  }
+
+  /// 組一列 KVS：`key value score`。
+  ///
+  /// 帶 `#NERFED` 旗標之詞條另附第 4 欄 `#NERFED`——本格式之第 4 欄起、以 `#` 起首者
+  /// 係旗標／註解（同 n-gram 列之 `#NGRAM:前文鏈`），消費端可據以區分「刻意懲戒」
+  /// 與「單純權重低」。
+  static func makeLine(for gram: VCDataBuilder.Unigram) -> String {
+    let flagCell = gram.isNerfed ? " #NERFED" : ""
+    return "\(gram.key) \(gram.value) \(gram.score)\(flagCell)"
   }
 }

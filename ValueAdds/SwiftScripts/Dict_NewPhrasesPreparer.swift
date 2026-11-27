@@ -77,6 +77,8 @@ struct Phrase {
   /// 使用者以「就地降頻」壓到懲戒權重（`-114.514`）者：匯出為 `#NERFED` 列。
   /// 此類列之頻次一律 0，產製端逕給 `-114.514`，不經正規化折算。
   var isNerfed = false
+  /// 診斷（nil＝合格）。有值者不匯出，改列於 lint 段。
+  var issue: String?
 
   var reportAsCells: [String] {
     [
@@ -182,7 +184,12 @@ func makeUnigrams(from rawString: String) -> [Phrase] {
       switch weightValue {
       case ...nerfFloorWeight: // 已被就地降頻至地板 ⇒ `#NERFED` 列。
         phrase.count = 0
-        phrase.isNerfed = true
+        if phrase.text.count == 1 {
+          // 單字詞條由 `char-kanji-core` 供應且不吃旗標：標了也不會生效（產製端會拒絕），故不匯出。
+          phrase.issue = "單字詞條不適用 #NERFED（由 char-kanji-core 供應）；請改頻次或刪列"
+        } else {
+          phrase.isNerfed = true
+        }
       case ..<0: phrase.count = 2
       default: phrase.count = phrase.isOverridden ? 4_444_444 : 4
       }
@@ -235,6 +242,7 @@ extension Array where Element == Phrase {
       )
     result.append("\n")
     forEach { phrase in
+      guard phrase.issue == nil else { return }
       result
         .append(
           bare ? phrase.reportAsBareCells.joined(separator: "\t") : phrase.reportAsCells
@@ -264,6 +272,11 @@ func emit(label: String, unigrams: [Phrase], ngrams: [NGramRow], tags: [String])
     } else {
       print("# 略過：\(row.value)（\(row.issue ?? "無法換算次數")）")
     }
+  }
+  let unigramIssues = unigrams.filter { $0.issue != nil }
+  if !unigramIssues.isEmpty {
+    print("// ── lint：以下 \(unigramIssues.count) 條單元圖列有問題（未匯出）──")
+    unigramIssues.forEach { print("//   \($0.text)：\($0.issue ?? "")") }
   }
   let issues = ngrams.filter { $0.issue != nil }
   if !issues.isEmpty {

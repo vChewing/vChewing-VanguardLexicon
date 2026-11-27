@@ -197,6 +197,22 @@ struct PhraseNerfFlagTests {
     #expect(groups.first?.signature == "不下\tㄅㄨˋ-ㄒㄧㄚˋ")
   }
 
+  @Test("`#NERFED` 不適用於單字詞條：明示拒絕，未帶旗標者照舊")
+  func singleCharacterNerfIsRejected() throws {
+    for raw in ["迤 0 ㄧˇ #NERFED", "〇 0 ㄌㄧㄥˊ #NERFED"] {
+      do {
+        _ = try VCDataBuilder.Unigram.parsePhraseRow(raw)
+        Issue.record("單字詞條之 `#NERFED` 應被拒絕：\(raw)")
+      } catch let error as VCDataBuilder.PhraseRowParseError {
+        #expect(error.reason.contains("multi-character"))
+      }
+    }
+    // 未帶旗標之單字列不受影響（單字之收錄與否是資料層的事）。
+    let plain = try #require(try VCDataBuilder.Unigram.parsePhraseRow("迤 41 ㄧˇ"))
+    #expect(plain.count == 41)
+    #expect(!plain.isNerfed)
+  }
+
   @Test("零頻次權重恆高於懲戒權重（故跨軌不得以零頻次權重取代之）")
   func zeroCountWeightStaysAboveNerfWeight() {
     // 跨軌投影所用的零頻次權重係長度之函數；任何長度都不得低於 -114.514，

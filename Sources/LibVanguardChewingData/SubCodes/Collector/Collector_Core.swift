@@ -303,6 +303,14 @@ extension VCDataBuilder.Unigram {
       readingCells.append(cell)
     }
 
+    // `#NERFED` 只適用於多字詞：單字詞條一律由 `char-kanji-core`（及 CNS／GBEX）供應，
+    // 且那些列不吃旗標——於詞列標單字旗標，輕則被重複健檢擋下、重則看似生效而其實不然。
+    guard !(isNerfed && phrase.count == 1) else {
+      throw VCDataBuilder.PhraseRowParseError(
+        reason: "`#NERFED` only applies to multi-character entries: single-character entries are supplied by char-kanji-core, whose rows take no flags. Adjust the frequency or remove the row instead."
+      )
+    }
+
     let phone = readingCells.joined(separator: "-")
     guard !phrase.isEmpty, !phone.isEmpty else { return nil }
     return VCDataBuilder.PhraseRow(

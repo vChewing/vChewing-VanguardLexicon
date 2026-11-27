@@ -86,6 +86,26 @@ private enum Fixture {
   ㄍㄢˋ-ㄍㄜ\t4\t1
   """
 
+  /// `#NERFED` 之跨軌測試用：同一 `@` 行、兩側詞條共用該行機率（-114.514）。
+  ///
+  /// 另備兩個單音節之 nerf 詞條，使「唯一結果仍可出詞」得以在組句層驗證
+  /// （兩字之組句路徑 -114.514 勝過逐字之 -229.028）。
+  static let nerfed = """
+  VERSION 2.0
+  TYPE TYPING
+  READING_SEPARATOR -
+  KEY_COUNT 3
+  #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+  _NORM\t374388831.9686408\t2
+  @-114.514\t迤逦\t迆邐|迤邐
+  @-114.514\t迤\t迤
+  @-114.514\t邐\t邐
+  #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+  ㄧˇ-ㄌㄧˇ\t1\t1
+  ㄧˇ\t2\t1
+  ㄌㄧˇ\t3\t1
+  """
+
   static func write(_ contents: String, name: String) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("YukuakiTests-\(name)-\(UUID().uuidString).txtMap")
@@ -638,10 +658,43 @@ struct VanguardTextMapReaderLocaleTests {
     #expect(reader.crossLaneValueCount == 1)
   }
 
+  @Test("`#NERFED` 之列：另一軌的同列詞條沿用該行機率，不得被零頻次權重抬升")
+  func nerfWeightIsInheritedByCrossLane() throws {
+    for locale in [VanguardTextMapReader.Locale.cht, .chs] {
+      let reader = try makeReader(locale, fixture: Fixture.nerfed, suffix: "nerfed")
+      let grams = reader.grams(forKeys: ["ㄧˇ-ㄌㄧˇ"])
+      #expect(Set(grams.map(\.current)) == ["迤逦", "迆邐", "迤邐"])
+      // 三條皆為懲戒權重；另一軌那一條若走零頻次式會是 -9.3201。
+      #expect(grams.allSatisfy { $0.probability == -114.514 })
+      // 繁軌之另一側是「迤逦」一條；簡軌之另一側是「迆邐」「迤邐」兩條。
+      #expect(reader.crossLaneValueCount == (locale == .cht ? 1 : 2))
+    }
+  }
+
+  @Test("`#NERFED` 之鍵仍可組出一條：唯一結果不受影響")
+  func nerfedOnlyKeyStillAssembles() throws {
+    let reader = try makeReader(.cht, fixture: Fixture.nerfed, suffix: "nerfed-assemble")
+    let assembler = Yukuaki.Assembler(
+      gramQuerier: { [reader] keys in reader.grams(forKeys: keys.representativeKeys) },
+      gramAvailabilityChecker: { [reader] keys in reader.hasGrams(forKeys: keys) },
+      config: Yukuaki.Config(maxSegLength: 10)
+    )
+    try assembler.insertKeys(["ㄧˇ", "ㄌㄧˇ"].map { Yukuaki.PossibleKey.singleKey($0) })
+    let outcome = assembler.assembleWithScore()
+    #expect(["迤逦", "迆邐", "迤邐"].contains(outcome.path.joinedSentence))
+    #expect(outcome.score == -114.514)
+  }
+
   // MARK: Private
 
-  private func makeReader(_ locale: VanguardTextMapReader.Locale) throws -> VanguardTextMapReader {
-    let url = try Fixture.write(Fixture.localized, name: "locale-\(locale.rawValue)")
+  private func makeReader(
+    _ locale: VanguardTextMapReader.Locale,
+    fixture: String = Fixture.localized,
+    suffix: String? = nil
+  )
+    throws -> VanguardTextMapReader {
+    let name = "locale-\(locale.rawValue)-\(suffix ?? "default")"
+    let url = try Fixture.write(fixture, name: name)
     return try VanguardTextMapReader(url: url, locale: locale)
   }
 }

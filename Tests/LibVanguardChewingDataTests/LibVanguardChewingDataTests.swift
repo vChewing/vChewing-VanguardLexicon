@@ -302,7 +302,7 @@ struct NgramRecordsTests {
 struct VanguardTextMapBuilderContextualTests {
   // MARK: Internal
 
-  @Test("同值同語系才組 D，且 17 筆拆成 15＋2")
+  @Test("同值同語系才組 D、17 筆拆成 15＋2；NERF 之兩軌同分落同一 `@` 行")
   func buildsGroupedContextualLines() async throws {
     let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
     let trie = builder.mutexTrie4Typing.value
@@ -373,6 +373,21 @@ struct VanguardTextMapBuilderContextualTests {
     #expect(lines.map { ($0.components(separatedBy: "\t").count - 2) / 2 } == [15, 2])
     #expect(chunked.contains("ENTRY_COUNT\t2\n"))
     #expect(keyMapLine(from: chunked, forKey: "ㄗㄞˋ") == "ㄗㄞˋ\t0\t2")
+
+    // NERF：兩軌同分（`-114.514`）者必落同一條 `@` 行——`VanguardTextMapReader` 之
+    // 跨軌投影即以此為前提（同一行的兩格共用該行機率）。插入次序刻意 CHS 先、CHT 後。
+    trie.clearAllContents()
+    for (value, typeID) in [("迤逦", 5), ("迤邐", 6)] {
+      trie.insert(
+        entry: .init(
+          value: value,
+          typeID: .init(rawValue: Int32(typeID)),
+          probability: VCDataBuilder.Unigram.nerfedWeight
+        ),
+        readingsEncrypted: ["ㄧˇ-ㄌㄧˇ"]
+      )
+    }
+    #expect(valueLines(from: try await render()) == ["@-114.514\t迤逦\t迤邐"])
   }
 
   // MARK: Private

@@ -208,7 +208,7 @@ final class VanguardTextMapReader {
         .init(
           keyArray: keys,
           current: value,
-          probability: crossLaneWeight(for: value, fallback: probability)
+          probability: crossLaneWeight(for: value, lineProbability: probability)
         )
       )
     }
@@ -217,12 +217,18 @@ final class VanguardTextMapReader {
 
   /// 「僅存在於另一語系軌」之詞條的權重。
   ///
-  /// 沿用 `Collector` 對頻次 0 的計分式 `log10(e^(字數/3 − 1) × 0.25 / norm)`，與
-  /// txtMap 自身的 count-0 桶同式（故單字得 -9.465 之流），字數愈長罰得愈輕。
-  /// 詞庫缺少 `_NORM` 時無從計分，直接沿用該行機率。
-  private func crossLaneWeight(for value: String, fallback: Double) -> Double {
-    guard let norm, norm > 0 else { return fallback }
-    return log10(exp(Double(value.count) / 3 - 1) * 0.25 / norm)
+  /// 語系軌是**權重偏好、不是過濾**：另一軌的詞條仍可選，只是改以該軌的零頻次權重計分
+  /// （`log10(e^(字數/3 − 1) × 0.25 / norm)`，與 txtMap 自身的 count-0 桶同式，故單字
+  /// 得 -9.465 之流、字數愈長罰得愈輕）。詞庫缺少 `_NORM` 時無從計分，直接沿用該行機率。
+  ///
+  /// **只准降級、不准升級**：同一個 `@` 行的兩格共用該行機率，故另一軌的詞條在該行的
+  /// 真實權重就是 `lineProbability`。被 `#NERFED` 之列（-114.514）若套上零頻次權重，
+  /// 反而會被抬成 -9.32 之流、令懲戒失效——故取兩者之較低者。一般列不受影響：其機率
+  /// 恆高於同長度之零頻次權重，`min` 取到的仍是零頻次權重。
+  private func crossLaneWeight(for value: String, lineProbability: Double) -> Double {
+    guard let norm, norm > 0 else { return lineProbability }
+    let zeroCountWeight = log10(exp(Double(value.count) / 3 - 1) * 0.25 / norm)
+    return min(zeroCountWeight, lineProbability)
   }
 
   private func validateAllValueLines() throws {

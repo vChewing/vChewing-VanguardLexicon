@@ -197,6 +197,24 @@ struct PhraseNerfFlagTests {
     #expect(groups.first?.signature == "不下\tㄅㄨˋ-ㄒㄧㄚˋ")
   }
 
+  @Test("零頻次權重恆高於懲戒權重（故跨軌不得以零頻次權重取代之）")
+  func zeroCountWeightStaysAboveNerfWeight() {
+    // 跨軌投影所用的零頻次權重係長度之函數；任何長度都不得低於 -114.514，
+    // 否則 `#NERFED` 之列會在那條路徑上被「升級」。
+    let norm = 374_373_670.8826403
+    for length in 1 ... 6 {
+      let probe = VCDataBuilder.Unigram(
+        key: "probe",
+        value: String(repeating: "字", count: length),
+        score: 0,
+        count: 0,
+        category: .moe
+      )
+      probe.weighten(norm: norm)
+      #expect(probe.score > VCDataBuilder.Unigram.nerfedWeight)
+    }
+  }
+
   @Test("被 nerf 之詞條無權參與 NORM 統計")
   func nerfedEntriesStayOutOfNorm() throws {
     func gram(count: Int, isNerfed: Bool) -> VCDataBuilder.Unigram {

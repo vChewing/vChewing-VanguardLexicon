@@ -97,9 +97,13 @@ value\tprobability\ttypeID[\tprevious]
 
 ### EntryType rawValue 對照表
 
+> - `_VENDOR` 參數為可選。先鋒語料庫原始倉庫建置的資料的預設值為 `_VENDOR_PLACEHOLDER`。第三方辭典提供者必須在此欄位的 VALUE 填寫資料生產提供方。
+> - `_COMMIT_HASH` 參數為可選。先鋒語料庫原始倉庫建置的資料的預設值為 `_COMMIT_HASH_PLACEHOLDER`。第三方辭典提供者亦可複用該欄位記錄某些與資料有關的指紋 HASH。
+> - 官方建置管線（`vChewing-macOS` 之現代與 legacy 兩鏈）於簽名前把上述兩個佔位符分別換成 lexicon pin 之 tag SHA 與簽名者之 Apple Developer Team ID；取不到 Team ID 時，`_VENDOR` 之 VALUE 落 `VANGUARDLEXICON`。
+
 | rawValue | 名稱 | 說明 |
 |----------|------|------|
-| 2 | meta | 建構元資料（`_BUILD_TIMESTAMP`、`_NORM`） |
+| 2 | meta | 建構元資料（`_BUILD_TIMESTAMP`、`_NORM`、`_VENDOR`、`_COMMIT_HASH`） |
 | 3 | revLookup | 保留給 legacy / 非 TextMap 反查資料結構；現行 `vanguardTextMap` 輸出不使用 |
 | 4 | letterPunctuations | 標點符號 |
 | 5 | chs | 簡體中文 |

@@ -101,6 +101,9 @@ struct TxtMapUnigramIndex {
         guard tabCount == 2 else { continue } // 帶前驗詞鏈者不是單元圖。
         if head == "_NORM" { norm = probability; continue }
         if head == "_BUILD_TIMESTAMP" { timestamp = probability; continue }
+        // 其餘 meta 條目（`_VENDOR`／`_COMMIT_HASH` 等）之 VALUE 在消費端蓋章後不再以
+        // `_` 起首，故不能只靠 `isSegmentationEligible` 擋；一律按 typeID 排除。
+        if fields[2] == "2" { continue }
         guard Self.isSegmentationEligible(head) else { continue }
         Self.insert(value: head, probability: probability, reading: reading, into: &table)
       }

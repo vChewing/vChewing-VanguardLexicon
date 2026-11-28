@@ -149,6 +149,25 @@ extension VCDataBuilder.TriePreparatorProtocol {
       trie4Rev.insert(entry: dateEntry, readings: [dateEntryKey])
     }
 
+    // `_VENDOR` 與 `_COMMIT_HASH` 皆為可選之 meta 欄位：原始語料庫建置時先寫入佔位符，
+    // 由消費端之建置管線於簽名前按實際產製者與 lexicon pin 改寫。第三方辭典提供者可
+    // 直接覆寫 VALUE，或省略這兩個欄位。
+    let vendorEntryKey = "_VENDOR"
+    let vendorEntry = VanguardTrie.Trie.Entry(
+      value: "_VENDOR_PLACEHOLDER",
+      typeID: .meta,
+      probability: 0
+    )
+    trie4Typing.insert(entry: vendorEntry, readings: [vendorEntryKey])
+
+    let commitHashEntryKey = "_COMMIT_HASH"
+    let commitHashEntry = VanguardTrie.Trie.Entry(
+      value: "_COMMIT_HASH_PLACEHOLDER",
+      typeID: .meta,
+      probability: 0
+    )
+    trie4Typing.insert(entry: commitHashEntry, readings: [commitHashEntryKey])
+
     await withTaskGroup(of: Void.self) { group in
       if shouldPrepareRevLookupTrie {
         group.addTask { [self] in

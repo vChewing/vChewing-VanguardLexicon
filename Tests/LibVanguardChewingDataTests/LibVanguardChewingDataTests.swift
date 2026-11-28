@@ -66,6 +66,31 @@ func testTrie() async throws {
 }
 
 @Test
+func testTextMapBuilderEmitsVendorAndCommitHashMeta() async throws {
+  let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
+  let trie = builder.mutexTrie4Typing.value
+
+  for (key, placeholder) in [
+    ("_VENDOR", "_VENDOR_PLACEHOLDER"),
+    ("_COMMIT_HASH", "_COMMIT_HASH_PLACEHOLDER"),
+  ] {
+    let node = try #require(trie.nodes.values.first { $0.readingKey == key })
+    #expect(node.entries.count == 1)
+    let entry = try #require(node.entries.first)
+    #expect(entry.typeID == .meta)
+    #expect(entry.value == placeholder)
+    #expect(entry.probability == 0)
+  }
+
+  let iterator = try await builder.getIteratorForLexiconAssemblyTask()
+  var data = Data()
+  for try await chunk in iterator { data.append(chunk.data) }
+  let textMap = try #require(String(data: data, encoding: .utf8))
+  #expect(textMap.contains("_VENDOR_PLACEHOLDER\t0\t2\n"))
+  #expect(textMap.contains("_COMMIT_HASH_PLACEHOLDER\t0\t2\n"))
+}
+
+@Test
 func testTextMapBuilderEmitsTypingFileOnly() async throws {
   let builder = try #require(await VCDataBuilder.VanguardTextMapDataBuilder(isCHS: nil))
   let iterator = try await builder.getIteratorForLexiconAssemblyTask()

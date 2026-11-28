@@ -208,6 +208,33 @@ struct TxtMapVersionAndTypeDTests {
   }
 
   @Test
+  func stampedMetaValuesDoNotEnterUnigramIndex() throws {
+    // 消費端蓋章後，`_VENDOR`／`_COMMIT_HASH` 的 VALUE 不再以 `_` 起首；
+    // 仍須按 typeID 排除，否則 SHA 與 Team ID 會被當成詞條。
+    let contents = """
+    VERSION\t2.0
+    READING_SEPARATOR\t-
+    #PRAGMA:VANGUARD_HOMA_LEXICON_VALUES
+    _NORM\t1000\t2
+    f2a01908b7f513b11bef140cc081e44140e6c329\t0\t2
+    WEY3MS268C\t0\t2
+    北京\t-2\t1
+    #PRAGMA:VANGUARD_HOMA_LEXICON_KEY_LINE_MAP
+    _norm\t0\t1
+    _COMMIT_HASH\t1\t1
+    _VENDOR\t2\t1
+    ㄅㄟˇ-ㄐㄧㄥ\t3\t1
+    """
+    let url = try write(contents)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let index = try TxtMapUnigramIndex(url: url)
+    #expect(index.valueCount == 1)
+    #expect(index.probability(of: "北京") == -2)
+    #expect(index.unigram("f2a01908b7f513b11bef140cc081e44140e6c329") == nil)
+    #expect(index.unigram("WEY3MS268C") == nil)
+  }
+
+  @Test
   func versionMustBeExplicit20() throws {
     for version in [nil, "VERSION\t2.1"] {
       var lines = [String]()
